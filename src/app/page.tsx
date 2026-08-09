@@ -9,10 +9,10 @@ export default async function Home() {
       <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
         Video-Max
       </h1>
-      
+
       {session ? (
         <div className="text-center space-y-4 p-8 bg-zinc-900/50 backdrop-blur-md rounded-2xl border border-zinc-800 shadow-2xl">
-          <p className="text-zinc-400">Autenticado como: <span className="text-white font-medium">{session.user?.email}</span></p>
+          <p className="text-zinc-400">Autenticado(a) com: <span className="text-white font-medium">{session.user?.email}</span></p>
           <form
             action={async () => {
               "use server";

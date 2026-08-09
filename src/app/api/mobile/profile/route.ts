@@ -24,6 +24,7 @@ export async function GET(req: Request) {
     const user = await prisma.user.findUnique({
       where: { id: decoded.id as string },
       select: {
+        id: true,
         name: true,
         image: true,
         chatColor: true

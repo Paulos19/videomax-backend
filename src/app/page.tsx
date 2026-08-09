@@ -1,39 +1,48 @@
 import Link from "next/link";
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 export default async function Home() {
   const session = await auth();
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-zinc-100 space-y-8 px-4">
-      <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-        Video-Max
-      </h1>
+  if (session) {
+    redirect("/dashboard");
+  }
 
-      {session ? (
-        <div className="text-center space-y-4 p-8 bg-zinc-900/50 backdrop-blur-md rounded-2xl border border-zinc-800 shadow-2xl">
-          <p className="text-zinc-400">Autenticado(a) com: <span className="text-white font-medium">{session.user?.email}</span></p>
-          <form
-            action={async () => {
-              "use server";
-              await signOut();
-            }}
-          >
-            <button type="submit" className="w-full px-4 py-2 bg-red-600/90 hover:bg-red-600 rounded-lg shadow-md transition-colors font-medium">
-              Sair (Logout)
-            </button>
-          </form>
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-room-bg text-room-text px-4">
+      <div className="text-center space-y-8 max-w-md">
+        {/* Logo */}
+        <div className="space-y-3">
+          <div className="w-16 h-16 rounded-2xl bg-room-accent flex items-center justify-center mx-auto">
+            <span className="text-white font-bold text-2xl">VM</span>
+          </div>
+          <h1 className="text-4xl font-bold">
+            <span className="bg-gradient-to-r from-room-accent to-room-accent-secondary bg-clip-text text-transparent">
+              Video Max
+            </span>
+          </h1>
+          <p className="text-room-text-secondary text-sm">
+            Assista vídeos sincronizados com seus amigos em salas compartilhadas.
+          </p>
         </div>
-      ) : (
-        <div className="flex gap-4">
-          <Link href="/login" className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md transition-colors font-medium">
+
+        {/* CTA */}
+        <div className="flex flex-col gap-3">
+          <Link
+            href="/login"
+            className="w-full px-6 py-3 bg-room-accent hover:bg-room-accent/90 rounded-xl shadow-lg shadow-room-accent/20 transition-all font-medium text-white text-sm active:scale-[0.98] text-center"
+          >
             Entrar
           </Link>
-          <Link href="/register" className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg transition-colors font-medium">
-            Cadastrar
+          <Link
+            href="/register"
+            className="w-full px-6 py-3 bg-room-surface hover:bg-room-surface-2 border border-room-border rounded-xl transition-all font-medium text-room-text text-sm text-center"
+          >
+            Criar conta
           </Link>
         </div>
-      )}
+      </div>
     </div>
   );
 }

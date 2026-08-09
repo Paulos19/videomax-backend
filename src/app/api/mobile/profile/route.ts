@@ -4,16 +4,21 @@ import { decode } from "next-auth/jwt"
 
 export async function GET(req: Request) {
   try {
+    const secret = process.env.NEXTAUTH_SECRET
+    if (!secret) {
+      return NextResponse.json({ error: "Configuração de servidor incompleta." }, { status: 500 })
+    }
+
     const authHeader = req.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 })
     }
 
     const tokenString = authHeader.split(' ')[1]
-    
+
     const decoded = await decode({
       token: tokenString,
-      secret: process.env.NEXTAUTH_SECRET || "secret_for_development_replace_later",
+      secret,
       salt: "authjs.session-token"
     })
 

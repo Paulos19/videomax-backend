@@ -2,15 +2,28 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { encode } from "next-auth/jwt"
+import { z } from "zod"
+
+const LoginSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(1, "Senha é obrigatória"),
+})
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { email, password } = body
-
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email e senha são obrigatórios." }, { status: 400 })
+    const secret = process.env.NEXTAUTH_SECRET
+    if (!secret) {
+      return NextResponse.json({ error: "Configuração de servidor incompleta." }, { status: 500 })
     }
+
+    const body = await req.json()
+    const result = LoginSchema.safeParse(body)
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 })
+    }
+
+    const { email, password } = result.data
 
     const user = await prisma.user.findUnique({
       where: { email }
@@ -26,14 +39,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 })
     }
 
-    // Gera um token JWT usando a mesma chave do NextAuth (Auth.js)
     const token = await encode({
       token: {
         id: user.id,
         email: user.email,
         name: user.name,
       },
-      secret: process.env.NEXTAUTH_SECRET || "secret_for_development_replace_later",
+      secret,
       salt: "authjs.session-token"
     })
 

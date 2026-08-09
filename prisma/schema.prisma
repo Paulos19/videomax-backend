@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,26 +7,34 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  password      String?
-  image         String?
-  chatColor     String?   @default("#4f46e5")
-  
-  // Datas e relacionamentos
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  videos        Video[]
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chatColor String?  @default("#4f46e5")
+  videos    Video[]
+  folders   Folder[]
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videos    Video[]
 }
 
 model Video {
-  id            String    @id @default(cuid())
-  title         String
-  url           String
-  
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt     DateTime  @default(now())
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  userId    String
+  folderId  String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
 }

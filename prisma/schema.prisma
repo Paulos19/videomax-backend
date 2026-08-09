@@ -17,6 +17,7 @@ model User {
   email         String    @unique
   password      String?
   image         String?
+  chatColor     String?   @default("#4f46e5")
   
   // Datas e relacionamentos
   createdAt     DateTime  @default(now())

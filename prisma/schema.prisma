@@ -21,4 +21,16 @@ model User {
   // Datas e relacionamentos
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  videos        Video[]
+}
+
+model Video {
+  id            String    @id @default(cuid())
+  title         String
+  url           String
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime  @default(now())
 }

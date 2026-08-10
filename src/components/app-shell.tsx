@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Home, Film, User, LogOut, Menu, X, Plus,
-  PanelLeftClose, PanelLeftOpen, Play
+  PanelLeftClose, PanelLeftOpen, Play, Users
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import { toast } from 'sonner'
+import io from 'socket.io-client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+
+const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'https://services-videomax-websocket.khdya3.easypanel.host/'
 
 interface AppShellProps {
   user?: {
@@ -23,11 +27,13 @@ interface AppShellProps {
 const navItems = [
   { href: '/dashboard', label: 'Início', icon: Home },
   { href: '/dashboard/videos', label: 'Vídeos', icon: Film },
+  { href: '/dashboard/friends', label: 'Amigos', icon: Users },
   { href: '/profile', label: 'Perfil', icon: User },
 ]
 
 export function AppShell({ user, children }: AppShellProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
 
@@ -37,6 +43,52 @@ export function AppShell({ user, children }: AppShellProps) {
   }, [mobileOpen])
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
+
+  // Real-time notification listener
+  useEffect(() => {
+    if (!user) return
+    const socket = io(SOCKET_SERVER_URL)
+
+    socket.on('connect', () => {
+      fetch('/api/mobile/profile').then(r => r.json()).then(data => {
+        if (data?.user?.id) {
+          socket.emit('join-user-room', { userId: data.user.id })
+        }
+      }).catch(() => {})
+    })
+
+    socket.on('friend-request-received', (data: { senderName: string }) => {
+      toast.info(`Novo pedido de amizade de ${data.senderName}!`, {
+        action: {
+          label: 'Ver pedidos',
+          onClick: () => router.push('/dashboard/friends')
+        }
+      })
+    })
+
+    socket.on('friend-request-accepted', (data: { receiverName: string }) => {
+      toast.success(`${data.receiverName} aceitou seu pedido de amizade!`, {
+        action: {
+          label: 'Ver amigos',
+          onClick: () => router.push('/dashboard/friends')
+        }
+      })
+    })
+
+    socket.on('room-invite-received', (data: { senderName: string; roomCode: string }) => {
+      toast.info(`${data.senderName} convidou você para assistir na sala ${data.roomCode}!`, {
+        action: {
+          label: 'Entrar na Sala',
+          onClick: () => router.push(`/room/${data.roomCode}`)
+        },
+        duration: 10000
+      })
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [user, router])
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard' || pathname === '/'

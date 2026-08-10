@@ -100,6 +100,19 @@ export function useSocket(roomId: string) {
         setMessages((prev) => [...prev, msgWithTime])
       })
 
+      // Server sends full room user list when we join — replaces our local-only list
+      newSocket.on('room-users', (users: Array<{ userId: string; userName: string; userImage?: string }>) => {
+        if (cancelled) return
+        const updatedViewers: Viewer[] = users.map(u => ({
+          id: u.userId,
+          name: u.userName,
+          image: u.userImage || '',
+          isCurrentUser: u.userId === userId
+        }))
+        viewersRef.current = updatedViewers
+        setViewers(updatedViewers)
+      })
+
       newSocket.on('user-joined', (data: { userId: string; userName: string; userImage?: string }) => {
         if (cancelled) return
 

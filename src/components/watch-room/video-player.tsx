@@ -36,6 +36,7 @@ interface VideoPlayerProps {
   onFullscreen?: () => void
   isRemoteUpdate?: boolean
   onRemoteUpdateDone?: () => void
+  onCanPlay?: () => void
 }
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
@@ -48,7 +49,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       onSeek,
       onFullscreen,
       isRemoteUpdate = false,
-      onRemoteUpdateDone
+      onRemoteUpdateDone,
+      onCanPlay
     },
     ref
   ) {
@@ -75,9 +77,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       play: () => {
         if (isYouTube) {
           setIsPlaying(true)
-        } else {
-          videoRef.current?.play().catch(() => {})
+          return Promise.resolve()
         }
+        return videoRef.current?.play().catch(() => {}) ?? Promise.resolve()
       },
       pause: () => {
         if (isYouTube) {
@@ -157,7 +159,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     }, [onPause])
 
     const handleWaiting = useCallback(() => setIsLoading(true), [])
-    const handleCanPlay = useCallback(() => setIsLoading(false), [])
+    const handleCanPlay = useCallback(() => {
+      setIsLoading(false)
+      onCanPlay?.()
+    }, [onCanPlay])
 
     // Controls visibility timer
     const startHideControlsTimer = useCallback(() => {

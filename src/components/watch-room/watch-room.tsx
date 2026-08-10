@@ -29,6 +29,7 @@ interface WatchRoomProps {
   onRemotePlayerStateConsumed?: () => void
   onVideoChange?: (url: string) => void
   onBack?: () => void
+  onCanPlay?: () => void
 }
 
 export function WatchRoom({
@@ -45,7 +46,8 @@ export function WatchRoom({
   onRemotePlayerStateVersion,
   onRemotePlayerStateConsumed,
   onVideoChange,
-  onBack
+  onBack,
+  onCanPlay
 }: WatchRoomProps) {
   const [localVideoUrl, setLocalVideoUrl] = useState(DEFAULT_VIDEO)
   const [showChat, setShowChat] = useState(true)
@@ -54,6 +56,7 @@ export function WatchRoom({
 
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
   const isRemoteUpdateRef = useRef(false)
+  const pendingRemotePlay = useRef<PlayerStateData | null>(null)
 
   // Sync video URL from socket
   useEffect(() => {
@@ -73,7 +76,10 @@ export function WatchRoom({
         if (onRemotePlayerState.currentTime !== undefined) {
           videoPlayerRef.current.seek(onRemotePlayerState.currentTime)
         }
-        videoPlayerRef.current.play()
+        videoPlayerRef.current.play().catch(() => {
+          // Video not ready yet — queue for when it loads
+          pendingRemotePlay.current = { ...onRemotePlayerState }
+        })
         break
       case 'pause':
         if (onRemotePlayerState.currentTime !== undefined) {
@@ -97,10 +103,46 @@ export function WatchRoom({
     return () => clearTimeout(timeout)
   }, [onRemotePlayerState, onRemotePlayerStateVersion, onRemotePlayerStateConsumed])
 
+  // When video is ready to play, execute any pending remote play/pause/seek
+  const handleVideoReady = useCallback(() => {
+    onCanPlay?.()
+    if (pendingRemotePlay.current && videoPlayerRef.current) {
+      const state = pendingRemotePlay.current
+      pendingRemotePlay.current = null
+      isRemoteUpdateRef.current = true
+
+      if (state.currentTime !== undefined) {
+        videoPlayerRef.current.seek(state.currentTime)
+      }
+      if (state.type === 'play') {
+        videoPlayerRef.current.play()
+      } else if (state.type === 'pause') {
+        videoPlayerRef.current.pause()
+      }
+
+      setTimeout(() => {
+        isRemoteUpdateRef.current = false
+        onRemotePlayerStateConsumed?.()
+      }, 100)
+    }
+  }, [onCanPlay, onRemotePlayerStateConsumed])
+
   const handleVideoChange = useCallback((url: string) => {
     setLocalVideoUrl(url)
     onVideoChange?.(url)
-  }, [onVideoChange])
+    // After changing video, wait for it to load then play and sync to remote users
+    pendingRemotePlay.current = null
+    setTimeout(() => {
+      if (videoPlayerRef.current) {
+        isRemoteUpdateRef.current = true
+        videoPlayerRef.current.play()
+        onSyncPlayerState?.({ type: 'play', currentTime: 0 })
+        setTimeout(() => {
+          isRemoteUpdateRef.current = false
+        }, 200)
+      }
+    }, 500)
+  }, [onVideoChange, onSyncPlayerState])
 
   // Local user play/pause/seek → sync to other users
   const handlePlay = useCallback(() => {
@@ -144,6 +186,7 @@ export function WatchRoom({
             onPlay={handlePlay}
             onPause={handlePause}
             onSeek={handleSeek}
+            onCanPlay={handleVideoReady}
           />
 
           {/* Viewers Panel */}

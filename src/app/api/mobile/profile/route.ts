@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { decode } from "next-auth/jwt"
+import { auth } from "@/auth"
 
 export async function GET(req: Request) {
   try {
@@ -9,25 +10,36 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Configuração de servidor incompleta." }, { status: 500 })
     }
 
+    let userId: string | null = null
+
+    // 1) Tenta via Bearer token (mobile)
     const authHeader = req.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const tokenString = authHeader.split(' ')[1]
+      const decoded = await decode({
+        token: tokenString,
+        secret,
+        salt: "authjs.session-token"
+      })
+      if (decoded?.id) {
+        userId = decoded.id as string
+      }
+    }
+
+    // 2) Fallback: session via cookie (web)
+    if (!userId) {
+      const session = await auth()
+      if (session?.user?.id) {
+        userId = session.user.id
+      }
+    }
+
+    if (!userId) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 })
     }
 
-    const tokenString = authHeader.split(' ')[1]
-
-    const decoded = await decode({
-      token: tokenString,
-      secret,
-      salt: "authjs.session-token"
-    })
-
-    if (!decoded || !decoded.id) {
-      return NextResponse.json({ error: "Token inválido." }, { status: 401 })
-    }
-
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id as string },
+      where: { id: userId },
       select: {
         id: true,
         name: true,

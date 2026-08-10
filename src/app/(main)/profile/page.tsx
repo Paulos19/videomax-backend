@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { User, Palette, Save, Check, Camera } from 'lucide-react'
+import { toast } from 'sonner'
 import { UploadDropzone } from '@/lib/uploadthing'
 import { updateProfile } from '../actions'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -25,11 +26,7 @@ export default function ProfilePage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const res = await fetch('/api/mobile/profile', {
-          headers: {
-            Authorization: `Bearer ${document.cookie.match(/authjs.session-token=([^;]+)/)?.[1] || ''}`
-          }
-        })
+        const res = await fetch('/api/mobile/profile')
         if (res.ok) {
           const data = await res.json()
           if (data?.user) {
@@ -50,9 +47,11 @@ export default function ProfilePage() {
     try {
       await updateProfile({ name, chatColor: color, image: imageUrl || undefined })
       setSuccess(true)
+      toast.success('Perfil atualizado com sucesso!')
       setTimeout(() => setSuccess(false), 2500)
-    } catch {
-      alert('Erro ao salvar perfil')
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Erro ao salvar perfil'
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }

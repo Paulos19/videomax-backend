@@ -105,6 +105,8 @@ export default function RoomPage() {
       onRemotePlayerStateConsumed={handleRemotePlayerStateConsumed}
       onVideoChange={handleVideoChange}
       onBack={() => router.push('/')}
+      socket={socket}
+      senderName={session?.user?.name || session?.user?.email || 'Um amigo'}
     />
   )
 }

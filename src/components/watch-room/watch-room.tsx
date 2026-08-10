@@ -2,12 +2,13 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { MessageCircle } from 'lucide-react'
+import { Socket } from 'socket.io-client'
 import { RoomHeader } from './room-header'
 import { VideoPlayer, VideoPlayerHandle } from './video-player'
 import { ViewersPanel } from './viewers-panel'
 import { ChatPanel } from './chat-panel'
 import { VideoSelectorModal } from './video-selector-modal'
-import { ShareModal } from './share-modal'
+import { InviteFriendsModal } from './invite-friends-modal'
 import { Video, ChatMessage, PlayerStateData } from '@/types'
 import { Viewer } from '@/lib/useSocket'
 import { cn } from '@/lib/utils'
@@ -30,6 +31,8 @@ interface WatchRoomProps {
   onVideoChange?: (url: string) => void
   onBack?: () => void
   onCanPlay?: () => void
+  socket?: Socket | null
+  senderName?: string
 }
 
 export function WatchRoom({
@@ -47,7 +50,9 @@ export function WatchRoom({
   onRemotePlayerStateConsumed,
   onVideoChange,
   onBack,
-  onCanPlay
+  onCanPlay,
+  socket,
+  senderName
 }: WatchRoomProps) {
   const [localVideoUrl, setLocalVideoUrl] = useState(DEFAULT_VIDEO)
   const [showChat, setShowChat] = useState(true)
@@ -235,9 +240,12 @@ export function WatchRoom({
       )}
 
       {showShareModal && (
-        <ShareModal
+        <InviteFriendsModal
           roomId={roomId}
           viewerCount={viewers.length}
+          viewers={viewers}
+          socket={socket ?? null}
+          senderName={senderName || 'Um amigo'}
           onClose={() => setShowShareModal(false)}
         />
       )}

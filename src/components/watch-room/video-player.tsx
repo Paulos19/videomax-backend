@@ -253,7 +253,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       <div
         ref={containerRef}
         className="relative w-full max-h-[calc(100vh-180px)] bg-[#050507] rounded-2xl overflow-hidden border border-white/[0.08] group flex items-center justify-center"
-        style={{ aspectRatio: '16/9' }}
+        style={{ aspectRatio: '16/9', touchAction: 'manipulation' }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
       >
@@ -289,6 +289,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             src={src}
             poster={poster}
             className="w-full h-full object-contain"
+            style={{ touchAction: 'manipulation' }}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onProgress={handleProgress}
@@ -303,6 +304,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         {/* Click layer to toggle play/pause */}
         <div
           className="absolute inset-0 z-10 cursor-pointer"
+          style={{ touchAction: 'manipulation' }}
           onClick={togglePlay}
         />
 

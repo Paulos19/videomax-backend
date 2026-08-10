@@ -81,6 +81,7 @@ export function useSocket(roomId: string) {
         setViewers([currentUser])
 
         newSocket.emit('join-room', { roomId, userId, userName, userImage: userProfileRef.current.image || '' })
+        newSocket.emit('join-user-room', { userId })
       })
 
       newSocket.on('disconnect', () => {

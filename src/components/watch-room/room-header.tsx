@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Users, Clapperboard, Share2, MoreVertical } from 'lucide-react'
+import { ArrowLeft, Users, Clapperboard, Share2, MoreVertical, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -8,20 +8,24 @@ interface RoomHeaderProps {
   roomName: string
   viewerCount: number
   isConnected: boolean
+  showChat?: boolean
   onBack?: () => void
   onChangeVideo?: () => void
   onShare?: () => void
   onMore?: () => void
+  onToggleChat?: () => void
 }
 
 export function RoomHeader({
   roomName,
   viewerCount,
   isConnected,
+  showChat,
   onBack,
   onChangeVideo,
   onShare,
-  onMore
+  onMore,
+  onToggleChat
 }: RoomHeaderProps) {
   return (
     <header className="h-16 flex items-center justify-between px-4 lg:px-6 bg-room-bg/80 backdrop-blur-xl shrink-0">
@@ -55,6 +59,20 @@ export function RoomHeader({
           <Clapperboard className="w-4 h-4" />
           <span className="hidden sm:inline">Mudar filme</span>
         </Button>
+
+        <button
+          onClick={onToggleChat}
+          className={cn(
+            "w-9 h-9 rounded-full flex items-center justify-center transition-all",
+            showChat
+              ? "bg-room-accent/10 text-room-accent border border-room-accent/30"
+              : "bg-room-surface/50 hover:bg-room-surface text-room-text-secondary"
+          )}
+          aria-label={showChat ? "Fechar chat" : "Abrir chat"}
+          title={showChat ? "Fechar chat" : "Abrir chat"}
+        >
+          <MessageCircle className="w-4 h-4" />
+        </button>
 
         <button
           onClick={onShare}

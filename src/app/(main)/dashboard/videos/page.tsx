@@ -3,13 +3,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Film, Folder, FolderPlus, Upload, MoreVertical, Trash2,
-  FolderOpen, ArrowLeft, X, Check, Pencil, GripVertical
+  FolderOpen, ArrowLeft, X, Check, Pencil, GripVertical,
+  Plus
 } from 'lucide-react'
+import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { UploadDropzone } from '@/lib/uploadthing'
 import {
   getVideosWithFolders, createFolder, deleteFolder, renameFolder,
   saveVideo, deleteVideo, moveVideoToFolder
 } from '../../actions'
+import { isYouTubeUrl, getYouTubeThumbnail } from '@/lib/youtube'
 import { cn } from '@/lib/utils'
 import '@uploadthing/react/styles.css'
 
@@ -37,9 +40,20 @@ export default function VideosPage() {
   const [editingFolder, setEditingFolder] = useState<string | null>(null)
   const [editFolderName, setEditFolderName] = useState('')
   const [contextMenu, setContextMenu] = useState<{ type: 'video' | 'folder'; id: string; x: number; y: number } | null>(null)
-  const [showUpload, setShowUpload] = useState(false)
+
+  // Add modal state
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addTab, setAddTab] = useState<'youtube' | 'upload'>('youtube')
+
+  // YouTube state
+  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [youtubeTitle, setYoutubeTitle] = useState('')
+  const [isSavingYoutube, setIsSavingYoutube] = useState(false)
+  const [youtubeError, setYoutubeError] = useState('')
+
+  // Upload state
   const [uploadTitle, setUploadTitle] = useState('')
-  const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [addSuccess, setAddSuccess] = useState(false)
   const [movingVideo, setMovingVideo] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
@@ -128,13 +142,47 @@ export default function VideosPage() {
     }
   }, [loadData])
 
-  const handleUpload = useCallback(async (url: string) => {
+  const handleUploadComplete = useCallback(async (url: string) => {
     const title = uploadTitle.trim() || 'Sem título'
     await saveVideo(title, url, activeFolder)
-    setUploadSuccess(true)
+    setAddSuccess(true)
     setUploadTitle('')
     await loadData()
   }, [uploadTitle, activeFolder, loadData])
+
+  const handleSaveYoutube = useCallback(async () => {
+    setYoutubeError('')
+    const url = youtubeUrl.trim()
+    const title = youtubeTitle.trim()
+
+    if (!url) {
+      setYoutubeError('Por favor, insira a URL do vídeo.')
+      return
+    }
+
+    if (!isYouTubeUrl(url)) {
+      setYoutubeError('URL do YouTube inválida. Ex: https://www.youtube.com/watch?v=...')
+      return
+    }
+
+    if (!title) {
+      setYoutubeError('Por favor, defina um título para o vídeo.')
+      return
+    }
+
+    try {
+      setIsSavingYoutube(true)
+      await saveVideo(title, url, activeFolder)
+      setAddSuccess(true)
+      setYoutubeUrl('')
+      setYoutubeTitle('')
+      await loadData()
+    } catch (e: unknown) {
+      setYoutubeError(e instanceof Error ? e.message : 'Erro ao salvar vídeo.')
+    } finally {
+      setIsSavingYoutube(false)
+    }
+  }, [youtubeUrl, youtubeTitle, activeFolder, loadData])
 
   const showContextMenu = useCallback((e: React.MouseEvent, type: 'video' | 'folder', id: string) => {
     e.preventDefault()
@@ -179,11 +227,11 @@ export default function VideosPage() {
             </button>
           )}
           <button
-            onClick={() => setShowUpload(true)}
+            onClick={() => { setShowAddModal(true); setAddSuccess(false) }}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold brand-gradient text-white transition-all hover:opacity-90 active:scale-[0.98]"
           >
-            <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Enviar vídeo</span>
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Adicionar vídeo</span>
           </button>
         </div>
       </div>
@@ -289,88 +337,112 @@ export default function VideosPage() {
                   {activeFolder ? 'Esta pasta está vazia' : 'Nenhum vídeo ainda'}
                 </p>
                 <button
-                  onClick={() => setShowUpload(true)}
+                  onClick={() => { setShowAddModal(true); setAddSuccess(false) }}
                   className="mt-3 text-room-accent text-sm font-semibold hover:underline"
                 >
-                  Enviar primeiro vídeo
+                  Adicionar primeiro vídeo
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {filteredVideos.map((video) => (
-                  <div
-                    key={video.id}
-                    className="group relative bg-room-surface border border-room-border rounded-xl overflow-hidden hover:border-room-accent/30 transition-all"
-                  >
-                    {/* Thumbnail placeholder */}
-                    <div className="aspect-video bg-room-surface-2 flex items-center justify-center relative">
-                      <Film className="w-8 h-8 text-room-text-secondary/20" />
-                      {/* Move dropdown */}
-                      {movingVideo === video.id && (
-                        <div className="absolute inset-0 bg-room-surface/95 flex flex-col p-3 z-10">
-                          <p className="text-room-text-secondary text-xs font-medium mb-2">Mover para:</p>
-                          <button
-                            onClick={() => handleMoveVideo(video.id, null)}
-                            className={cn(
-                              "text-left px-3 py-2 rounded-lg text-sm transition-colors",
-                              !video.folderId
-                                ? "bg-room-accent/10 text-room-accent"
-                                : "text-room-text hover:bg-room-surface-3"
-                            )}
-                          >
-                            <FolderOpen className="w-4 h-4 inline mr-2" />
-                            Raiz
-                          </button>
-                          {folders.map(f => (
+                {filteredVideos.map((video) => {
+                  const isYt = isYouTubeUrl(video.url)
+                  const ytThumb = isYt ? getYouTubeThumbnail(video.url) : null
+
+                  return (
+                    <div
+                      key={video.id}
+                      className="group relative bg-room-surface border border-room-border rounded-xl overflow-hidden hover:border-room-accent/30 transition-all"
+                    >
+                      {/* Thumbnail container */}
+                      <div className="aspect-video bg-room-surface-2 flex items-center justify-center relative overflow-hidden">
+                        {ytThumb ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={ytThumb}
+                            alt={video.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <Film className="w-8 h-8 text-room-text-secondary/20" />
+                        )}
+
+                        {/* YouTube Badge on thumbnail */}
+                        {isYt && (
+                          <div className="absolute top-2 left-2 bg-room-red/90 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 backdrop-blur-sm">
+                            <Youtube className="w-3 h-3" />
+                            YouTube
+                          </div>
+                        )}
+
+                        {/* Move dropdown overlay */}
+                        {movingVideo === video.id && (
+                          <div className="absolute inset-0 bg-room-surface/95 flex flex-col p-3 z-10">
+                            <p className="text-room-text-secondary text-xs font-medium mb-2">Mover para:</p>
                             <button
-                              key={f.id}
-                              onClick={() => handleMoveVideo(video.id, f.id)}
+                              onClick={() => handleMoveVideo(video.id, null)}
                               className={cn(
                                 "text-left px-3 py-2 rounded-lg text-sm transition-colors",
-                                video.folderId === f.id
+                                !video.folderId
                                   ? "bg-room-accent/10 text-room-accent"
                                   : "text-room-text hover:bg-room-surface-3"
                               )}
                             >
-                              <Folder className="w-4 h-4 inline mr-2" />
-                              {f.name}
+                              <FolderOpen className="w-4 h-4 inline mr-2" />
+                              Raiz
                             </button>
-                          ))}
+                            {folders.map(f => (
+                              <button
+                                key={f.id}
+                                onClick={() => handleMoveVideo(video.id, f.id)}
+                                className={cn(
+                                  "text-left px-3 py-2 rounded-lg text-sm transition-colors",
+                                  video.folderId === f.id
+                                    ? "bg-room-accent/10 text-room-accent"
+                                    : "text-room-text hover:bg-room-surface-3"
+                                )}
+                              >
+                                <Folder className="w-4 h-4 inline mr-2" />
+                                {f.name}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => setMovingVideo(null)}
+                              className="mt-2 text-room-text-secondary text-xs hover:text-room-text"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="p-3 flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-room-text text-sm font-medium truncate">{video.title}</p>
+                          <p className="text-room-text-secondary text-xs">
+                            {new Date(video.createdAt).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => setMovingVideo(null)}
-                            className="mt-2 text-room-text-secondary text-xs hover:text-room-text"
+                            onClick={(e) => { e.stopPropagation(); setMovingVideo(movingVideo === video.id ? null : video.id) }}
+                            className="w-7 h-7 rounded-lg bg-room-surface-3 flex items-center justify-center"
+                            title="Mover para pasta"
                           >
-                            Cancelar
+                            <GripVertical className="w-3.5 h-3.5 text-room-text-secondary" />
+                          </button>
+                          <button
+                            onClick={(e) => showContextMenu(e, 'video', video.id)}
+                            className="w-7 h-7 rounded-lg bg-room-surface-3 flex items-center justify-center"
+                          >
+                            <MoreVertical className="w-3.5 h-3.5 text-room-text-secondary" />
                           </button>
                         </div>
-                      )}
-                    </div>
-                    {/* Info */}
-                    <div className="p-3 flex items-center gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-room-text text-sm font-medium truncate">{video.title}</p>
-                        <p className="text-room-text-secondary text-xs">
-                          {new Date(video.createdAt).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setMovingVideo(movingVideo === video.id ? null : video.id) }}
-                          className="w-7 h-7 rounded-lg bg-room-surface-3 flex items-center justify-center"
-                          title="Mover"
-                        >
-                          <GripVertical className="w-3.5 h-3.5 text-room-text-secondary" />
-                        </button>
-                        <button
-                          onClick={(e) => showContextMenu(e, 'video', video.id)}
-                          className="w-7 h-7 rounded-lg bg-room-surface-3 flex items-center justify-center"
-                        >
-                          <MoreVertical className="w-3.5 h-3.5 text-room-text-secondary" />
-                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -429,11 +501,11 @@ export default function VideosPage() {
         </div>
       )}
 
-      {/* Upload modal */}
-      {showUpload && (
+      {/* Add / Upload Video Modal */}
+      {showAddModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in"
-          onClick={(e) => { if (e.target === e.currentTarget) { setShowUpload(false); setUploadSuccess(false) } }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowAddModal(false); setAddSuccess(false) } }}
         >
           <div className="bg-room-surface border border-room-border rounded-2xl w-full max-w-lg mx-4 animate-scale-in relative overflow-hidden">
             {/* Top gradient accent */}
@@ -441,8 +513,8 @@ export default function VideosPage() {
 
             <div className="flex items-center justify-between px-5 py-4 border-b border-room-border">
               <div className="flex items-center gap-2">
-                <Upload className="w-5 h-5 text-room-accent" />
-                <h2 className="text-room-text font-semibold">Enviar vídeo</h2>
+                <Plus className="w-5 h-5 text-room-accent" />
+                <h2 className="text-room-text font-semibold">Adicionar vídeo</h2>
                 {activeFolderName && (
                   <span className="text-room-text-secondary text-xs bg-room-surface-3 px-2 py-0.5 rounded-full">
                     {activeFolderName}
@@ -450,22 +522,99 @@ export default function VideosPage() {
                 )}
               </div>
               <button
-                onClick={() => { setShowUpload(false); setUploadSuccess(false) }}
+                onClick={() => { setShowAddModal(false); setAddSuccess(false) }}
                 className="w-8 h-8 rounded-full bg-room-surface-2 hover:bg-room-surface-3 flex items-center justify-center"
               >
                 <X className="w-4 h-4 text-room-text-secondary" />
               </button>
             </div>
+
+            {/* Tabs selection */}
+            {!addSuccess && (
+              <div className="flex border-b border-room-border bg-room-surface-2/50 px-5 pt-3">
+                <button
+                  onClick={() => setAddTab('youtube')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-all",
+                    addTab === 'youtube'
+                      ? "border-room-red text-room-red"
+                      : "border-transparent text-room-text-secondary hover:text-room-text"
+                  )}
+                >
+                  <Youtube className="w-4 h-4" />
+                  Link do YouTube
+                </button>
+                <button
+                  onClick={() => setAddTab('upload')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-all",
+                    addTab === 'upload'
+                      ? "border-room-accent text-room-accent"
+                      : "border-transparent text-room-text-secondary hover:text-room-text"
+                  )}
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload de Arquivo
+                </button>
+              </div>
+            )}
+
             <div className="p-5">
-              {uploadSuccess ? (
+              {addSuccess ? (
                 <div className="text-center py-8">
-                  <Film className="w-12 h-12 text-room-online mx-auto mb-3" />
-                  <p className="text-room-text font-medium mb-1">Vídeo enviado!</p>
+                  <Check className="w-12 h-12 text-room-online mx-auto mb-3" />
+                  <p className="text-room-text font-medium mb-1">Vídeo adicionado com sucesso!</p>
+                  {activeFolderName && (
+                    <p className="text-room-text-secondary text-xs mb-4">
+                      Salvo na pasta <span className="text-room-text font-semibold">{activeFolderName}</span>
+                    </p>
+                  )}
                   <button
-                    onClick={() => { setUploadSuccess(false); setUploadTitle('') }}
+                    onClick={() => { setAddSuccess(false); setYoutubeUrl(''); setYoutubeTitle(''); setUploadTitle('') }}
                     className="text-room-accent text-sm font-semibold hover:underline mt-2"
                   >
-                    Enviar outro
+                    Adicionar outro vídeo
+                  </button>
+                </div>
+              ) : addTab === 'youtube' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-room-text-secondary text-xs font-semibold mb-1.5 block">Link do YouTube *</label>
+                    <input
+                      type="url"
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full bg-room-surface-3 border border-room-border-light text-room-text px-4 py-2.5 rounded-xl text-sm placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-room-text-secondary text-xs font-semibold mb-1.5 block">Título do Vídeo *</label>
+                    <input
+                      type="text"
+                      value={youtubeTitle}
+                      onChange={(e) => setYoutubeTitle(e.target.value)}
+                      placeholder="Ex: Trailer Oficial - O Senhor dos Anéis"
+                      className="w-full bg-room-surface-3 border border-room-border-light text-room-text px-4 py-2.5 rounded-xl text-sm placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 transition-colors"
+                    />
+                  </div>
+
+                  {youtubeError && (
+                    <p className="text-room-red text-xs font-medium">{youtubeError}</p>
+                  )}
+
+                  <button
+                    onClick={handleSaveYoutube}
+                    disabled={isSavingYoutube || !youtubeUrl.trim() || !youtubeTitle.trim()}
+                    className={cn(
+                      "w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2",
+                      !isSavingYoutube && youtubeUrl.trim() && youtubeTitle.trim()
+                        ? "brand-gradient text-white brand-glow-strong hover:opacity-90 active:scale-[0.98]"
+                        : "bg-room-surface-3 text-room-text-secondary/40 cursor-not-allowed"
+                    )}
+                  >
+                    {isSavingYoutube ? 'Salvando...' : 'Salvar vídeo do YouTube'}
                   </button>
                 </div>
               ) : (
@@ -484,7 +633,7 @@ export default function VideosPage() {
                     endpoint="videoUploader"
                     onClientUploadComplete={async (res) => {
                       if (res?.[0]) {
-                        await handleUpload(res[0].url)
+                        await handleUploadComplete(res[0].url)
                       }
                     }}
                     onUploadError={(error: Error) => {

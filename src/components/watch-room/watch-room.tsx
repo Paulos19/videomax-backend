@@ -125,16 +125,18 @@ export function WatchRoom({
         roomName={roomId}
         viewerCount={viewers.length}
         isConnected={isConnected}
+        showChat={showChat}
         onBack={onBack}
         onChangeVideo={() => setShowVideoSelector(true)}
         onShare={() => setShowShareModal(true)}
+        onToggleChat={() => setShowChat(!showChat)}
         onMore={() => {/* More options menu */}}
       />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-3 lg:p-4 gap-3 lg:gap-4">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-3 lg:p-4 gap-3 lg:gap-4 overflow-hidden">
         {/* Left: Video + Viewers */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto lg:overflow-visible">
           {/* Video Player */}
           <VideoPlayer
             ref={videoPlayerRef}
@@ -152,29 +154,30 @@ export function WatchRoom({
         </div>
 
         {/* Right: Chat */}
-        <div className={cn(
-          "flex flex-col min-h-0",
-          showChat ? "h-[50vh] lg:h-full" : "h-0 lg:h-0"
-        )}>
-          <ChatPanel
-            messages={messages}
-            currentUserId={currentUserId}
-            viewerCount={viewers.length}
-            viewers={viewers}
-            onSend={onSendMessage}
-            onClose={() => setShowChat(false)}
-          />
-        </div>
+        {showChat && (
+          <div className="flex flex-col min-h-0 h-[50vh] lg:h-full lg:w-80 xl:w-96 shrink-0">
+            <ChatPanel
+              messages={messages}
+              currentUserId={currentUserId}
+              viewerCount={viewers.length}
+              viewers={viewers}
+              onSend={onSendMessage}
+              onClose={() => setShowChat(false)}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Mobile chat toggle */}
+      {/* Floating reopen chat button (visible on all screens when chat is closed) */}
       {!showChat && (
         <button
           onClick={() => setShowChat(true)}
-          className="lg:hidden fixed bottom-4 right-4 w-14 h-14 bg-room-accent rounded-full flex items-center justify-center shadow-lg shadow-room-accent/30 hover:scale-105 active:scale-95 transition-transform z-50"
-          aria-label="Abrir chat"
+          className="fixed bottom-6 right-6 px-4 py-3 bg-room-accent hover:bg-room-accent/90 text-white rounded-full flex items-center gap-2 shadow-xl shadow-room-accent/30 hover:scale-105 active:scale-95 transition-all z-50"
+          aria-label="Abrir chat ao vivo"
+          title="Abrir chat ao vivo"
         >
-          <MessageCircle className="w-6 h-6 text-white" />
+          <MessageCircle className="w-5 h-5" />
+          <span className="text-xs font-semibold tracking-wide">Abrir Chat</span>
         </button>
       )}
 

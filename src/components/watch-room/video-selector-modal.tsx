@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { X, Play, Check, Film } from 'lucide-react'
+import { X, Play, Check, Film, Link as LinkIcon } from 'lucide-react'
+import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { Video } from '@/types'
+import { isYouTubeUrl, getYouTubeThumbnail } from '@/lib/youtube'
 import { cn } from '@/lib/utils'
 
 interface VideoSelectorModalProps {
@@ -14,6 +16,8 @@ interface VideoSelectorModalProps {
 
 export function VideoSelectorModal({ videos, currentUrl, onSelect, onClose }: VideoSelectorModalProps) {
   const [selectedUrl, setSelectedUrl] = useState(currentUrl)
+  const [customUrl, setCustomUrl] = useState('')
+  const [customUrlError, setCustomUrlError] = useState('')
 
   const handleSelect = useCallback((url: string) => {
     setSelectedUrl(url)
@@ -26,6 +30,17 @@ export function VideoSelectorModal({ videos, currentUrl, onSelect, onClose }: Vi
     onClose()
   }, [selectedUrl, currentUrl, onSelect, onClose])
 
+  const handleConfirmCustomUrl = useCallback(() => {
+    const trimmed = customUrl.trim()
+    if (!trimmed) return
+    if (!isYouTubeUrl(trimmed) && !trimmed.startsWith('http')) {
+      setCustomUrlError('URL inválida. Cole uma URL do YouTube ou vídeo direto.')
+      return
+    }
+    onSelect(trimmed)
+    onClose()
+  }, [customUrl, onSelect, onClose])
+
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose()
   }, [onClose])
@@ -35,12 +50,12 @@ export function VideoSelectorModal({ videos, currentUrl, onSelect, onClose }: Vi
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
       onClick={handleBackdropClick}
     >
-      <div className="bg-room-surface border border-room-border rounded-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col animate-scale-in">
+      <div className="bg-room-surface border border-room-border rounded-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-room-border">
           <div className="flex items-center gap-2">
             <Film className="w-5 h-5 text-room-accent" />
-            <h2 className="text-room-text font-semibold text-base">Mudar filme</h2>
+            <h2 className="text-room-text font-semibold text-base">Mudar vídeo</h2>
           </div>
           <button
             onClick={onClose}
@@ -51,17 +66,59 @@ export function VideoSelectorModal({ videos, currentUrl, onSelect, onClose }: Vi
           </button>
         </div>
 
-        {/* Video list */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 chat-scroll">
+        {/* Quick Custom Link Input */}
+        <div className="p-4 border-b border-room-border bg-room-surface-2/40 space-y-2">
+          <label className="text-room-text-secondary text-xs font-semibold uppercase tracking-wider block">
+            Cole um link direto do YouTube
+          </label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type="url"
+                value={customUrl}
+                onChange={(e) => { setCustomUrl(e.target.value); setCustomUrlError('') }}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full bg-room-surface border border-room-border-light text-room-text px-3 py-2 rounded-xl text-xs placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 transition-colors"
+              />
+            </div>
+            <button
+              onClick={handleConfirmCustomUrl}
+              disabled={!customUrl.trim()}
+              className={cn(
+                "px-4 py-2 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 shrink-0",
+                customUrl.trim()
+                  ? "bg-room-accent hover:bg-room-accent/90 text-white shadow-sm"
+                  : "bg-room-surface-3 text-room-text-secondary/40 cursor-not-allowed"
+              )}
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              Tocar
+            </button>
+          </div>
+          {customUrlError && (
+            <p className="text-room-red text-xs">{customUrlError}</p>
+          )}
+        </div>
+
+        {/* Saved Video list */}
+        <div className="px-5 pt-3 pb-1">
+          <p className="text-room-text-secondary text-xs font-semibold uppercase tracking-wider">
+            Ou escolha da sua biblioteca
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-2 chat-scroll">
           {videos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-room-text-secondary/50">
-              <Film className="w-10 h-10 mb-3" />
-              <p className="text-sm">Nenhum vídeo disponível</p>
+            <div className="flex flex-col items-center justify-center py-8 text-room-text-secondary/50">
+              <Film className="w-8 h-8 mb-2" />
+              <p className="text-xs">Nenhum vídeo salvo na biblioteca</p>
             </div>
           ) : (
             videos.map((video) => {
               const isSelected = selectedUrl === video.url
               const isPlaying = currentUrl === video.url
+              const isYt = isYouTubeUrl(video.url)
+              const ytThumb = isYt ? getYouTubeThumbnail(video.url) : null
 
               return (
                 <button
@@ -74,15 +131,25 @@ export function VideoSelectorModal({ videos, currentUrl, onSelect, onClose }: Vi
                       : "bg-room-surface-2 border-room-border hover:bg-room-surface-3 hover:border-room-border-light"
                   )}
                 >
-                  {/* Thumbnail placeholder */}
+                  {/* Thumbnail container */}
                   <div className={cn(
-                    "w-16 h-10 rounded-lg flex items-center justify-center shrink-0",
+                    "w-16 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative",
                     isSelected ? "bg-room-accent/20" : "bg-room-surface-3"
                   )}>
-                    <Play className={cn(
-                      "w-5 h-5",
-                      isSelected ? "text-room-accent" : "text-room-text-secondary/40"
-                    )} />
+                    {ytThumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={ytThumb} alt={video.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <Play className={cn(
+                        "w-5 h-5",
+                        isSelected ? "text-room-accent" : "text-room-text-secondary/40"
+                      )} />
+                    )}
+                    {isYt && (
+                      <div className="absolute top-0.5 left-0.5 bg-room-red/90 text-white p-0.5 rounded-sm">
+                        <Youtube className="w-2.5 h-2.5" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Info */}
@@ -94,7 +161,7 @@ export function VideoSelectorModal({ videos, currentUrl, onSelect, onClose }: Vi
                       {video.title}
                     </p>
                     {isPlaying && (
-                      <span className="text-[11px] text-room-online">Tocando agora</span>
+                      <span className="text-[11px] text-room-online font-semibold">Tocando agora</span>
                     )}
                   </div>
 

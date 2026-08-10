@@ -2,9 +2,11 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Film, Plus, ArrowRight, Upload, Users, Zap, Play, Flame } from 'lucide-react'
+import { Film, Plus, ArrowRight, Upload, Users, Zap, Check } from 'lucide-react'
+import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { UploadDropzone } from '@/lib/uploadthing'
 import { saveVideo } from '../actions'
+import { isYouTubeUrl } from '@/lib/youtube'
 import { cn } from '@/lib/utils'
 import '@uploadthing/react/styles.css'
 
@@ -20,8 +22,17 @@ function generateRoomCode(): string {
 export default function DashboardPage() {
   const router = useRouter()
   const [roomCode, setRoomCode] = useState('')
-  const [videoTitle, setVideoTitle] = useState('')
-  const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [activeAddTab, setActiveAddTab] = useState<'youtube' | 'upload'>('youtube')
+  
+  // YouTube state
+  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [youtubeTitle, setYoutubeTitle] = useState('')
+  const [isSavingYoutube, setIsSavingYoutube] = useState(false)
+  const [youtubeError, setYoutubeError] = useState('')
+
+  // Upload state
+  const [uploadTitle, setUploadTitle] = useState('')
+  const [addSuccess, setAddSuccess] = useState(false)
 
   const handleJoinRoom = useCallback(() => {
     const code = roomCode.trim().toUpperCase()
@@ -34,6 +45,39 @@ export default function DashboardPage() {
     const code = generateRoomCode()
     router.push(`/room/${code}`)
   }, [router])
+
+  const handleSaveYoutube = useCallback(async () => {
+    setYoutubeError('')
+    const url = youtubeUrl.trim()
+    const title = youtubeTitle.trim()
+
+    if (!url) {
+      setYoutubeError('Por favor, insira a URL do vídeo.')
+      return
+    }
+
+    if (!isYouTubeUrl(url)) {
+      setYoutubeError('URL do YouTube inválida. Ex: https://www.youtube.com/watch?v=...')
+      return
+    }
+
+    if (!title) {
+      setYoutubeError('Por favor, defina um título para o vídeo.')
+      return
+    }
+
+    try {
+      setIsSavingYoutube(true)
+      await saveVideo(title, url, null)
+      setAddSuccess(true)
+      setYoutubeUrl('')
+      setYoutubeTitle('')
+    } catch (e: unknown) {
+      setYoutubeError(e instanceof Error ? e.message : 'Erro ao salvar vídeo.')
+    } finally {
+      setIsSavingYoutube(false)
+    }
+  }, [youtubeUrl, youtubeTitle])
 
   return (
     <div className="max-w-5xl mx-auto px-4 lg:px-6 py-8 space-y-8">
@@ -103,30 +147,108 @@ export default function DashboardPage() {
 
       {/* ═══ Two Column Layout ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ── Upload Video ── */}
+        {/* ── Add / Upload Video ── */}
         <div className="bg-room-surface border border-room-border rounded-2xl p-6 relative overflow-hidden">
-          {/* Subtle top gradient line */}
           <div className="absolute top-0 left-0 right-0 h-[2px] brand-gradient opacity-40" />
 
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-room-accent/10 flex items-center justify-center">
-              <Upload className="w-5 h-5 text-room-accent" />
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-room-accent/10 flex items-center justify-center">
+                {activeAddTab === 'youtube' ? (
+                  <Youtube className="w-5 h-5 text-room-red" />
+                ) : (
+                  <Upload className="w-5 h-5 text-room-accent" />
+                )}
+              </div>
+              <h2 className="text-room-text font-bold text-lg">Adicionar vídeo</h2>
             </div>
-            <h2 className="text-room-text font-bold text-lg">Enviar vídeo</h2>
+
+            {/* Tabs toggle */}
+            <div className="flex bg-room-surface-2 p-1 rounded-xl border border-room-border-light">
+              <button
+                onClick={() => { setActiveAddTab('youtube'); setAddSuccess(false) }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                  activeAddTab === 'youtube'
+                    ? "bg-room-accent text-white shadow-sm"
+                    : "text-room-text-secondary hover:text-room-text"
+                )}
+              >
+                <Youtube className="w-3.5 h-3.5" />
+                YouTube
+              </button>
+              <button
+                onClick={() => { setActiveAddTab('upload'); setAddSuccess(false) }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                  activeAddTab === 'upload'
+                    ? "bg-room-accent text-white shadow-sm"
+                    : "text-room-text-secondary hover:text-room-text"
+                )}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Upload
+              </button>
+            </div>
           </div>
 
-          {uploadSuccess ? (
-            <div className="bg-room-online/10 border border-room-online/20 rounded-xl p-6 text-center">
-              <Film className="w-10 h-10 text-room-online mx-auto mb-3" />
-              <p className="text-room-text font-medium mb-1">Vídeo enviado!</p>
+          {addSuccess ? (
+            <div className="bg-room-online/10 border border-room-online/20 rounded-xl p-6 text-center animate-fade-in">
+              <Check className="w-10 h-10 text-room-online mx-auto mb-3" />
+              <p className="text-room-text font-medium mb-1">Vídeo adicionado com sucesso!</p>
               <p className="text-room-text-secondary text-sm mb-4">
-                Seu vídeo já está disponível para assistir.
+                Seu vídeo já está disponível na sua biblioteca e pronto para assistir.
               </p>
               <button
-                onClick={() => { setUploadSuccess(false); setVideoTitle('') }}
+                onClick={() => { setAddSuccess(false); setYoutubeUrl(''); setYoutubeTitle(''); setUploadTitle('') }}
                 className="text-room-accent text-sm font-semibold hover:underline"
               >
-                Enviar outro
+                Adicionar outro vídeo
+              </button>
+            </div>
+          ) : activeAddTab === 'youtube' ? (
+            <div className="space-y-4">
+              <div>
+                <label className="text-room-text-secondary text-xs font-semibold mb-1.5 block uppercase tracking-wider">
+                  Link do YouTube *
+                </label>
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full bg-room-surface-2 border border-room-border-light text-room-text px-4 py-2.5 rounded-xl text-sm placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 focus:ring-1 focus:ring-room-accent/20 transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-room-text-secondary text-xs font-semibold mb-1.5 block uppercase tracking-wider">
+                  Título do Vídeo *
+                </label>
+                <input
+                  type="text"
+                  value={youtubeTitle}
+                  onChange={(e) => setYoutubeTitle(e.target.value)}
+                  placeholder="Ex: Trailer Oficial - O Senhor dos Anéis"
+                  className="w-full bg-room-surface-2 border border-room-border-light text-room-text px-4 py-2.5 rounded-xl text-sm placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 focus:ring-1 focus:ring-room-accent/20 transition-all"
+                />
+              </div>
+
+              {youtubeError && (
+                <p className="text-room-red text-xs font-medium">{youtubeError}</p>
+              )}
+
+              <button
+                onClick={handleSaveYoutube}
+                disabled={isSavingYoutube || !youtubeUrl.trim() || !youtubeTitle.trim()}
+                className={cn(
+                  "w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2",
+                  !isSavingYoutube && youtubeUrl.trim() && youtubeTitle.trim()
+                    ? "brand-gradient text-white brand-glow-strong hover:opacity-90 active:scale-[0.98]"
+                    : "bg-room-surface-3 text-room-text-secondary/40 cursor-not-allowed"
+                )}
+              >
+                {isSavingYoutube ? 'Salvando...' : 'Adicionar vídeo do YouTube'}
               </button>
             </div>
           ) : (
@@ -137,9 +259,9 @@ export default function DashboardPage() {
                 </label>
                 <input
                   type="text"
-                  value={videoTitle}
-                  onChange={(e) => setVideoTitle(e.target.value)}
-                  placeholder="Ex: O Senhor dos Anéis"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  placeholder="Ex: O Senhor dos Anéis (Arquivo Local)"
                   className="w-full bg-room-surface-2 border border-room-border-light text-room-text px-4 py-2.5 rounded-xl text-sm placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 focus:ring-1 focus:ring-room-accent/20 transition-all"
                 />
               </div>
@@ -148,9 +270,9 @@ export default function DashboardPage() {
                 onClientUploadComplete={async (res) => {
                   if (res?.[0]) {
                     const url = res[0].url
-                    const title = videoTitle.trim() || res[0].name
+                    const title = uploadTitle.trim() || res[0].name
                     await saveVideo(title, url, null)
-                    setUploadSuccess(true)
+                    setAddSuccess(true)
                   }
                 }}
                 onUploadError={(error: Error) => {
@@ -170,7 +292,6 @@ export default function DashboardPage() {
 
         {/* ── How it Works ── */}
         <div className="bg-room-surface border border-room-border rounded-2xl p-6 relative overflow-hidden">
-          {/* Subtle top gradient line */}
           <div className="absolute top-0 left-0 right-0 h-[2px] brand-gradient opacity-40" />
 
           <div className="flex items-center gap-3 mb-5">
@@ -191,7 +312,7 @@ export default function DashboardPage() {
               {
                 step: '2',
                 title: 'Escolha um vídeo',
-                desc: 'Use os vídeos enviados ou cole um link de qualquer vídeo online.',
+                desc: 'Use os seus vídeos salvos ou cole qualquer link do YouTube.',
                 color: 'text-room-accent bg-room-accent/10'
               },
               {
@@ -221,7 +342,7 @@ export default function DashboardPage() {
             <Zap className="w-5 h-5 text-room-yellow shrink-0 mt-0.5" />
             <p className="text-sm text-room-text-secondary leading-relaxed">
               <span className="text-room-accent font-semibold">Dica:</span>{' '}
-              convide seus amigos e aproveitem juntos!
+              agora você pode salvar links do YouTube e organizá-los em pastas!
             </p>
           </div>
         </div>

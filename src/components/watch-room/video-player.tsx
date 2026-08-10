@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react'
+import dynamic from 'next/dynamic'
 import {
   Play,
   Pause,
@@ -12,7 +13,12 @@ import {
   Subtitles,
   Loader2
 } from 'lucide-react'
+import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { cn } from '@/lib/utils'
+import { isYouTubeUrl } from '@/lib/youtube'
+
+// Dynamically import ReactPlayer to prevent SSR hydration mismatches
+const ReactPlayer = dynamic(() => import('react-player'), { ssr: false })
 
 export interface VideoPlayerHandle {
   play: () => void
@@ -47,6 +53,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     ref
   ) {
     const videoRef = useRef<HTMLVideoElement>(null)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reactPlayerRef = useRef<any>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null)
 
@@ -60,26 +68,50 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const [isLoading, setIsLoading] = useState(true)
     const [volume, setVolume] = useState(1)
 
-    // Expose imperative methods for remote control
+    const isYouTube = isYouTubeUrl(src)
+
+    // Expose imperative methods for remote socket control (Play, Pause, Seek, Time)
     useImperativeHandle(ref, () => ({
       play: () => {
-        videoRef.current?.play().catch(() => {})
+        if (isYouTube) {
+          setIsPlaying(true)
+        } else {
+          videoRef.current?.play().catch(() => {})
+        }
       },
       pause: () => {
-        videoRef.current?.pause()
+        if (isYouTube) {
+          setIsPlaying(false)
+        } else {
+          videoRef.current?.pause()
+        }
       },
       seek: (time: number) => {
-        if (videoRef.current) {
+        setCurrentTime(time)
+        if (isYouTube) {
+          if (typeof reactPlayerRef.current?.seekTo === 'function') {
+            reactPlayerRef.current.seekTo(time, 'seconds')
+          } else if (reactPlayerRef.current) {
+            reactPlayerRef.current.currentTime = time
+          }
+        } else if (videoRef.current) {
           videoRef.current.currentTime = time
         }
       },
       getCurrentTime: () => {
+        if (isYouTube && reactPlayerRef.current) {
+          if (typeof reactPlayerRef.current.getCurrentTime === 'function') {
+            return reactPlayerRef.current.getCurrentTime()
+          }
+          return reactPlayerRef.current.currentTime ?? currentTime
+        }
         return videoRef.current?.currentTime ?? 0
       }
     }))
 
     // Format time mm:ss
     const formatTime = (seconds: number) => {
+      if (!seconds || isNaN(seconds)) return '0:00'
       const mins = Math.floor(seconds / 60)
       const secs = Math.floor(seconds % 60)
       return `${mins}:${secs.toString().padStart(2, '0')}`
@@ -87,31 +119,32 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
     // Handle remote updates
     useEffect(() => {
-      if (isRemoteUpdate && videoRef.current) {
+      if (isRemoteUpdate) {
         onRemoteUpdateDone?.()
       }
     }, [isRemoteUpdate, onRemoteUpdateDone])
 
-    // Video event handlers
+    // --- HTML5 Video Event Handlers ---
     const handleTimeUpdate = useCallback(() => {
-      if (videoRef.current) {
+      if (!isYouTube && videoRef.current) {
         setCurrentTime(videoRef.current.currentTime)
       }
-    }, [])
+    }, [isYouTube])
 
     const handleLoadedMetadata = useCallback(() => {
-      if (videoRef.current) {
+      if (!isYouTube && videoRef.current) {
         setDuration(videoRef.current.duration)
         setIsLoading(false)
       }
-    }, [])
+    }, [isYouTube])
 
     const handleProgress = useCallback(() => {
-      if (videoRef.current && videoRef.current.buffered.length > 0) {
+      if (!isYouTube && videoRef.current && videoRef.current.buffered.length > 0) {
         setBuffered(videoRef.current.buffered.end(videoRef.current.buffered.length - 1))
       }
-    }, [])
+    }, [isYouTube])
 
+    // --- Common Play/Pause Callbacks ---
     const handlePlay = useCallback(() => {
       setIsPlaying(true)
       onPlay?.()
@@ -126,7 +159,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const handleWaiting = useCallback(() => setIsLoading(true), [])
     const handleCanPlay = useCallback(() => setIsLoading(false), [])
 
-    // Controls visibility
+    // Controls visibility timer
     const startHideControlsTimer = useCallback(() => {
       if (hideControlsTimeout.current) {
         clearTimeout(hideControlsTimeout.current)
@@ -141,33 +174,51 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       startHideControlsTimer()
     }, [startHideControlsTimer])
 
-    // Playback controls
+    // Toggle Play/Pause
     const togglePlay = useCallback(() => {
-      if (videoRef.current) {
+      if (isYouTube) {
+        if (isPlaying) {
+          setIsPlaying(false)
+          handlePause()
+        } else {
+          setIsPlaying(true)
+          handlePlay()
+        }
+      } else if (videoRef.current) {
         if (videoRef.current.paused) {
           videoRef.current.play()
         } else {
           videoRef.current.pause()
         }
       }
-    }, [])
+    }, [isYouTube, isPlaying, handlePlay, handlePause])
 
+    // Toggle Mute
     const toggleMute = useCallback(() => {
-      if (videoRef.current) {
-        videoRef.current.muted = !videoRef.current.muted
-        setIsMuted(!isMuted)
+      const newMuted = !isMuted
+      setIsMuted(newMuted)
+      if (!isYouTube && videoRef.current) {
+        videoRef.current.muted = newMuted
       }
-    }, [isMuted])
+    }, [isMuted, isYouTube])
 
+    // Seek handler
     const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const time = parseFloat(e.target.value)
-      if (videoRef.current) {
+      setCurrentTime(time)
+      if (isYouTube) {
+        if (typeof reactPlayerRef.current?.seekTo === 'function') {
+          reactPlayerRef.current.seekTo(time, 'seconds')
+        } else if (reactPlayerRef.current) {
+          reactPlayerRef.current.currentTime = time
+        }
+      } else if (videoRef.current) {
         videoRef.current.currentTime = time
-        setCurrentTime(time)
-        onSeek?.(time)
       }
-    }, [onSeek])
+      onSeek?.(time)
+    }, [isYouTube, onSeek])
 
+    // Fullscreen handler
     const toggleFullscreen = useCallback(() => {
       if (!containerRef.current) return
 
@@ -181,7 +232,6 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       onFullscreen?.()
     }, [onFullscreen])
 
-    // Fullscreen change listener
     useEffect(() => {
       const handleFullscreenChange = () => {
         setIsFullscreen(!!document.fullscreenElement)
@@ -197,36 +247,78 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     return (
       <div
         ref={containerRef}
-        className="relative w-full bg-[#050507] rounded-2xl overflow-hidden border border-white/[0.08] group"
+        className="relative w-full max-h-[calc(100vh-180px)] bg-[#050507] rounded-2xl overflow-hidden border border-white/[0.08] group flex items-center justify-center"
         style={{ aspectRatio: '16/9' }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
       >
-        {/* Video Element */}
-        <video
-          ref={videoRef}
-          src={src}
-          poster={poster}
-          className="w-full h-full object-contain"
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onProgress={handleProgress}
-          onPlay={handlePlay}
-          onPause={handlePause}
-          onWaiting={handleWaiting}
-          onCanPlay={handleCanPlay}
+        {/* Render ReactPlayer for YouTube or native <video> for uploaded files */}
+        {isYouTube ? (
+          <div className="w-full h-full relative">
+            <ReactPlayer
+              ref={reactPlayerRef}
+              src={src}
+              playing={isPlaying}
+              muted={isMuted}
+              volume={volume}
+              controls={false}
+              width="100%"
+              height="100%"
+              onReady={() => setIsLoading(false)}
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onTimeUpdate={(e: React.SyntheticEvent<HTMLVideoElement>) => {
+                if (e?.currentTarget?.currentTime) {
+                  setCurrentTime(e.currentTarget.currentTime)
+                }
+                if (e?.currentTarget?.duration) {
+                  setDuration(e.currentTarget.duration)
+                  setIsLoading(false)
+                }
+              }}
+            />
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            src={src}
+            poster={poster}
+            className="w-full h-full object-contain"
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onProgress={handleProgress}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onWaiting={handleWaiting}
+            onCanPlay={handleCanPlay}
+            onClick={togglePlay}
+          />
+        )}
+
+        {/* Click layer to toggle play/pause */}
+        <div
+          className="absolute inset-0 z-10 cursor-pointer"
           onClick={togglePlay}
         />
 
-        {/* Live Badge */}
-        <div className="absolute top-4 left-4 flex items-center gap-2 bg-room-accent/85 px-3 py-1.5 rounded-full backdrop-blur-sm">
-          <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-          <span className="text-white text-xs font-semibold tracking-wide">AO VIVO</span>
+        {/* Live / YouTube Badge */}
+        <div className="absolute top-4 left-4 flex items-center gap-2 bg-room-accent/85 px-3 py-1.5 rounded-full backdrop-blur-sm z-20 pointer-events-none">
+          {isYouTube ? (
+            <>
+              <Youtube className="w-4 h-4 text-white" />
+              <span className="text-white text-xs font-semibold tracking-wide">YOUTUBE</span>
+            </>
+          ) : (
+            <>
+              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              <span className="text-white text-xs font-semibold tracking-wide">AO VIVO</span>
+            </>
+          )}
         </div>
 
         {/* Loading indicator */}
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 pointer-events-none">
             <Loader2 className="w-10 h-10 text-room-accent animate-spin" />
           </div>
         )}
@@ -234,7 +326,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         {/* Controls overlay */}
         <div
           className={cn(
-            "absolute bottom-0 left-0 right-0 video-gradient transition-opacity duration-300",
+            "absolute bottom-0 left-0 right-0 video-gradient transition-opacity duration-300 z-20",
             showControls ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
         >

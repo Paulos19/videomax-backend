@@ -1,15 +1,25 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { auth } from "@/auth"
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20')));
-    const skip = (page - 1) * limit;
+    const session = await auth()
 
-    const [videos, total] = await prisma.$transaction([
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(req.url)
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20')))
+    const skip = (page - 1) * limit
+
+    const where = { userId: session.user.id }
+
+    const [videos, total] = await Promise.all([
       prisma.video.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -17,11 +27,12 @@ export async function GET(req: Request) {
           id: true,
           title: true,
           url: true,
+          folderId: true,
           createdAt: true,
         }
       }),
-      prisma.video.count(),
-    ]);
+      prisma.video.count({ where }),
+    ])
 
     return NextResponse.json({
       videos,
@@ -31,9 +42,9 @@ export async function GET(req: Request) {
         total,
         pages: Math.ceil(total / limit),
       }
-    });
+    })
   } catch (error) {
-    console.error("Error fetching videos:", error);
-    return NextResponse.json({ error: "Failed to fetch videos" }, { status: 500 });
+    console.error("Error fetching videos:", error)
+    return NextResponse.json({ error: "Failed to fetch videos" }, { status: 500 })
   }
 }

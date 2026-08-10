@@ -21,7 +21,7 @@ import { isYouTubeUrl } from '@/lib/youtube'
 const ReactPlayer = dynamic(() => import('react-player'), { ssr: false })
 
 export interface VideoPlayerHandle {
-  play: () => void
+  play: () => Promise<void>
   pause: () => void
   seek: (time: number) => void
   getCurrentTime: () => number

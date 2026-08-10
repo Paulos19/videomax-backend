@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { User, Palette, Save, Check, Camera, Mail, Calendar } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { User, Palette, Save, Check, Camera, Mail, Calendar, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { UploadDropzone } from '@/lib/uploadthing'
+import { generateReactHelpers } from '@uploadthing/react'
+import type { OurFileRouter } from '@/app/api/uploadthing/core'
 import { updateProfile } from '../actions'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import '@uploadthing/react/styles.css'
+
+const { uploadFiles } = generateReactHelpers<OurFileRouter>()
 
 const PRESET_COLORS = [
   '#7C4DFF', '#9B6CFF', '#E040FB', '#FF4081',
@@ -31,6 +33,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Load current profile
   useEffect(() => {
@@ -93,6 +97,30 @@ export default function ProfilePage() {
 
   const hasChanges = name !== (profile?.name || '') || color !== (profile?.chatColor || '#7C4DFF') || imageUrl !== (profile?.image || '')
 
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 4MB')
+      return
+    }
+
+    setUploadingImage(true)
+    try {
+      const res = await uploadFiles('imageUploader', { files: [file] })
+      if (res?.[0]) {
+        setImageUrl(res[0].url)
+        toast.success('Foto atualizada!')
+      }
+    } catch {
+      toast.error('Erro ao fazer upload da imagem')
+    } finally {
+      setUploadingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-4 lg:px-6 py-8">
@@ -138,38 +166,34 @@ export default function ProfilePage() {
           <div className="absolute top-0 left-0 right-0 h-[2px] brand-gradient opacity-40" />
 
           <div className="flex flex-col items-center pt-4">
-            {/* Avatar */}
-            <div className="relative mb-4 group">
-              <Avatar className="w-28 h-28 border-4 border-room-surface-2 shadow-lg shadow-room-accent/10">
+            {/* Avatar — clicável para trocar foto */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              className="relative mb-4 group cursor-pointer disabled:cursor-wait"
+            >
+              <Avatar className="w-28 h-28 border-4 border-room-surface-2 shadow-lg shadow-room-accent/10 transition-transform group-hover:scale-105">
                 <AvatarImage src={imageUrl || undefined} className="object-cover" />
                 <AvatarFallback className="bg-room-surface-3 text-room-text-secondary text-3xl font-bold">
                   {name?.charAt(0)?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                <Camera className="w-6 h-6 text-white" />
+              {/* Overlay */}
+              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {uploadingImage ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
               </div>
-            </div>
-
-            {/* Upload dropzone — compact */}
-            <div className="w-full mb-5">
-              <UploadDropzone
-                endpoint="imageUploader"
-                onClientUploadComplete={(res) => {
-                  if (res?.[0]) {
-                    setImageUrl(res[0].url)
-                    toast.success('Foto atualizada!')
-                  }
-                }}
-                appearance={{
-                  container: "border-dashed border-room-border-light bg-room-surface-2/50 rounded-xl p-3 h-16",
-                  allowedContent: "hidden",
-                  uploadIcon: "text-room-text-secondary/30 w-4 h-4",
-                  label: "text-room-text-secondary/50 text-[11px] hover:text-room-accent",
-                  button: "bg-room-accent text-[11px] px-3 py-1 rounded-lg after:bg-room-accent/80"
-                }}
-              />
-            </div>
+            </button>
 
             {/* Name */}
             <h2 className="text-room-text text-lg font-bold text-center">

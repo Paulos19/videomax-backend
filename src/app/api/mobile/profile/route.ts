@@ -43,8 +43,10 @@ export async function GET(req: Request) {
       select: {
         id: true,
         name: true,
+        email: true,
         image: true,
-        chatColor: true
+        chatColor: true,
+        createdAt: true
       }
     })
 

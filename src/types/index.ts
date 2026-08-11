@@ -9,6 +9,9 @@ export interface ChatMessage {
   id: string
   userId: string
   userName: string
+  userImage?: string
+  color?: string
+  image?: string
   message: string
   type?: 'system' | 'user'
   timestamp?: string

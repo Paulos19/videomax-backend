@@ -1,134 +1,107 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { ChatMessage as ChatMessageType } from '@/types'
+import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { ChatMessage as ChatMessageType } from '@/types'
+import { cn } from '@/lib/utils'
 
 interface ChatMessageProps {
-  message: ChatMessageType
-  isOwn: boolean
-  showAvatar?: boolean
+  message: ChatMessageType & { isSystem?: boolean; role?: 'host' | 'cohost' | 'viewer' }
+  isOwn?: boolean
 }
 
-export function ChatMessage({ message, isOwn, showAvatar = true }: ChatMessageProps) {
-  if (message.type === 'system') {
+export function ChatMessage({ message, isOwn }: ChatMessageProps) {
+  const [reactions, setReactions] = useState<Record<string, number>>({})
+
+  const handleReact = (emoji: string) => {
+    setReactions((prev) => ({
+      ...prev,
+      [emoji]: (prev[emoji] || 0) + 1,
+    }))
+  }
+
+  // System Messages
+  if (message.isSystem || message.userId === 'system') {
     return (
-      <div className="flex justify-center my-4 animate-message-in">
-        <span className="text-room-text-secondary/40 text-xs italic">{message.message}</span>
+      <div className="my-2.5 text-center">
+        <span className="text-[11px] text-[#8A8A8A] italic bg-[#151515]/60 border border-[#242424]/40 px-3 py-1 rounded-full">
+          {message.message}
+        </span>
       </div>
     )
   }
 
-  let payload = { text: message.message, color: '#7C4DFF', image: '' }
-  try {
-    const parsed = JSON.parse(message.message)
-    if (parsed.text && typeof parsed.text === 'string') {
-      payload = {
-        text: parsed.text.slice(0, 4096),
-        color: typeof parsed.color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(parsed.color)
-          ? parsed.color : '#7C4DFF',
-        image: typeof parsed.image === 'string' && /^https?:\/\//.test(parsed.image)
-          ? parsed.image : ''
-      }
-    }
-  } catch {
-    // Plain text message
-  }
-
-  const formatTime = (timestamp?: string) => {
-    if (!timestamp) return ''
-    try {
-      const date = new Date(timestamp)
-      return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    } catch {
-      return timestamp
-    }
-  }
-
-  const timeStr = formatTime(message.timestamp)
+  const isHost = message.role === 'host' || message.userName?.toLowerCase().includes('host')
 
   return (
-    <div className={cn(
-      "flex gap-2.5 mb-4 animate-message-in",
-      isOwn ? "flex-row-reverse" : "flex-row"
-    )}>
+    <div className={cn("group flex items-start gap-2.5 my-2.5", isOwn && "flex-row-reverse")}>
       {/* Avatar */}
-      {showAvatar ? (
-        <Avatar className="w-9 h-9 border border-room-border shrink-0 mt-5">
-          <AvatarImage src={payload.image || undefined} />
-          <AvatarFallback className="bg-room-surface-3 text-room-text-secondary text-xs font-medium">
-            {message.userName?.charAt(0)?.toUpperCase() || 'U'}
-          </AvatarFallback>
-        </Avatar>
-      ) : (
-        <div className="w-9 shrink-0" />
-      )}
+      <Avatar className="w-9 h-9 border border-[#242424] shrink-0">
+        <AvatarImage src={message.userImage} />
+        <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
+          {message.userName?.charAt(0)?.toUpperCase() || 'U'}
+        </AvatarFallback>
+      </Avatar>
 
       {/* Content */}
-      <div className={cn("flex flex-col max-w-[75%]", isOwn ? "items-end" : "items-start")}>
-        {/* Name + Timestamp row */}
-        <div className={cn(
-          "flex items-center gap-2 mb-1 px-1",
-          isOwn ? "flex-row-reverse" : "flex-row"
-        )}>
-          <span className={cn(
-            "text-xs font-semibold",
-            isOwn ? "text-room-text-secondary" : "text-room-accent-secondary"
-          )}>
-            {isOwn ? 'Você' : message.userName}
+      <div className={cn("space-y-1 max-w-[80%]", isOwn && "items-end text-right")}>
+        {/* Header: Name + Badge + Timestamp */}
+        <div className={cn("flex items-center gap-1.5 text-xs", isOwn && "justify-end")}>
+          <span className="font-bold text-[#F5F5F5] truncate max-w-[120px]">
+            {message.userName}
           </span>
-          {timeStr && (
-            <span className="text-room-text-secondary/40 text-[11px]">
-              {timeStr}
+
+          {isHost && (
+            <span className="text-[9px] font-extrabold text-[#FFB800] bg-[#FFB800]/10 border border-[#FFB800]/30 px-1.5 py-0.2 rounded uppercase">
+              HOST
             </span>
           )}
+
+          <span className="text-[10px] text-[#5F5F5F]">
+            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '20:15'}
+          </span>
         </div>
 
         {/* Bubble */}
         <div
-          style={{
-            backgroundColor: isOwn ? '#7040FF' : '#1A1B21',
-            borderColor: isOwn ? 'transparent' : 'rgba(255,255,255,0.05)',
-          }}
           className={cn(
-            "px-3.5 py-2 border",
+            "p-3 rounded-2xl text-xs leading-relaxed break-words",
             isOwn
-              ? "rounded-2xl rounded-br-sm"
-              : "rounded-2xl rounded-bl-sm"
+              ? "bg-gradient-to-r from-[#EF2020] via-[#FF5A00] to-[#FFB800] text-white font-medium rounded-tr-none shadow-md shadow-[#FF5A00]/10"
+              : "bg-[#151515] border border-[#242424] text-[#F5F5F5] rounded-tl-none"
           )}
+          style={{ color: !isOwn && message.color ? message.color : undefined }}
         >
-          <span className={cn(
-            "text-sm leading-relaxed",
-            isOwn ? "text-white" : "text-room-text"
-          )}>
-            {payload.text}
-          </span>
+          {message.message}
         </div>
 
-        {/* Reactions */}
-        {message.reactions && message.reactions.length > 0 && (
-          <div className={cn(
-            "flex gap-1 mt-1",
-            isOwn ? "justify-end" : "justify-start"
-          )}>
-            {message.reactions.map((reaction, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-1 bg-room-surface-3 border border-room-border rounded-full px-2 py-0.5"
+        {/* Reaction Counters & Hover Picker */}
+        <div className={cn("flex items-center gap-1 pt-0.5", isOwn && "justify-end")}>
+          {Object.entries(reactions).map(([emoji, count]) => (
+            <button
+              key={emoji}
+              onClick={() => handleReact(emoji)}
+              className="text-[10px] bg-[#151515] hover:bg-[#242424] border border-[#242424] px-1.5 py-0.5 rounded-full flex items-center gap-1 text-[#F5F5F5] transition-all"
+            >
+              <span>{emoji}</span>
+              <span className="font-bold text-[#8A8A8A]">{count}</span>
+            </button>
+          ))}
+
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+            {['🔥', '❤️', '😂', '😱'].map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => handleReact(emoji)}
+                className="hover:scale-125 transition-transform text-xs"
+                title={`Reagir com ${emoji}`}
               >
-                <span className="text-xs">{reaction.emoji}</span>
-                <span className="text-room-text-secondary text-[10px] font-medium">{reaction.count}</span>
-              </div>
+                {emoji}
+              </button>
             ))}
           </div>
-        )}
-
-        {/* Read receipt for own messages */}
-        {isOwn && (
-          <span className="text-room-text-secondary/40 text-[10px] mt-1 px-1">
-            ✓✓ Lida
-          </span>
-        )}
+        </div>
       </div>
     </div>
   )

@@ -38,8 +38,8 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }, [])
 
   return (
-    <div className="p-3 border-t border-room-border relative">
-      {/* Animated WhatsApp-style Emoji Picker Popover */}
+    <div className="p-3 border-t border-[#242424] bg-[#090909] relative shrink-0">
+      {/* Popover de Emojis que agora sobrepõe o input sem ser cortado */}
       {showEmojiPicker && (
         <EmojiPickerPopover
           onSelectEmoji={handleSelectEmoji}
@@ -47,15 +47,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         />
       )}
 
-      <div className="flex items-center gap-2 bg-room-surface-3 border border-room-border-light rounded-[14px] px-3 py-2">
+      <div className="flex items-center gap-2 bg-[#151515] border border-[#292929] focus-within:border-[#FF5A00] rounded-2xl px-3 py-2 h-[52px] transition-all">
         <button
           type="button"
           onClick={() => setShowEmojiPicker((prev) => !prev)}
           className={cn(
-            "transition-colors p-1 rounded-lg hover:bg-room-surface-2",
-            showEmojiPicker
-              ? "text-room-accent"
-              : "text-room-text-secondary/50 hover:text-room-text-secondary"
+            "p-1.5 rounded-xl transition-colors hover:bg-[#242424]",
+            showEmojiPicker ? "text-[#FF5A00]" : "text-[#8A8A8A] hover:text-[#F5F5F5]"
           )}
           aria-label="Selecionar Emoji"
           title="Escolher emoji"
@@ -66,12 +64,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         <input
           ref={inputRef}
           type="text"
+          maxLength={4096}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Envie uma mensagem..."
           disabled={disabled}
-          className="flex-1 bg-transparent text-room-text text-sm placeholder:text-room-text-secondary/40 outline-none disabled:opacity-50"
+          className="flex-1 bg-transparent text-[#F5F5F5] text-xs sm:text-sm placeholder:text-[#5F5F5F] outline-none disabled:opacity-50"
         />
 
         <button
@@ -79,14 +78,14 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           onClick={handleSend}
           disabled={!message.trim() || disabled}
           className={cn(
-            "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
+            "w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0",
             message.trim()
-              ? "bg-room-accent hover:bg-room-accent/90 active:scale-95 shadow-md shadow-room-accent/20"
-              : "bg-room-accent/50 cursor-not-allowed"
+              ? "brand-gradient text-white brand-glow-strong hover:brightness-110 active:scale-95 shadow-md shadow-[#FF5A00]/20"
+              : "bg-[#242424] text-[#5F5F5F] cursor-not-allowed"
           )}
           aria-label="Enviar mensagem"
         >
-          <Send className="w-4 h-4 text-white" />
+          <Send className="w-4 h-4 text-white fill-white" />
         </button>
       </div>
     </div>

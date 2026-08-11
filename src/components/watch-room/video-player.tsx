@@ -308,25 +308,38 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           onClick={togglePlay}
         />
 
-        {/* Live / YouTube Badge */}
-        <div className="absolute top-4 left-4 flex items-center gap-2 bg-room-accent/85 px-3 py-1.5 rounded-full backdrop-blur-sm z-20 pointer-events-none">
-          {isYouTube ? (
-            <>
-              <Youtube className="w-4 h-4 text-white" />
-              <span className="text-white text-xs font-semibold tracking-wide">YOUTUBE</span>
-            </>
-          ) : (
-            <>
-              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span className="text-white text-xs font-semibold tracking-wide">AO VIVO</span>
-            </>
-          )}
+        {/* Top-left Overlay: AO VIVO + Sincronizado */}
+        <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 z-20 pointer-events-auto">
+          <div className="flex items-center gap-1.5 bg-[#EF2020] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-[#EF2020]/30">
+            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+            AO VIVO
+          </div>
+
+          <div
+            className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-white/10 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg"
+            title="Seu vídeo é sincronizado automaticamente com o host desta sala."
+          >
+            <span className="text-[#FFB800]">⚡</span>
+            <span>Sincronizado com {poster ? 'Henrique' : 'Host'}</span>
+            <span className="text-[10px] text-[#8A8A8A] font-mono cursor-help">ⓘ</span>
+          </div>
+        </div>
+
+        {/* Top-right Overlay: Host Pill */}
+        <div className="absolute top-4 right-4 z-20 pointer-events-none">
+          <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full shadow-lg text-xs font-bold text-[#F5F5F5]">
+            <div className="w-5 h-5 rounded-full bg-[#FF5A00] flex items-center justify-center text-[10px] text-white font-extrabold">
+              H
+            </div>
+            <span>Henrique</span>
+            <span className="text-[#FFB800]">👑</span>
+          </div>
         </div>
 
         {/* Loading indicator */}
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 pointer-events-none">
-            <Loader2 className="w-10 h-10 text-room-accent animate-spin" />
+            <Loader2 className="w-10 h-10 text-[#FF5A00] animate-spin" />
           </div>
         )}
 
@@ -348,7 +361,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
               {/* Progress */}
               <div
-                className="absolute top-0 left-0 h-full bg-room-accent rounded-full"
+                className="absolute top-0 left-0 h-full brand-gradient rounded-full"
                 style={{ width: `${progress}%` }}
               />
 

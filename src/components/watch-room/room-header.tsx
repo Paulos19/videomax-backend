@@ -1,7 +1,6 @@
 'use client'
 
-import { Crown, Shield, User, ArrowLeft, Users, Clapperboard, Share2, MoreVertical, MessageCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Crown, ArrowLeft, Users, Clapperboard, Share2, MoreVertical, MessageCircle, Link2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface RoomHeaderProps {
@@ -10,6 +9,7 @@ interface RoomHeaderProps {
   isConnected: boolean
   userRole?: 'host' | 'cohost' | 'viewer'
   showChat?: boolean
+  hostName?: string
   onBack?: () => void
   onChangeVideo?: () => void
   onShare?: () => void
@@ -23,6 +23,7 @@ export function RoomHeader({
   isConnected,
   userRole = 'viewer',
   showChat,
+  hostName = 'Host',
   onBack,
   onChangeVideo,
   onShare,
@@ -30,93 +31,90 @@ export function RoomHeader({
   onToggleChat
 }: RoomHeaderProps) {
   return (
-    <header className="h-16 flex items-center justify-between px-4 lg:px-6 bg-room-bg/80 backdrop-blur-xl shrink-0">
-      {/* Left section */}
-      <div className="flex items-center gap-4">
+    <header className="h-16 flex items-center justify-between px-4 lg:px-6 bg-[#050505] border-b border-[#1A1A1A] shrink-0 z-30">
+      {/* Left section: Logo / Back & Room Info */}
+      <div className="flex items-center gap-4 min-w-0">
+        {/* Brand Logo */}
+        <div className="flex items-center gap-2 cursor-pointer" onClick={onBack}>
+          <div className="w-8 h-8 rounded-xl brand-gradient flex items-center justify-center text-white brand-glow-strong">
+            <span className="font-black text-xs">▶</span>
+          </div>
+          <span className="font-extrabold tracking-wider text-base text-[#F5F5F5] hidden sm:inline">
+            VIDEOMAX
+          </span>
+        </div>
+
         <button
           onClick={onBack}
-          className="w-10 h-10 rounded-full bg-room-surface/50 hover:bg-room-surface flex items-center justify-center transition-colors"
-          aria-label="Voltar"
+          className="w-9 h-9 rounded-xl bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00] flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-all"
+          title="Voltar para a lista"
         >
-          <ArrowLeft className="w-5 h-5 text-room-text-secondary" />
+          <ArrowLeft className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-3">
-          <h1 className="text-room-text font-semibold text-lg">{roomName}</h1>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-[#F5F5F5] font-extrabold text-base tracking-wider uppercase bg-[#0B0B0B] px-3 py-1 rounded-xl border border-[#242424]">
+            {roomName}
+          </span>
 
-          {/* User Role Badge */}
-          {userRole === 'host' ? (
-            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-2.5 py-0.5 rounded-full shadow-sm">
-              <Crown className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              Host
-            </span>
-          ) : userRole === 'cohost' ? (
-            <span className="flex items-center gap-1 text-[11px] font-bold text-sky-400 bg-sky-400/10 border border-sky-400/30 px-2.5 py-0.5 rounded-full shadow-sm">
-              <Shield className="w-3.5 h-3.5 text-sky-400" />
-              Co-host
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-[11px] font-medium text-room-text-secondary bg-room-surface border border-room-border px-2 py-0.5 rounded-full">
-              <User className="w-3 h-3 text-room-text-secondary" />
-              Viewer
-            </span>
-          )}
+          <span className="flex items-center gap-1.5 text-xs font-bold text-[#FFB800] bg-[#FFB800]/10 border border-[#FFB800]/30 px-2.5 py-1 rounded-full">
+            <Crown className="w-3.5 h-3.5 fill-[#FFB800]" />
+            Host
+          </span>
 
-          <div className="flex items-center gap-1.5 text-room-text-secondary">
-            <Users className="w-4 h-4" />
-            <span className="text-sm">{viewerCount} assistindo</span>
+          <div className="flex items-center gap-1.5 text-[#8A8A8A] text-xs font-semibold hidden md:flex">
+            <Users className="w-4 h-4 text-[#FF5A00]" />
+            <span>{viewerCount} assistindo</span>
           </div>
         </div>
       </div>
 
-      {/* Center/Right section */}
+      {/* Right section: Action Buttons & Status */}
       <div className="flex items-center gap-2">
-        <Button
+        <button
           onClick={onChangeVideo}
-          variant="secondary"
-          className="bg-room-surface hover:bg-room-surface-2 border border-room-border text-room-text gap-2 h-9"
+          className="px-3.5 py-2 rounded-xl bg-[#0B0B0B] hover:bg-[#151515] border border-[#242424] hover:border-[#FF5A00] text-[#F5F5F5] text-xs font-bold transition-all flex items-center gap-2"
         >
-          <Clapperboard className="w-4 h-4" />
-          <span className="hidden sm:inline">Mudar filme</span>
-        </Button>
+          <Clapperboard className="w-4 h-4 text-[#FF5A00]" />
+          <span className="hidden sm:inline">Mudar vídeo</span>
+        </button>
+
+        <button
+          onClick={onShare}
+          className="w-9 h-9 rounded-xl bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00] flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-all"
+          title="Compartilhar"
+        >
+          <Share2 className="w-4 h-4" />
+        </button>
 
         <button
           onClick={onToggleChat}
           className={cn(
-            "w-9 h-9 rounded-full flex items-center justify-center transition-all",
+            "w-9 h-9 rounded-xl border flex items-center justify-center transition-all",
             showChat
-              ? "bg-room-accent/10 text-room-accent border border-room-accent/30"
-              : "bg-room-surface/50 hover:bg-room-surface text-room-text-secondary"
+              ? "bg-[#FF5A00]/10 text-[#FF5A00] border-[#FF5A00]/40"
+              : "bg-[#0B0B0B] text-[#8A8A8A] border-[#242424] hover:text-[#F5F5F5]"
           )}
-          aria-label={showChat ? "Fechar chat" : "Abrir chat"}
           title={showChat ? "Fechar chat" : "Abrir chat"}
         >
           <MessageCircle className="w-4 h-4" />
         </button>
 
         <button
-          onClick={onShare}
-          className="w-9 h-9 rounded-full bg-room-surface/50 hover:bg-room-surface flex items-center justify-center transition-colors"
-          aria-label="Compartilhar"
-        >
-          <Share2 className="w-4 h-4 text-room-text-secondary" />
-        </button>
-
-        <button
           onClick={onMore}
-          className="w-9 h-9 rounded-full bg-room-surface/50 hover:bg-room-surface flex items-center justify-center transition-colors"
-          aria-label="Mais opções"
+          className="w-9 h-9 rounded-xl bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00] flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-all"
+          title="Mais opções"
         >
-          <MoreVertical className="w-4 h-4 text-room-text-secondary" />
+          <MoreVertical className="w-4 h-4" />
         </button>
 
-        {/* Connection status */}
-        <div className="flex items-center gap-2 ml-2">
+        {/* Connection status badge */}
+        <div className="flex items-center gap-2 ml-2 bg-[#0B0B0B] px-3 py-1.5 rounded-full border border-[#242424]">
           <div className={cn(
             "w-2 h-2 rounded-full",
-            isConnected ? "bg-room-online animate-pulse-online" : "bg-red-500"
+            isConnected ? "bg-emerald-500 animate-pulse" : "bg-[#EF2020]"
           )} />
-          <span className="text-room-text-secondary text-xs">
+          <span className="text-[#F5F5F5] text-xs font-bold">
             {isConnected ? 'Online' : 'Conectando...'}
           </span>
         </div>

@@ -1,60 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { jwtVerify } from 'jose'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { auth } from './auth'
 
 /**
- * Server-side route protection for /room/* routes.
+ * Route protection for /room/* routes.
  *
- * Verifies the JWT session token using HMAC-SHA256 signature verification
- * via the `jose` library. This is more secure than just decoding the payload.
+ * Uses NextAuth v5's `auth()` wrapper which properly handles JWE (encrypted JWT)
+ * session tokens. The previous implementation used `jwtVerify` (JWS signature
+ * verification) which is incompatible with NextAuth v5's encrypted session tokens.
  */
 
-const PROTECTED = [/^\/room(\/|$)/]
-
-export async function middleware(req: NextRequest) {
+export default auth((req) => {
   const { pathname } = req.nextUrl
 
-  const needsAuth = PROTECTED.some((re) => re.test(pathname))
-  if (!needsAuth) return NextResponse.next()
-
-  const sessionToken =
-    req.cookies.get('authjs.session-token')?.value ||
-    req.cookies.get('__Secure-authjs.session-token')?.value
-
-  if (!sessionToken) {
-    const loginUrl = new URL('/login', req.url)
-    loginUrl.searchParams.set('callbackUrl', pathname)
-    return NextResponse.redirect(loginUrl)
-  }
-
-  try {
-    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
-    if (!secret) {
+  // Protect /room/* routes — require authenticated session
+  if (pathname.startsWith('/room')) {
+    if (!req.auth) {
       const loginUrl = new URL('/login', req.url)
       loginUrl.searchParams.set('callbackUrl', pathname)
       return NextResponse.redirect(loginUrl)
     }
-
-    const secretBytes = new TextEncoder().encode(secret)
-
-    // Verify JWT signature using HMAC-SHA256
-    const { payload } = await jwtVerify(sessionToken, secretBytes, {
-      algorithms: ['HS256'],
-    })
-
-    // Check expiration (belt-and-suspenders — jose already checks exp)
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      const loginUrl = new URL('/login', req.url)
-      loginUrl.searchParams.set('callbackUrl', pathname)
-      return NextResponse.redirect(loginUrl)
-    }
-
-    return NextResponse.next()
-  } catch {
-    const loginUrl = new URL('/login', req.url)
-    loginUrl.searchParams.set('callbackUrl', pathname)
-    return NextResponse.redirect(loginUrl)
   }
-}
+
+  return NextResponse.next()
+})
 
 export const config = {
   matcher: ['/room/:path*'],

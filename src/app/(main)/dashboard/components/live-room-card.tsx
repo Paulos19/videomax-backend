@@ -15,19 +15,58 @@ export interface LiveRoomData {
   viewers: Array<{ userId: string; userName: string; userImage?: string }>
 }
 
-function getYouTubeThumbnail(url?: string): string | null {
-  if (!url) return null
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-  const match = url.match(regExp)
-  if (match && match[2].length === 11) {
-    return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`
+function getThumbnailForVideo(url?: string, title?: string): string | null {
+  if (url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    if (match && match[2].length === 11) {
+      return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`
+    }
+    if (url.includes('BigBuckBunny')) {
+      return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg'
+    }
+    if (url.includes('ElephantsDream')) {
+      return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg'
+    }
+    if (url.includes('Sintel')) {
+      return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg'
+    }
+    if (url.includes('TearsOfSteel')) {
+      return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/TearsOfSteel.jpg'
+    }
+    if (url.includes('ForBiggerBlazes')) {
+      return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg'
+    }
   }
+
+  if (title) {
+    const lower = title.toLowerCase()
+    if (lower.includes('arcane')) {
+      return 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80'
+    }
+    if (lower.includes('duna') || lower.includes('dune')) {
+      return 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80'
+    }
+    if (lower.includes('jujutsu') || lower.includes('anime')) {
+      return 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80'
+    }
+    if (lower.includes('aranha') || lower.includes('spider')) {
+      return 'https://images.unsplash.com/photo-1635805737707-575885ab0820?w=800&auto=format&fit=crop&q=80'
+    }
+    if (lower.includes('interestelar') || lower.includes('interstellar')) {
+      return 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=80'
+    }
+    if (lower.includes('breaking bad')) {
+      return 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80'
+    }
+  }
+
   return null
 }
 
 export function LiveRoomCard({ room }: { room: LiveRoomData }) {
   const router = useRouter()
-  const thumbnailUrl = getYouTubeThumbnail(room.videoUrl)
+  const thumbnailUrl = getThumbnailForVideo(room.videoUrl, room.videoTitle)
 
   return (
     <div
@@ -43,8 +82,12 @@ export function LiveRoomCard({ room }: { room: LiveRoomData }) {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full brand-gradient-subtle flex items-center justify-center">
-            <Play className="w-12 h-12 text-[#FF5A00]/30" />
+          <div className="w-full h-full relative overflow-hidden bg-gradient-to-br from-[#151515] via-[#111111] to-[#0B0B0B] flex items-center justify-center">
+            {/* Ambient glow decoration */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-[#FF5A00]/15 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+            <div className="relative z-10 w-12 h-12 rounded-full brand-gradient flex items-center justify-center text-white brand-glow-strong group-hover:scale-110 transition-transform">
+              <Play className="w-5 h-5 fill-white ml-0.5" />
+            </div>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B] via-transparent to-black/60" />

@@ -14,8 +14,27 @@ export interface RecentRoomData {
   participants: Array<{ userId: string; userName: string; userImage?: string }>
 }
 
+function getThumbnailForVideo(url?: string, title?: string): string | null {
+  if (url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    if (match && match[2].length === 11) {
+      return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`
+    }
+  }
+  if (title) {
+    const lower = title.toLowerCase()
+    if (lower.includes('arcane')) return 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&auto=format&fit=crop&q=80'
+    if (lower.includes('duna') || lower.includes('dune')) return 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&auto=format&fit=crop&q=80'
+    if (lower.includes('aranha') || lower.includes('spider')) return 'https://images.unsplash.com/photo-1635805737707-575885ab0820?w=400&auto=format&fit=crop&q=80'
+    if (lower.includes('interestelar')) return 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop&q=80'
+  }
+  return null
+}
+
 export function RecentRoomItem({ room }: { room: RecentRoomData }) {
   const router = useRouter()
+  const thumb = room.thumbnailUrl || getThumbnailForVideo(undefined, room.title)
 
   return (
     <div
@@ -25,9 +44,9 @@ export function RecentRoomItem({ room }: { room: RecentRoomData }) {
       {/* Left: Thumbnail & Info */}
       <div className="flex items-center gap-3.5 min-w-0 flex-1">
         <div className="relative w-16 h-11 rounded-lg bg-[#151515] overflow-hidden shrink-0 border border-[#242424]">
-          {room.thumbnailUrl ? (
+          {thumb ? (
             <img
-              src={room.thumbnailUrl}
+              src={thumb}
               alt={room.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
             />

@@ -476,3 +476,45 @@ export async function getFriendsAndRequests() {
     }))
   }
 }
+
+export async function getFriendSuggestions() {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  const userId = session.user.id
+
+  const existingRequests = await prisma.friendRequest.findMany({
+    where: {
+      OR: [{ senderId: userId }, { receiverId: userId }]
+    },
+    select: { senderId: true, receiverId: true }
+  })
+
+  const excludedUserIds = new Set<string>([userId])
+  for (const req of existingRequests) {
+    excludedUserIds.add(req.senderId)
+    excludedUserIds.add(req.receiverId)
+  }
+
+  const suggestions = await prisma.user.findMany({
+    where: {
+      id: { notIn: Array.from(excludedUserIds) }
+    },
+    take: 5,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true
+    }
+  })
+
+  return suggestions.map(s => ({
+    id: s.id,
+    name: s.name || s.email.split('@')[0],
+    username: `@${(s.name || s.email.split('@')[0]).toLowerCase().replace(/\s+/g, '')}`,
+    email: s.email,
+    image: s.image || undefined,
+    mutualCount: 0
+  }))
+}

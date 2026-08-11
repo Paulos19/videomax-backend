@@ -269,28 +269,52 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       >
         {/* Render ReactPlayer for YouTube or native <video> for uploaded files */}
         {isYouTube ? (
-          <div className="w-full h-full relative">
+          <div className="w-full h-full relative pointer-events-auto">
             <ReactPlayer
               ref={reactPlayerRef}
-              src={src}
-              playing={isPlaying}
-              muted={isMuted}
-              volume={volume}
-              controls={false}
-              width="100%"
-              height="100%"
-              onReady={() => setIsLoading(false)}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              onTimeUpdate={(e: React.SyntheticEvent<HTMLVideoElement>) => {
-                if (e?.currentTarget?.currentTime) {
-                  setCurrentTime(e.currentTarget.currentTime)
-                }
-                if (e?.currentTarget?.duration) {
-                  setDuration(e.currentTarget.duration)
+              {...({
+                url: src,
+                playing: isPlaying,
+                muted: isMuted,
+                volume: volume,
+                controls: false,
+                width: "100%",
+                height: "100%",
+                onReady: () => {
                   setIsLoading(false)
+                  onCanPlay?.()
+                },
+                onPlay: handlePlay,
+                onPause: handlePause,
+                onProgress: (state: { playedSeconds: number; loadedSeconds: number }) => {
+                  if (typeof state?.playedSeconds === 'number') {
+                    setCurrentTime(state.playedSeconds)
+                  }
+                  if (typeof state?.loadedSeconds === 'number') {
+                    setBuffered(state.loadedSeconds)
+                  }
+                },
+                onDuration: (dur: number) => {
+                  if (typeof dur === 'number' && dur > 0) {
+                    setDuration(dur)
+                    setIsLoading(false)
+                  }
+                },
+                onError: (err: unknown) => {
+                  console.warn('ReactPlayer YouTube Error:', err)
+                  setIsLoading(false)
+                },
+                config: {
+                  youtube: {
+                    playerVars: {
+                      origin: typeof window !== 'undefined' ? window.location.origin : '',
+                      autoplay: 1,
+                      modestbranding: 1,
+                      rel: 0
+                    }
+                  }
                 }
-              }}
+              } as any)}
             />
           </div>
         ) : (

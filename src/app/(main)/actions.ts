@@ -35,6 +35,8 @@ const FolderNameSchema = z.string().min(1, "Nome da pasta é obrigatório").max(
 const IdSchema = z.string().min(1, "ID é obrigatório").max(128, "ID inválido")
 const IdOrNullSchema = z.string().min(1, "ID inválido").max(128, "ID inválido").nullable()
 
+import { fetchYouTubeMetadata, isYouTubeUrl } from "@/lib/youtube"
+
 export async function saveVideo(title: string, url: string, folderId?: string | null) {
   const result = SaveVideoSchema.safeParse({ title, url, folderId })
   if (!result.success) {
@@ -47,9 +49,17 @@ export async function saveVideo(title: string, url: string, folderId?: string | 
     throw new Error("Não autorizado")
   }
 
+  let finalTitle = result.data.title
+  if (isYouTubeUrl(result.data.url)) {
+    const meta = await fetchYouTubeMetadata(result.data.url)
+    if (meta?.title && (!finalTitle || finalTitle === result.data.url || finalTitle === 'Sem título')) {
+      finalTitle = meta.title
+    }
+  }
+
   await prisma.video.create({
     data: {
-      title: result.data.title,
+      title: finalTitle,
       url: result.data.url,
       userId: session.user.id,
       folderId: result.data.folderId || null,

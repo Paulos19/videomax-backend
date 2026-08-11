@@ -109,6 +109,22 @@ export function VideoSelectorModal({ videos, currentUrl, onSelect, onClose }: Vi
               Tocar
             </button>
           </div>
+
+          {/* Dynamic YouTube Cover Thumbnail Preview */}
+          {isYouTubeUrl(customUrl) && getYouTubeThumbnail(customUrl) && (
+            <div className="flex items-center gap-3 p-2 bg-[#151515] border border-[#242424] rounded-xl animate-fade-in">
+              <img
+                src={getYouTubeThumbnail(customUrl)!}
+                alt="Capa do vídeo"
+                className="w-20 h-12 object-cover rounded-lg border border-[#242424]"
+              />
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Capa do YouTube Carregada</span>
+                <p className="text-xs text-[#F5F5F5] font-semibold truncate mt-0.5">Pronto para transmitir na sala</p>
+              </div>
+            </div>
+          )}
+
           {customUrlError && (
             <p className="text-room-red text-xs">{customUrlError}</p>
           )}

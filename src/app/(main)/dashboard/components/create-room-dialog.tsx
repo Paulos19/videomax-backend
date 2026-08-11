@@ -6,8 +6,8 @@ import { X, Play, Upload, Check, Loader2, Sparkles } from 'lucide-react'
 import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { UploadDropzone } from '@/lib/uploadthing'
 import { saveVideo } from '@/app/(main)/actions'
-import { isYouTubeUrl } from '@/lib/youtube'
 import { cn } from '@/lib/utils'
+import { isYouTubeUrl, getYouTubeThumbnail, fetchYouTubeMetadata } from '@/lib/youtube'
 
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -25,15 +25,37 @@ interface CreateRoomDialogProps {
 export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'youtube' | 'upload'>('youtube')
-  
+
   // YouTube state
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [youtubeTitle, setYoutubeTitle] = useState('')
+  const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const [isLoadingMeta, setIsLoadingMeta] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
   // Upload state
   const [uploadTitle, setUploadTitle] = useState('')
+
+  const handleUrlChange = async (url: string) => {
+    setYoutubeUrl(url)
+    setErrorMsg('')
+    if (isYouTubeUrl(url)) {
+      const thumb = getYouTubeThumbnail(url)
+      if (thumb) setCoverPreview(thumb)
+
+      setIsLoadingMeta(true)
+      const meta = await fetchYouTubeMetadata(url)
+      setIsLoadingMeta(false)
+
+      if (meta?.thumbnail) setCoverPreview(meta.thumbnail)
+      if (meta?.title && !youtubeTitle) {
+        setYoutubeTitle(meta.title)
+      }
+    } else {
+      setCoverPreview(null)
+    }
+  }
 
   const handleCreateYoutubeRoom = useCallback(async () => {
     setErrorMsg('')
@@ -129,11 +151,24 @@ export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
                 <input
                   type="url"
                   value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  onChange={(e) => handleUrlChange(e.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
                   className="w-full bg-[#151515] border border-[#242424] text-[#F5F5F5] px-4 py-3 rounded-xl text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
                 />
               </div>
+
+              {/* Cover Preview Card */}
+              {coverPreview && (
+                <div className="bg-[#151515] border border-[#242424] rounded-xl p-3 flex items-center gap-3 animate-fade-in">
+                  <img src={coverPreview} alt="Capa do vídeo" className="w-24 h-14 object-cover rounded-lg border border-[#242424]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Capa Carregada</p>
+                    <p className="text-xs text-[#F5F5F5] font-semibold truncate mt-0.5">
+                      {youtubeTitle || 'Título detectado automaticamente'}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="text-[#8A8A8A] text-xs font-semibold mb-1.5 block uppercase tracking-wider">

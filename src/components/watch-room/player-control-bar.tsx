@@ -23,7 +23,8 @@ export function PlayerControlBar({
   onSeekBack,
   onSeekForward,
   onNextVideo,
-}: PlayerControlBarProps) {
+  onSyncAll,
+}: PlayerControlBarProps & { onSyncAll?: () => void }) {
   const canControl = userRole === 'host' || userRole === 'cohost'
 
   return (
@@ -44,16 +45,20 @@ export function PlayerControlBar({
         </div>
       </button>
 
-      {/* 2. Sincronizado */}
-      <div className="bg-[#0B0B0B] border border-[#242424] rounded-2xl p-3 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+      {/* 2. Sincronizado / Sincronizar todos */}
+      <button
+        onClick={onSyncAll}
+        className="bg-[#0B0B0B] hover:bg-[#111111] border border-[#242424] hover:border-emerald-500/40 rounded-2xl p-3 flex items-center gap-3 transition-all text-left group cursor-pointer"
+        title="Sincronizar todos os espectadores com o seu player"
+      >
+        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
           <Activity className="w-4 h-4 animate-pulse" />
         </div>
         <div className="text-left min-w-0">
-          <p className="text-xs font-bold text-[#F5F5F5] truncate">Sincronizado</p>
+          <p className="text-xs font-bold text-[#F5F5F5] truncate">Sincronizar</p>
           <p className="text-[10px] text-emerald-400 font-semibold truncate">{syncStatus}</p>
         </div>
-      </div>
+      </button>
 
       {/* 3. Próximo */}
       <button

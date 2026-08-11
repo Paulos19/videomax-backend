@@ -35,6 +35,7 @@ export interface PlayerStateData {
   type: 'play' | 'pause' | 'seek' | 'change-video'
   currentTime?: number
   url?: string
+  videoTitle?: string
   senderId?: string
   serverTimestamp?: number
 }

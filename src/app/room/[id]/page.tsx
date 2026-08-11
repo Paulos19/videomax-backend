@@ -24,6 +24,7 @@ export default function RoomPage() {
     viewers,
     currentVideoUrl,
     userRole,
+    roomInfo,
     lastPlayerAction,
     sendMessage,
     syncPlayerState,
@@ -101,6 +102,7 @@ export default function RoomPage() {
       currentUserId={currentUserId}
       isConnected={isConnected}
       currentVideoUrl={currentVideoUrl}
+      videoTitle={roomInfo?.videoTitle}
       userRole={userRole}
       lastPlayerAction={lastPlayerAction}
       onSendMessage={sendMessage}

@@ -17,7 +17,16 @@ import { Viewer } from '@/lib/useSocket'
 import { PlayerActionNotice } from '@/lib/useSocket'
 import { Play, Pause, FastForward, Film } from 'lucide-react'
 
+import { toast } from 'sonner'
+
 const DEFAULT_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+
+function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds <= 0) return '00:00'
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
 
 interface WatchRoomProps {
   roomId: string
@@ -27,6 +36,7 @@ interface WatchRoomProps {
   currentUserId: string | null
   isConnected: boolean
   currentVideoUrl: string | null
+  videoTitle?: string
   userRole?: 'host' | 'cohost' | 'viewer'
   lastPlayerAction?: PlayerActionNotice | null
   onSendMessage: (message: string) => void
@@ -50,6 +60,7 @@ export function WatchRoom({
   currentUserId,
   isConnected,
   currentVideoUrl: socketVideoUrl,
+  videoTitle: propVideoTitle,
   userRole = 'viewer',
   lastPlayerAction,
   onSendMessage,
@@ -65,7 +76,10 @@ export function WatchRoom({
   senderName
 }: WatchRoomProps) {
   const [localVideoUrl, setLocalVideoUrl] = useState(DEFAULT_VIDEO)
+  const [currentTitle, setCurrentTitle] = useState(propVideoTitle || 'Sessão de Vídeo')
   const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
   const [showChat, setShowChat] = useState(true)
   const [showVideoSelector, setShowVideoSelector] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -76,6 +90,25 @@ export function WatchRoom({
 
   const hostUser = viewers.find(v => v.role === 'host')
   const hostName = hostUser?.name || 'Henrique'
+  const canControl = userRole === 'host' || userRole === 'cohost'
+
+  // Update title if received from socket room-info
+  useEffect(() => {
+    if (propVideoTitle) {
+      setCurrentTitle(propVideoTitle)
+    }
+  }, [propVideoTitle])
+
+  // Update duration/time periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (videoPlayerRef.current) {
+        setCurrentTime(videoPlayerRef.current.getCurrentTime() || 0)
+        setDuration(videoPlayerRef.current.getDuration() || 0)
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Sync video URL from socket
   useEffect(() => {
@@ -89,6 +122,10 @@ export function WatchRoom({
     if (!onRemotePlayerState || !videoPlayerRef.current) return
 
     isRemoteUpdateRef.current = true
+
+    if (onRemotePlayerState.videoTitle) {
+      setCurrentTitle(onRemotePlayerState.videoTitle)
+    }
 
     switch (onRemotePlayerState.type) {
       case 'play':
@@ -147,8 +184,13 @@ export function WatchRoom({
     }
   }, [onCanPlay, onRemotePlayerStateConsumed])
 
-  const handleVideoChange = useCallback((url: string) => {
+  const handleVideoChange = useCallback((url: string, title?: string) => {
+    if (!canControl) {
+      toast.error('Somente o Host ou Co-host pode alterar o vídeo!')
+      return
+    }
     setLocalVideoUrl(url)
+    if (title) setCurrentTitle(title)
     onVideoChange?.(url)
     pendingRemotePlay.current = null
     setTimeout(() => {
@@ -156,36 +198,72 @@ export function WatchRoom({
         isRemoteUpdateRef.current = true
         videoPlayerRef.current.play()
         setIsPlaying(true)
-        onSyncPlayerState?.({ type: 'play', currentTime: 0 })
+        onSyncPlayerState?.({ type: 'play', currentTime: 0, url, videoTitle: title || currentTitle })
         setTimeout(() => {
           isRemoteUpdateRef.current = false
         }, 200)
       }
     }, 500)
-  }, [onVideoChange, onSyncPlayerState])
+  }, [canControl, onVideoChange, onSyncPlayerState, currentTitle])
 
-  // Local user play/pause/seek → sync to other users
+  const handleUpdateTitle = useCallback((newTitle: string) => {
+    if (!canControl) {
+      toast.error('Somente o Host ou Co-host pode alterar o título!')
+      return
+    }
+    setCurrentTitle(newTitle)
+    onSyncPlayerState?.({ type: 'change-video', url: localVideoUrl, videoTitle: newTitle })
+    toast.success('Título atualizado ao vivo para todos!')
+  }, [canControl, localVideoUrl, onSyncPlayerState])
+
+  const handleSyncAll = useCallback(() => {
+    if (!canControl) {
+      toast.info('Seu player foi sincronizado com a sessão do Host!')
+      return
+    }
+    const time = videoPlayerRef.current?.getCurrentTime() || 0
+    onSyncPlayerState?.({ type: 'seek', currentTime: time, videoTitle: currentTitle })
+    toast.success('Todos os espectadores foram sincronizados com seu tempo atual!')
+  }, [canControl, currentTitle, onSyncPlayerState])
+
+  // Local user play/pause/seek → sync to other users if Host/Co-host
   const handlePlay = useCallback(() => {
     setIsPlaying(true)
     if (isRemoteUpdateRef.current) return
-    onSyncPlayerState?.({ type: 'play', currentTime: videoPlayerRef.current?.getCurrentTime() })
-  }, [onSyncPlayerState])
+    if (!canControl) {
+      toast.error('Apenas o Host ou Co-host pode alterar a reprodução.')
+      return
+    }
+    onSyncPlayerState?.({ type: 'play', currentTime: videoPlayerRef.current?.getCurrentTime(), videoTitle: currentTitle })
+  }, [canControl, onSyncPlayerState, currentTitle])
 
   const handlePause = useCallback(() => {
     setIsPlaying(false)
     if (isRemoteUpdateRef.current) return
-    onSyncPlayerState?.({ type: 'pause', currentTime: videoPlayerRef.current?.getCurrentTime() })
-  }, [onSyncPlayerState])
+    if (!canControl) {
+      toast.error('Apenas o Host ou Co-host pode alterar a reprodução.')
+      return
+    }
+    onSyncPlayerState?.({ type: 'pause', currentTime: videoPlayerRef.current?.getCurrentTime(), videoTitle: currentTitle })
+  }, [canControl, onSyncPlayerState, currentTitle])
 
   const handleSeek = useCallback((time: number) => {
     if (videoPlayerRef.current) {
       videoPlayerRef.current.seek(time)
     }
     if (isRemoteUpdateRef.current) return
-    onSyncPlayerState?.({ type: 'seek', currentTime: time })
-  }, [onSyncPlayerState])
+    if (!canControl) {
+      toast.error('Apenas o Host ou Co-host pode alterar o tempo do vídeo.')
+      return
+    }
+    onSyncPlayerState?.({ type: 'seek', currentTime: time, videoTitle: currentTitle })
+  }, [canControl, onSyncPlayerState, currentTitle])
 
   const togglePlay = useCallback(() => {
+    if (!canControl) {
+      toast.error('Apenas o Host ou Co-host pode controlar a reprodução.')
+      return
+    }
     if (isPlaying) {
       videoPlayerRef.current?.pause()
       handlePause()
@@ -193,7 +271,7 @@ export function WatchRoom({
       videoPlayerRef.current?.play()
       handlePlay()
     }
-  }, [isPlaying, handlePause, handlePlay])
+  }, [canControl, isPlaying, handlePause, handlePlay])
 
   return (
     <div className="h-screen flex flex-col bg-[#050505] text-[#F5F5F5] overflow-y-auto lg:overflow-hidden relative font-sans">
@@ -260,6 +338,7 @@ export function WatchRoom({
             onSeekBack={() => handleSeek(Math.max(0, (videoPlayerRef.current?.getCurrentTime() || 0) - 10))}
             onSeekForward={() => handleSeek((videoPlayerRef.current?.getCurrentTime() || 0) + 10)}
             onNextVideo={() => setShowVideoSelector(true)}
+            onSyncAll={handleSyncAll}
           />
 
           {/* 3. Viewers Panel & Invite Card */}
@@ -280,10 +359,12 @@ export function WatchRoom({
 
           {/* 4. Video Information */}
           <VideoInfo
-            videoTitle="Attack on Titan — Temporada 4"
-            subtitle="Episódio 21"
-            duration="23:54"
-            queueCount={3}
+            videoTitle={currentTitle}
+            currentTime={formatTime(currentTime)}
+            duration={formatTime(duration)}
+            queueCount={videos.length || 1}
+            canControl={canControl}
+            onUpdateTitle={handleUpdateTitle}
             onToggleQueue={() => setShowVideoSelector(true)}
           />
 

@@ -25,6 +25,7 @@ export interface VideoPlayerHandle {
   pause: () => void
   seek: (time: number) => void
   getCurrentTime: () => number
+  getDuration: () => number
 }
 
 interface VideoPlayerProps {
@@ -108,6 +109,15 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           return reactPlayerRef.current.currentTime ?? currentTime
         }
         return videoRef.current?.currentTime ?? 0
+      },
+      getDuration: () => {
+        if (isYouTube && reactPlayerRef.current) {
+          if (typeof reactPlayerRef.current.getDuration === 'function') {
+            return reactPlayerRef.current.getDuration()
+          }
+          return reactPlayerRef.current.duration ?? duration
+        }
+        return videoRef.current?.duration ?? duration
       }
     }))
 

@@ -52,17 +52,17 @@ export function RoomHeader({
           <ArrowLeft className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="text-[#F5F5F5] font-extrabold text-base tracking-wider uppercase bg-[#0B0B0B] px-3 py-1 rounded-xl border border-[#242424]">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <span className="text-[#F5F5F5] font-extrabold text-xs sm:text-base tracking-wider uppercase bg-[#0B0B0B] px-2.5 sm:px-3 py-1 rounded-xl border border-[#242424] truncate max-w-[90px] sm:max-w-none">
             {roomName}
           </span>
 
-          <span className="flex items-center gap-1.5 text-xs font-bold text-[#FFB800] bg-[#FFB800]/10 border border-[#FFB800]/30 px-2.5 py-1 rounded-full">
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-[#FFB800] bg-[#FFB800]/10 border border-[#FFB800]/30 px-2.5 py-1 rounded-full shrink-0">
             <Crown className="w-3.5 h-3.5 fill-[#FFB800]" />
             Host
           </span>
 
-          <div className="flex items-center gap-1.5 text-[#8A8A8A] text-xs font-semibold hidden md:flex">
+          <div className="flex items-center gap-1.5 text-[#8A8A8A] text-xs font-semibold hidden md:flex shrink-0">
             <Users className="w-4 h-4 text-[#FF5A00]" />
             <span>{viewerCount} assistindo</span>
           </div>
@@ -70,18 +70,18 @@ export function RoomHeader({
       </div>
 
       {/* Right section: Action Buttons & Status */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <button
           onClick={onChangeVideo}
-          className="px-3.5 py-2 rounded-xl bg-[#0B0B0B] hover:bg-[#151515] border border-[#242424] hover:border-[#FF5A00] text-[#F5F5F5] text-xs font-bold transition-all flex items-center gap-2"
+          className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[#0B0B0B] hover:bg-[#151515] border border-[#242424] hover:border-[#FF5A00] text-[#F5F5F5] text-xs font-bold transition-all hidden sm:flex items-center gap-2"
         >
           <Clapperboard className="w-4 h-4 text-[#FF5A00]" />
-          <span className="hidden sm:inline">Mudar vídeo</span>
+          <span>Mudar vídeo</span>
         </button>
 
         <button
           onClick={onShare}
-          className="w-9 h-9 rounded-xl bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00] flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-all"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00] hidden sm:flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-all"
           title="Compartilhar"
         >
           <Share2 className="w-4 h-4" />
@@ -90,7 +90,7 @@ export function RoomHeader({
         <button
           onClick={onToggleChat}
           className={cn(
-            "w-9 h-9 rounded-xl border flex items-center justify-center transition-all",
+            "w-8 h-8 sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center transition-all",
             showChat
               ? "bg-[#FF5A00]/10 text-[#FF5A00] border-[#FF5A00]/40"
               : "bg-[#0B0B0B] text-[#8A8A8A] border-[#242424] hover:text-[#F5F5F5]"
@@ -102,19 +102,19 @@ export function RoomHeader({
 
         <button
           onClick={onMore}
-          className="w-9 h-9 rounded-xl bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00] flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-all"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00] flex sm:hidden items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-all"
           title="Mais opções"
         >
           <MoreVertical className="w-4 h-4" />
         </button>
 
         {/* Connection status badge */}
-        <div className="flex items-center gap-2 ml-2 bg-[#0B0B0B] px-3 py-1.5 rounded-full border border-[#242424]">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-[#0B0B0B] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-[#242424]">
           <div className={cn(
-            "w-2 h-2 rounded-full",
+            "w-2 h-2 rounded-full shrink-0",
             isConnected ? "bg-emerald-500 animate-pulse" : "bg-[#EF2020]"
           )} />
-          <span className="text-[#F5F5F5] text-xs font-bold">
+          <span className="text-[#F5F5F5] text-[11px] sm:text-xs font-bold hidden xs:inline">
             {isConnected ? 'Online' : 'Conectando...'}
           </span>
         </div>

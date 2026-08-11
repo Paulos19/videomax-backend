@@ -316,7 +316,7 @@ export function WatchRoom({
       />
 
       {/* Main Content Grid */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-3 lg:p-4 gap-3 lg:gap-4 overflow-y-auto lg:overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-3 lg:p-4 gap-3 lg:gap-4 overflow-y-auto lg:overflow-hidden pb-16 lg:pb-4">
         {/* Left Column: Video, Control Bar, Viewers & Invite, VideoInfo */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-visible lg:overflow-y-auto scrollbar-thin pr-0 lg:pr-1 space-y-3">
           {/* 1. Video Player */}
@@ -369,8 +369,22 @@ export function WatchRoom({
             onToggleQueue={() => setShowVideoSelector(true)}
           />
 
-          {/* 5. Footer Actions */}
-          <div className="flex items-center justify-between pt-4 pb-2 border-t border-[#242424]">
+          {/* 5. Live Chat Panel (Mobile Inline Block - renders inline under VideoInfo on mobile) */}
+          {showChat && (
+            <div className="block lg:hidden h-[420px] shrink-0 my-3">
+              <ChatPanel
+                messages={messages}
+                currentUserId={currentUserId}
+                viewerCount={viewers.length}
+                viewers={viewers}
+                onSend={onSendMessage}
+                onClose={() => setShowChat(false)}
+              />
+            </div>
+          )}
+
+          {/* 6. Footer Actions */}
+          <div className="flex items-center justify-between pt-4 pb-6 border-t border-[#242424]">
             <button className="text-xs text-[#8A8A8A] hover:text-[#F5F5F5] flex items-center gap-1.5 font-semibold transition-colors">
               <ShieldAlert className="w-4 h-4 text-[#8A8A8A]" />
               Regras da sala
@@ -385,9 +399,9 @@ export function WatchRoom({
           </div>
         </div>
 
-        {/* Right Column: Live Chat Panel */}
+        {/* Right Column: Live Chat Panel (Desktop 2-Column Sidebar) */}
         {showChat && (
-          <div className="flex flex-col min-h-[420px] h-[480px] lg:h-full lg:w-[380px] xl:w-[420px] shrink-0">
+          <div className="hidden lg:flex flex-col min-h-0 h-full lg:w-[380px] xl:w-[420px] shrink-0">
             <ChatPanel
               messages={messages}
               currentUserId={currentUserId}

@@ -344,30 +344,29 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           onClick={canControl ? togglePlay : undefined}
         />
 
-        {/* Top-left Overlay: AO VIVO + Sincronizado */}
-        <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 z-20 pointer-events-auto">
-          <div className="flex items-center gap-1.5 bg-[#EF2020] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-[#EF2020]/30">
-            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            AO VIVO
+        {/* Top Overlay Bar: AO VIVO + Sincronizado + Host Pill */}
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-20 pointer-events-auto">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1.5 bg-[#EF2020] text-white text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wider shadow-lg shadow-[#EF2020]/30 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+              AO VIVO
+            </div>
+
+            <div
+              className="flex items-center gap-1 bg-black/70 backdrop-blur-md border border-white/10 text-white text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg truncate"
+              title="Seu vídeo é sincronizado automaticamente com o host desta sala."
+            >
+              <span className="text-[#FFB800]">⚡</span>
+              <span className="truncate">Sincronizado <span className="hidden sm:inline">com Host</span></span>
+              <span className="text-[10px] text-[#8A8A8A] font-mono cursor-help hidden xs:inline">ⓘ</span>
+            </div>
           </div>
 
-          <div
-            className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-white/10 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg"
-            title="Seu vídeo é sincronizado automaticamente com o host desta sala."
-          >
-            <span className="text-[#FFB800]">⚡</span>
-            <span>Sincronizado com {poster ? 'Henrique' : 'Host'}</span>
-            <span className="text-[10px] text-[#8A8A8A] font-mono cursor-help">ⓘ</span>
-          </div>
-        </div>
-
-        {/* Top-right Overlay: Host Pill */}
-        <div className="absolute top-4 right-4 z-20 pointer-events-none">
-          <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full shadow-lg text-xs font-bold text-[#F5F5F5]">
-            <div className="w-5 h-5 rounded-full bg-[#FF5A00] flex items-center justify-center text-[10px] text-white font-extrabold">
+          <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-white/10 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg text-[11px] sm:text-xs font-bold text-[#F5F5F5] shrink-0">
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#FF5A00] flex items-center justify-center text-[9px] sm:text-[10px] text-white font-extrabold">
               H
             </div>
-            <span>Henrique</span>
+            <span className="hidden xs:inline">Henrique</span>
             <span className="text-[#FFB800]">👑</span>
           </div>
         </div>

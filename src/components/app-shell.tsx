@@ -47,46 +47,74 @@ export function AppShell({ user, children }: AppShellProps) {
   // Real-time notification listener
   useEffect(() => {
     if (!user) return
-    const socket = io(SOCKET_SERVER_URL)
+    let socket: ReturnType<typeof io> | null = null
+    let cancelled = false
 
-    socket.on('connect', () => {
-      fetch('/api/mobile/profile').then(r => r.json()).then(data => {
-        if (data?.user?.id) {
-          socket.emit('join-user-room', { userId: data.user.id })
+    const init = async () => {
+      let wsToken: string | undefined
+      try {
+        const tokenRes = await fetch('/api/auth/token')
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json()
+          wsToken = tokenData.token
         }
-      }).catch(() => {})
-    })
+      } catch {
+        // Token fetch failed
+      }
 
-    socket.on('friend-request-received', (data: { senderName: string }) => {
-      toast.info(`Novo pedido de amizade de ${data.senderName}!`, {
-        action: {
-          label: 'Ver pedidos',
-          onClick: () => router.push('/dashboard/friends')
-        }
-      })
-    })
+      if (cancelled) return
 
-    socket.on('friend-request-accepted', (data: { receiverName: string }) => {
-      toast.success(`${data.receiverName} aceitou seu pedido de amizade!`, {
-        action: {
-          label: 'Ver amigos',
-          onClick: () => router.push('/dashboard/friends')
-        }
+      socket = io(SOCKET_SERVER_URL, {
+        auth: wsToken ? { token: wsToken } : undefined,
+        transports: ['websocket', 'polling'],
       })
-    })
 
-    socket.on('room-invite-received', (data: { senderName: string; roomCode: string }) => {
-      toast.info(`${data.senderName} convidou você para assistir na sala ${data.roomCode}!`, {
-        action: {
-          label: 'Entrar na Sala',
-          onClick: () => router.push(`/room/${data.roomCode}`)
-        },
-        duration: 10000
+      socket.on('connect', () => {
+        if (cancelled) return
+        fetch('/api/mobile/profile').then(r => r.json()).then(data => {
+          if (data?.user?.id && socket) {
+            socket.emit('join-user-room', { userId: data.user.id })
+          }
+        }).catch(() => {})
       })
-    })
+
+      socket.on('friend-request-received', (data: { senderName: string }) => {
+        if (cancelled) return
+        toast.info(`Novo pedido de amizade de ${data.senderName}!`, {
+          action: {
+            label: 'Ver pedidos',
+            onClick: () => router.push('/dashboard/friends')
+          }
+        })
+      })
+
+      socket.on('friend-request-accepted', (data: { receiverName: string }) => {
+        if (cancelled) return
+        toast.success(`${data.receiverName} aceitou seu pedido de amizade!`, {
+          action: {
+            label: 'Ver amigos',
+            onClick: () => router.push('/dashboard/friends')
+          }
+        })
+      })
+
+      socket.on('room-invite-received', (data: { senderName: string; roomCode: string }) => {
+        if (cancelled) return
+        toast.info(`${data.senderName} convidou você para assistir na sala ${data.roomCode}!`, {
+          action: {
+            label: 'Entrar na Sala',
+            onClick: () => router.push(`/room/${data.roomCode}`)
+          },
+          duration: 10000
+        })
+      })
+    }
+
+    init()
 
     return () => {
-      socket.disconnect()
+      cancelled = true
+      if (socket) socket.disconnect()
     }
   }, [user, router])
 

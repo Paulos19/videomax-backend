@@ -82,10 +82,12 @@ export function useSocket(roomId: string) {
       // Connect with JWT token for server-side verification
       newSocket = io(SOCKET_SERVER_URL, {
         auth: wsToken ? { token: wsToken } : undefined,
+        transports: ['websocket', 'polling'],
       })
 
       newSocket.on('connect', () => {
         if (cancelled) return
+        console.log('[WebSocket] Conectado com sucesso!')
         setIsConnected(true)
         setCurrentUserId(userId)
 
@@ -103,8 +105,20 @@ export function useSocket(roomId: string) {
         newSocket.emit('join-user-room', { userId })
       })
 
-      newSocket.on('disconnect', () => {
+      newSocket.on('connect_error', (err) => {
         if (cancelled) return
+        console.error('[WebSocket] Erro de conexão:', err.message)
+        setIsConnected(false)
+      })
+
+      newSocket.on('error', (err) => {
+        if (cancelled) return
+        console.error('[WebSocket] Erro retornado pelo servidor:', err)
+      })
+
+      newSocket.on('disconnect', (reason) => {
+        if (cancelled) return
+        console.warn('[WebSocket] Desconectado:', reason)
         setIsConnected(false)
       })
 

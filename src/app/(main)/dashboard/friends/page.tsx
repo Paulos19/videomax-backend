@@ -71,16 +71,42 @@ export default function FriendsPage() {
   useEffect(() => {
     const userId = session?.user?.id
     if (!userId) return
-    const newSocket = io(SOCKET_SERVER_URL)
-    
-    newSocket.on('connect', () => {
-      newSocket.emit('join-user-room', { userId })
-    })
 
-    setSocket(newSocket)
+    let newSocket: Socket | null = null
+    let cancelled = false
+
+    const init = async () => {
+      let wsToken: string | undefined
+      try {
+        const tokenRes = await fetch('/api/auth/token')
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json()
+          wsToken = tokenData.token
+        }
+      } catch {
+        // Token fetch failed
+      }
+
+      if (cancelled) return
+
+      newSocket = io(SOCKET_SERVER_URL, {
+        auth: wsToken ? { token: wsToken } : undefined,
+        transports: ['websocket', 'polling'],
+      })
+
+      newSocket.on('connect', () => {
+        if (cancelled) return
+        newSocket?.emit('join-user-room', { userId })
+      })
+
+      setSocket(newSocket)
+    }
+
+    init()
 
     return () => {
-      newSocket.disconnect()
+      cancelled = true
+      if (newSocket) newSocket.disconnect()
     }
   }, [session?.user?.id])
 

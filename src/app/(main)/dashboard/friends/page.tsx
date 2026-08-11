@@ -67,6 +67,8 @@ export default function FriendsPage() {
 
   const [socket, setSocket] = useState<Socket | null>(null)
 
+  const [activeRooms, setActiveRooms] = useState<Array<{ roomId: string; videoTitle: string; viewers: Array<{ userId: string }> }>>([])
+
   // Socket connection
   useEffect(() => {
     const userId = session?.user?.id
@@ -97,6 +99,19 @@ export default function FriendsPage() {
       newSocket.on('connect', () => {
         if (cancelled) return
         newSocket?.emit('join-user-room', { userId })
+        newSocket?.emit('get-active-rooms')
+      })
+
+      newSocket.on('active-rooms-update', (rooms) => {
+        if (!cancelled && Array.isArray(rooms)) {
+          setActiveRooms(rooms)
+        }
+      })
+
+      newSocket.on('active-rooms-list', (rooms) => {
+        if (!cancelled && Array.isArray(rooms)) {
+          setActiveRooms(rooms)
+        }
       })
 
       setSocket(newSocket)
@@ -409,72 +424,98 @@ export default function FriendsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {friends.map((friend) => (
-                  <div
-                    key={friend.id}
-                    onClick={selectMode ? () => toggleFriendSelection(friend.id) : undefined}
-                    className={cn(
-                      "bg-room-surface border rounded-2xl p-4 flex items-center justify-between gap-3 transition-all group",
-                      selectMode
-                        ? selectedFriendIds.has(friend.id)
-                          ? "border-room-accent/50 bg-room-accent/5 cursor-pointer"
-                          : "border-room-border hover:border-room-accent/30 cursor-pointer"
-                        : "border-room-border hover:border-room-accent/30"
-                    )}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {/* Checkbox — visible in select mode */}
-                      {selectMode && (
-                        <div className={cn(
-                          "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
-                          selectedFriendIds.has(friend.id)
-                            ? "bg-room-accent border-room-accent"
-                            : "border-room-border-light bg-room-surface-2"
-                        )}>
-                          {selectedFriendIds.has(friend.id) && <Check className="w-3 h-3 text-white" />}
-                        </div>
+                {friends.map((friend) => {
+                  const activeRoom = activeRooms.find(r => r.viewers.some(v => v.userId === friend.id))
+
+                  return (
+                    <div
+                      key={friend.id}
+                      onClick={selectMode ? () => toggleFriendSelection(friend.id) : undefined}
+                      className={cn(
+                        "bg-room-surface border rounded-2xl p-4 flex items-center justify-between gap-3 transition-all group",
+                        selectMode
+                          ? selectedFriendIds.has(friend.id)
+                            ? "border-room-accent/50 bg-room-accent/5 cursor-pointer"
+                            : "border-room-border hover:border-room-accent/30 cursor-pointer"
+                          : "border-room-border hover:border-room-accent/30"
                       )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Checkbox — visible in select mode */}
+                        {selectMode && (
+                          <div className={cn(
+                            "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
+                            selectedFriendIds.has(friend.id)
+                              ? "bg-room-accent border-room-accent"
+                              : "border-room-border-light bg-room-surface-2"
+                          )}>
+                            {selectedFriendIds.has(friend.id) && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                        )}
 
-                      <Avatar className="w-12 h-12 shrink-0 border border-room-border">
-                        <AvatarImage src={friend.image || undefined} />
-                        <AvatarFallback className="bg-room-surface-3 text-room-accent font-bold">
-                          {(friend.name || friend.email).charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                        <div className="relative">
+                          <Avatar className="w-12 h-12 shrink-0 border border-room-border">
+                            <AvatarImage src={friend.image || undefined} />
+                            <AvatarFallback className="bg-room-surface-3 text-room-accent font-bold">
+                              {(friend.name || friend.email).charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className={cn(
+                            "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-room-surface",
+                            activeRoom ? "bg-emerald-500 animate-pulse" : "bg-zinc-600"
+                          )} />
+                        </div>
 
-                      <div className="min-w-0">
-                        <p className="text-room-text font-semibold text-sm truncate">
-                          {friend.name || friend.email.split('@')[0]}
-                        </p>
-                        <p className="text-room-text-secondary text-xs truncate">
-                          {friend.email}
-                        </p>
+                        <div className="min-w-0 space-y-0.5">
+                          <p className="text-room-text font-semibold text-sm truncate">
+                            {friend.name || friend.email.split('@')[0]}
+                          </p>
+
+                          {activeRoom ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 truncate">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                              Assistindo {activeRoom.videoTitle || `#${activeRoom.roomId}`}
+                            </span>
+                          ) : (
+                            <p className="text-room-text-secondary text-xs truncate">
+                              {friend.email}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {activeRoom && !selectMode ? (
+                          <button
+                            onClick={() => router.push(`/room/${activeRoom.roomId}`)}
+                            className="px-3 py-1.5 rounded-xl brand-gradient text-white text-xs font-bold brand-glow-strong hover:opacity-90 active:scale-95 transition-all flex items-center gap-1"
+                          >
+                            <Play className="w-3 h-3 fill-white" />
+                            Entrar
+                          </button>
+                        ) : !selectMode ? (
+                          <button
+                            onClick={() => { setInviteFriend(friend); setCustomRoomCode(generateRoomCode()) }}
+                            className="p-2 rounded-xl bg-room-accent/10 hover:bg-room-accent text-room-accent hover:text-white transition-all"
+                            title="Convidar para sala"
+                          >
+                            <Play className="w-4 h-4" />
+                          </button>
+                        ) : null}
+
+                        {!selectMode && (
+                          <button
+                            onClick={() => handleRemoveFriend(friend)}
+                            className="p-2 rounded-xl bg-room-surface-2 hover:bg-room-red/10 text-room-text-secondary hover:text-room-red transition-all"
+                            title="Remover amigo"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {!selectMode && (
-                        <button
-                          onClick={() => { setInviteFriend(friend); setCustomRoomCode(generateRoomCode()) }}
-                          className="p-2 rounded-xl bg-room-accent/10 hover:bg-room-accent text-room-accent hover:text-white transition-all"
-                          title="Convidar para sala"
-                        >
-                          <Play className="w-4 h-4" />
-                        </button>
-                      )}
-
-                      {!selectMode && (
-                        <button
-                          onClick={() => handleRemoveFriend(friend)}
-                          className="p-2 rounded-xl bg-room-surface-2 hover:bg-room-red/10 text-room-text-secondary hover:text-room-red transition-all"
-                          title="Remover amigo"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 

@@ -13,6 +13,9 @@ import { Video, ChatMessage, PlayerStateData } from '@/types'
 import { Viewer } from '@/lib/useSocket'
 import { cn } from '@/lib/utils'
 
+import { PlayerActionNotice } from '@/lib/useSocket'
+import { Activity, Play, Pause, FastForward, Film } from 'lucide-react'
+
 const DEFAULT_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
 
 interface WatchRoomProps {
@@ -23,12 +26,15 @@ interface WatchRoomProps {
   currentUserId: string | null
   isConnected: boolean
   currentVideoUrl: string | null
+  userRole?: 'host' | 'cohost' | 'viewer'
+  lastPlayerAction?: PlayerActionNotice | null
   onSendMessage: (message: string) => void
   onSyncPlayerState?: (state: PlayerStateData) => void
   onRemotePlayerState?: PlayerStateData | null
   onRemotePlayerStateVersion?: number
   onRemotePlayerStateConsumed?: () => void
   onVideoChange?: (url: string) => void
+  onChangeUserRole?: (targetUserId: string, newRole: 'host' | 'cohost' | 'viewer') => void
   onBack?: () => void
   onCanPlay?: () => void
   socket?: Socket | null
@@ -43,12 +49,15 @@ export function WatchRoom({
   currentUserId,
   isConnected,
   currentVideoUrl: socketVideoUrl,
+  userRole = 'viewer',
+  lastPlayerAction,
   onSendMessage,
   onSyncPlayerState,
   onRemotePlayerState,
   onRemotePlayerStateVersion,
   onRemotePlayerStateConsumed,
   onVideoChange,
+  onChangeUserRole,
   onBack,
   onCanPlay,
   socket,
@@ -166,12 +175,38 @@ export function WatchRoom({
   }, [onSyncPlayerState])
 
   return (
-    <div className="h-screen flex flex-col bg-room-bg overflow-hidden">
+    <div className="h-screen flex flex-col bg-room-bg overflow-hidden relative">
+      {/* Action Toast Overlay (Floating) */}
+      {lastPlayerAction && (Date.now() - lastPlayerAction.serverTimestamp < 4000) && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/80 backdrop-blur-md border border-room-accent/40 text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2.5 animate-bounce">
+          {lastPlayerAction.type === 'play' ? (
+            <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" />
+          ) : lastPlayerAction.type === 'pause' ? (
+            <Pause className="w-4 h-4 text-amber-400 fill-amber-400" />
+          ) : lastPlayerAction.type === 'seek' ? (
+            <FastForward className="w-4 h-4 text-sky-400" />
+          ) : (
+            <Film className="w-4 h-4 text-purple-400" />
+          )}
+          <span className="text-xs font-semibold">
+            <strong className="text-room-accent">{lastPlayerAction.senderName}</strong>{' '}
+            {lastPlayerAction.type === 'play'
+              ? 'iniciou o vídeo'
+              : lastPlayerAction.type === 'pause'
+              ? 'pausou o vídeo'
+              : lastPlayerAction.type === 'seek'
+              ? 'avançou na linha do tempo'
+              : 'alterou o vídeo'}
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <RoomHeader
         roomName={roomId}
         viewerCount={viewers.length}
         isConnected={isConnected}
+        userRole={userRole}
         showChat={showChat}
         onBack={onBack}
         onChangeVideo={() => setShowVideoSelector(true)}
@@ -197,6 +232,8 @@ export function WatchRoom({
           {/* Viewers Panel */}
           <ViewersPanel
             viewers={viewers}
+            currentUserRole={userRole}
+            onChangeUserRole={onChangeUserRole}
             onInvite={() => setShowShareModal(true)}
           />
         </div>

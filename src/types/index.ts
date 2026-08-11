@@ -32,6 +32,8 @@ export interface PlayerStateData {
   type: 'play' | 'pause' | 'seek' | 'change-video'
   currentTime?: number
   url?: string
+  senderId?: string
+  serverTimestamp?: number
 }
 
 export interface PaginationInfo {

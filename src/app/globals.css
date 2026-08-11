@@ -47,55 +47,62 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* Watch Room custom colors – Fire palette */
+  /* VideoMax Redesign Palette */
   --color-room-bg: #050505;
-  --color-room-surface: #0C0C0C;
+  --color-room-surface: #0B0B0B;
   --color-room-surface-2: #111111;
-  --color-room-surface-3: #181818;
-  --color-room-text: #F5F0EB;
-  --color-room-text-secondary: #8A827A;
-  --color-room-accent: #E8590C;
-  --color-room-accent-secondary: #F97316;
-  --color-room-red: #DC2626;
-  --color-room-yellow: #EAB308;
+  --color-room-surface-3: #151515;
+  --color-room-text: #F5F5F5;
+  --color-room-text-secondary: #8A8A8A;
+  --color-room-accent: #FF5A00;
+  --color-room-accent-secondary: #FFB800;
+  --color-room-red: #EF2020;
+  --color-room-yellow: #FFB800;
   --color-room-online: #22C55E;
-  --color-room-border: rgba(255,140,50,0.08);
-  --color-room-border-light: rgba(255,140,50,0.12);
+  --color-room-border: #242424;
+  --color-room-border-light: #2A2A2A;
 }
 
 :root {
   --background: #050505;
-  --foreground: #F5F0EB;
-  --card: #0C0C0C;
-  --card-foreground: #F5F0EB;
+  --surface: #0B0B0B;
+  --surface-hover: #111111;
+  --surface-elevated: #151515;
+  --border: #242424;
+  --foreground: #F5F5F5;
+  --muted: #8A8A8A;
+  --muted-foreground: #5F5F5F;
+  --brand-red: #EF2020;
+  --brand-orange: #FF5A00;
+  --brand-yellow: #FFB800;
+
+  --card: #0B0B0B;
+  --card-foreground: #F5F5F5;
   --popover: #111111;
-  --popover-foreground: #F5F0EB;
-  --primary: #E8590C;
+  --popover-foreground: #F5F5F5;
+  --primary: #FF5A00;
   --primary-foreground: #FFFFFF;
-  --secondary: #181818;
-  --secondary-foreground: #F5F0EB;
-  --muted: #111111;
-  --muted-foreground: #8A827A;
-  --accent: #E8590C;
+  --secondary: #151515;
+  --secondary-foreground: #F5F5F5;
+  --accent: #FF5A00;
   --accent-foreground: #FFFFFF;
-  --destructive: #DC2626;
-  --border: rgba(255,140,50,0.08);
-  --input: rgba(255,140,50,0.12);
-  --ring: #E8590C;
-  --chart-1: #E8590C;
-  --chart-2: #F97316;
-  --chart-3: #EAB308;
-  --chart-4: #DC2626;
+  --destructive: #EF2020;
+  --input: #242424;
+  --ring: #FF5A00;
+  --chart-1: #EF2020;
+  --chart-2: #FF5A00;
+  --chart-3: #FFB800;
+  --chart-4: #EF2020;
   --chart-5: #22C55E;
-  --radius: 0.625rem;
-  --sidebar: #0A0A0A;
-  --sidebar-foreground: #F5F0EB;
-  --sidebar-primary: #E8590C;
+  --radius: 0.75rem;
+  --sidebar: #050505;
+  --sidebar-foreground: #F5F5F5;
+  --sidebar-primary: #FF5A00;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #181818;
-  --sidebar-accent-foreground: #F5F0EB;
-  --sidebar-border: rgba(255,140,50,0.08);
-  --sidebar-ring: #E8590C;
+  --sidebar-accent: #111111;
+  --sidebar-accent-foreground: #F5F5F5;
+  --sidebar-border: #242424;
+  --sidebar-ring: #FF5A00;
 }
 
 @layer base {
@@ -114,31 +121,31 @@
 
 /* Brand gradient utilities */
 .brand-gradient {
-  background: linear-gradient(135deg, #DC2626, #E8590C, #F97316, #EAB308);
+  background: linear-gradient(135deg, #EF2020 0%, #FF5A00 50%, #FFB800 100%);
 }
 
 .brand-gradient-text {
-  background: linear-gradient(135deg, #DC2626, #E8590C, #F97316, #EAB308);
+  background: linear-gradient(135deg, #EF2020 0%, #FF5A00 50%, #FFB800 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .brand-gradient-subtle {
-  background: linear-gradient(135deg, rgba(220,38,38,0.15), rgba(232,89,12,0.1), rgba(249,115,22,0.05));
+  background: linear-gradient(135deg, rgba(239,32,32,0.12), rgba(255,90,0,0.08), rgba(255,184,0,0.04));
 }
 
 .brand-glow {
-  box-shadow: 0 0 40px rgba(232, 89, 12, 0.15), 0 0 80px rgba(232, 89, 12, 0.05);
+  box-shadow: 0 0 30px rgba(255, 90, 0, 0.2), 0 0 60px rgba(239, 32, 32, 0.08);
 }
 
 .brand-glow-strong {
-  box-shadow: 0 0 30px rgba(232, 89, 12, 0.25), 0 0 60px rgba(249, 115, 22, 0.1);
+  box-shadow: 0 0 25px rgba(255, 90, 0, 0.35), 0 0 50px rgba(239, 32, 32, 0.15);
 }
 
 /* Sidebar gradient background */
 .sidebar-gradient {
-  background: linear-gradient(180deg, #0A0A0A 0%, #0D0806 50%, #0A0A0A 100%);
+  background: #050505;
 }
 
 /* Custom scrollbar for chat */

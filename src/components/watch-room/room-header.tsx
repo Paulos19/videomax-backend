@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Users, Clapperboard, Share2, MoreVertical, MessageCircle } from 'lucide-react'
+import { Crown, Shield, User, ArrowLeft, Users, Clapperboard, Share2, MoreVertical, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -8,6 +8,7 @@ interface RoomHeaderProps {
   roomName: string
   viewerCount: number
   isConnected: boolean
+  userRole?: 'host' | 'cohost' | 'viewer'
   showChat?: boolean
   onBack?: () => void
   onChangeVideo?: () => void
@@ -20,6 +21,7 @@ export function RoomHeader({
   roomName,
   viewerCount,
   isConnected,
+  userRole = 'viewer',
   showChat,
   onBack,
   onChangeVideo,
@@ -41,6 +43,24 @@ export function RoomHeader({
 
         <div className="flex items-center gap-3">
           <h1 className="text-room-text font-semibold text-lg">{roomName}</h1>
+
+          {/* User Role Badge */}
+          {userRole === 'host' ? (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-2.5 py-0.5 rounded-full shadow-sm">
+              <Crown className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              Host
+            </span>
+          ) : userRole === 'cohost' ? (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-sky-400 bg-sky-400/10 border border-sky-400/30 px-2.5 py-0.5 rounded-full shadow-sm">
+              <Shield className="w-3.5 h-3.5 text-sky-400" />
+              Co-host
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-[11px] font-medium text-room-text-secondary bg-room-surface border border-room-border px-2 py-0.5 rounded-full">
+              <User className="w-3 h-3 text-room-text-secondary" />
+              Viewer
+            </span>
+          )}
 
           <div className="flex items-center gap-1.5 text-room-text-secondary">
             <Users className="w-4 h-4" />

@@ -23,8 +23,11 @@ export default function RoomPage() {
     messages,
     viewers,
     currentVideoUrl,
+    userRole,
+    lastPlayerAction,
     sendMessage,
     syncPlayerState,
+    changeUserRole,
     currentUserId
   } = useSocket(roomId)
 
@@ -98,12 +101,15 @@ export default function RoomPage() {
       currentUserId={currentUserId}
       isConnected={isConnected}
       currentVideoUrl={currentVideoUrl}
+      userRole={userRole}
+      lastPlayerAction={lastPlayerAction}
       onSendMessage={sendMessage}
       onSyncPlayerState={syncPlayerState}
       onRemotePlayerState={remotePlayerEvent?.data ?? null}
       onRemotePlayerStateVersion={remotePlayerEvent?.version}
       onRemotePlayerStateConsumed={handleRemotePlayerStateConsumed}
       onVideoChange={handleVideoChange}
+      onChangeUserRole={changeUserRole}
       onBack={() => router.push('/')}
       socket={socket}
       senderName={session?.user?.name || session?.user?.email || 'Um amigo'}

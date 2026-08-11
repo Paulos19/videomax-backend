@@ -147,6 +147,9 @@ export function useSocket(roomId: string) {
       newSocket.on('room-info', (info: RoomInfo) => {
         if (cancelled) return
         setRoomInfo(info)
+        if (info.videoUrl) {
+          setCurrentVideoUrl(info.videoUrl)
+        }
         if (info.hostUserId === userId) {
           setUserRole('host')
         } else if (info.coHostIds?.includes(userId)) {
@@ -231,7 +234,7 @@ export function useSocket(roomId: string) {
       // Listen for video sync from other users
       newSocket.on('player-state-change', (data: PlayerStateData & { senderName?: string; videoTitle?: string }) => {
         if (cancelled) return
-        if (data.type === 'change-video' && data.url) {
+        if (data.url) {
           setCurrentVideoUrl(data.url)
         }
 

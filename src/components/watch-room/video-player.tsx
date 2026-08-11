@@ -176,14 +176,14 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       onCanPlay?.()
     }, [onCanPlay])
 
-    // Controls visibility timer
+    // Controls visibility timer (auto-hide controls & top tags after 5s)
     const startHideControlsTimer = useCallback(() => {
       if (hideControlsTimeout.current) {
         clearTimeout(hideControlsTimeout.current)
       }
       setShowControls(true)
       if (isPlaying) {
-        hideControlsTimeout.current = setTimeout(() => setShowControls(false), 3000)
+        hideControlsTimeout.current = setTimeout(() => setShowControls(false), 5000)
       }
     }, [isPlaying])
 
@@ -344,8 +344,13 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           onClick={canControl ? togglePlay : undefined}
         />
 
-        {/* Top Overlay Bar: AO VIVO + Sincronizado + Host Pill */}
-        <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-20 pointer-events-auto">
+        {/* Top Overlay Bar: AO VIVO + Sincronizado + Host Pill (Auto-hides after 5s) */}
+        <div
+          className={cn(
+            "absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-20 transition-opacity duration-300 pointer-events-auto",
+            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        >
           <div className="flex items-center gap-1.5 min-w-0">
             <div className="flex items-center gap-1.5 bg-[#EF2020] text-white text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wider shadow-lg shadow-[#EF2020]/30 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />

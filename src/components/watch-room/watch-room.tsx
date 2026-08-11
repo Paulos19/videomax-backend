@@ -75,7 +75,7 @@ export function WatchRoom({
   socket,
   senderName
 }: WatchRoomProps) {
-  const [localVideoUrl, setLocalVideoUrl] = useState(DEFAULT_VIDEO)
+  const [localVideoUrl, setLocalVideoUrl] = useState(socketVideoUrl || DEFAULT_VIDEO)
   const [currentTitle, setCurrentTitle] = useState(propVideoTitle || 'Sessão de Vídeo')
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -122,6 +122,10 @@ export function WatchRoom({
     if (!onRemotePlayerState || !videoPlayerRef.current) return
 
     isRemoteUpdateRef.current = true
+
+    if (onRemotePlayerState.url && onRemotePlayerState.url !== localVideoUrl) {
+      setLocalVideoUrl(onRemotePlayerState.url)
+    }
 
     if (onRemotePlayerState.videoTitle) {
       setCurrentTitle(onRemotePlayerState.videoTitle)

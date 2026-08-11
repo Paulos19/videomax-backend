@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { decode } from "next-auth/jwt"
+import { jwtVerify } from "jose"
 import { auth } from "@/auth"
 
 export async function GET(req: Request) {
@@ -16,13 +16,14 @@ export async function GET(req: Request) {
     const authHeader = req.headers.get('authorization')
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const tokenString = authHeader.split(' ')[1]
-      const decoded = await decode({
-        token: tokenString,
-        secret,
-        salt: "authjs.session-token"
-      })
-      if (decoded?.id) {
-        userId = decoded.id as string
+      try {
+        const secretBytes = new TextEncoder().encode(secret)
+        const { payload } = await jwtVerify(tokenString, secretBytes, { algorithms: ['HS256'] })
+        if (payload?.id) {
+          userId = payload.id as string
+        }
+      } catch {
+        // Token inválido — tenta via sessão
       }
     }
 

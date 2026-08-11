@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
-import { encode } from "next-auth/jwt"
+import { SignJWT } from "jose"
 import { z } from "zod"
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit"
 
@@ -54,15 +54,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 })
     }
 
-    const token = await encode({
-      token: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-      secret,
-      salt: "authjs.session-token"
+    // Sign JWT with jose — same library and algorithm as the WebSocket server
+    const secretBytes = new TextEncoder().encode(secret)
+    const token = await new SignJWT({
+      id: user.id,
+      email: user.email,
+      name: user.name,
     })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('7d')
+      .sign(secretBytes)
 
     return NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name },

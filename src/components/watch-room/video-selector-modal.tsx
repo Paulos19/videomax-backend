@@ -33,8 +33,22 @@ export function VideoSelectorModal({ videos, currentUrl, onSelect, onClose }: Vi
   const handleConfirmCustomUrl = useCallback(() => {
     const trimmed = customUrl.trim()
     if (!trimmed) return
-    if (!isYouTubeUrl(trimmed) && !trimmed.startsWith('http')) {
-      setCustomUrlError('URL inválida. Cole uma URL do YouTube ou vídeo direto.')
+
+    // Validate URL format — must be HTTP/HTTPS and a valid URL
+    let isValid = false
+    if (isYouTubeUrl(trimmed)) {
+      isValid = true
+    } else {
+      try {
+        const parsed = new URL(trimmed)
+        isValid = ['http:', 'https:'].includes(parsed.protocol)
+      } catch {
+        isValid = false
+      }
+    }
+
+    if (!isValid) {
+      setCustomUrlError('URL inválida. Cole uma URL do YouTube ou vídeo direto (HTTP/HTTPS).')
       return
     }
     onSelect(trimmed)

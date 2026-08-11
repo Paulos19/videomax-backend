@@ -252,8 +252,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     return (
       <div
         ref={containerRef}
-        className="relative w-full max-h-[calc(100vh-180px)] bg-[#050507] rounded-2xl overflow-hidden border border-white/[0.08] group flex items-center justify-center"
-        style={{ aspectRatio: '16/9', touchAction: 'manipulation' }}
+        className="relative w-full aspect-video bg-[#050507] rounded-2xl overflow-hidden border border-[#242424] group flex items-center justify-center shrink-0"
+        style={{ touchAction: 'manipulation' }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
       >

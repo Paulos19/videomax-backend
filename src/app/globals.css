@@ -148,19 +148,39 @@
   background: #050505;
 }
 
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: #242424;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FF5A00;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #242424 #050505;
+}
+
 /* Custom scrollbar for chat */
 .chat-scroll::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 .chat-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: #090909;
 }
 .chat-scroll::-webkit-scrollbar-thumb {
-  background: rgba(232,89,12,0.2);
+  background: #242424;
   border-radius: 4px;
 }
 .chat-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(232,89,12,0.4);
+  background: #FF5A00;
 }
 
 /* Video controls gradient */

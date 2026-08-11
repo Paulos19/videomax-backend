@@ -10,8 +10,31 @@ interface ChatMessageProps {
   isOwn?: boolean
 }
 
+function parseChatMessageContent(rawMessage: string, msgColor?: string, msgImage?: string) {
+  let text = rawMessage
+  let color = msgColor
+  let image = msgImage
+
+  if (typeof rawMessage === 'string' && rawMessage.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(rawMessage)
+      if (parsed && typeof parsed === 'object') {
+        text = parsed.text || text
+        color = parsed.color || color
+        image = parsed.image || image
+      }
+    } catch {
+      // Not JSON
+    }
+  }
+
+  return { text, color, image }
+}
+
 export function ChatMessage({ message, isOwn }: ChatMessageProps) {
   const [reactions, setReactions] = useState<Record<string, number>>({})
+
+  const parsedContent = parseChatMessageContent(message.message, message.color, message.image)
 
   const handleReact = (emoji: string) => {
     setReactions((prev) => ({
@@ -25,7 +48,7 @@ export function ChatMessage({ message, isOwn }: ChatMessageProps) {
     return (
       <div className="my-2.5 text-center">
         <span className="text-[11px] text-[#8A8A8A] italic bg-[#151515]/60 border border-[#242424]/40 px-3 py-1 rounded-full">
-          {message.message}
+          {parsedContent.text}
         </span>
       </div>
     )
@@ -33,11 +56,13 @@ export function ChatMessage({ message, isOwn }: ChatMessageProps) {
 
   const isHost = message.role === 'host' || message.userName?.toLowerCase().includes('host')
 
+  const userAvatarUrl = message.userImage || (typeof parsedContent.image === 'string' && parsedContent.image.length > 5 ? parsedContent.image : undefined)
+
   return (
     <div className={cn("group flex items-start gap-2.5 my-2.5", isOwn && "flex-row-reverse")}>
       {/* Avatar */}
       <Avatar className="w-9 h-9 border border-[#242424] shrink-0">
-        <AvatarImage src={message.userImage} />
+        <AvatarImage src={userAvatarUrl} />
         <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
           {message.userName?.charAt(0)?.toUpperCase() || 'U'}
         </AvatarFallback>
@@ -70,9 +95,9 @@ export function ChatMessage({ message, isOwn }: ChatMessageProps) {
               ? "bg-gradient-to-r from-[#EF2020] via-[#FF5A00] to-[#FFB800] text-white font-medium rounded-tr-none shadow-md shadow-[#FF5A00]/10"
               : "bg-[#151515] border border-[#242424] text-[#F5F5F5] rounded-tl-none"
           )}
-          style={{ color: !isOwn && message.color ? message.color : undefined }}
+          style={{ color: !isOwn && parsedContent.color ? parsedContent.color : undefined }}
         >
-          {message.message}
+          {parsedContent.text}
         </div>
 
         {/* Reaction Counters & Hover Picker */}

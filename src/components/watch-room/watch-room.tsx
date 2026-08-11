@@ -196,7 +196,7 @@ export function WatchRoom({
   }, [isPlaying, handlePause, handlePlay])
 
   return (
-    <div className="h-screen flex flex-col bg-[#050505] text-[#F5F5F5] overflow-hidden relative font-sans">
+    <div className="h-screen flex flex-col bg-[#050505] text-[#F5F5F5] overflow-y-auto lg:overflow-hidden relative font-sans">
       {/* Action Toast Overlay (Floating) */}
       {lastPlayerAction && (Date.now() - lastPlayerAction.serverTimestamp < 4000) && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/90 backdrop-blur-md border border-[#FF5A00]/40 text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2.5 animate-bounce">
@@ -238,9 +238,9 @@ export function WatchRoom({
       />
 
       {/* Main Content Grid */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-3 lg:p-4 gap-3 lg:gap-4 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-3 lg:p-4 gap-3 lg:gap-4 overflow-y-auto lg:overflow-hidden">
         {/* Left Column: Video, Control Bar, Viewers & Invite, VideoInfo */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto scrollbar-thin pr-1 space-y-3">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-visible lg:overflow-y-auto scrollbar-thin pr-0 lg:pr-1 space-y-3">
           {/* 1. Video Player */}
           <VideoPlayer
             ref={videoPlayerRef}
@@ -305,7 +305,7 @@ export function WatchRoom({
 
         {/* Right Column: Live Chat Panel */}
         {showChat && (
-          <div className="flex flex-col min-h-0 h-[50vh] lg:h-full lg:w-[380px] xl:w-[420px] shrink-0">
+          <div className="flex flex-col min-h-[420px] h-[480px] lg:h-full lg:w-[380px] xl:w-[420px] shrink-0">
             <ChatPanel
               messages={messages}
               currentUserId={currentUserId}

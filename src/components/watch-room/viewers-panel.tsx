@@ -23,12 +23,12 @@ export function ViewersPanel({ viewers, currentUserRole, onInvite, onChangeUserR
       </div>
 
       <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-none">
-        {viewers.map((viewer) => {
+        {viewers.map((viewer, idx) => {
           const isHost = viewer.role === 'host'
           const isCoHost = viewer.role === 'cohost'
 
           return (
-            <Popover key={viewer.id}>
+            <Popover key={`${viewer.id}-${idx}`}>
               <PopoverTrigger className="flex flex-col items-center gap-1.5 group outline-none shrink-0">
                 <div className="relative">
                   <Avatar

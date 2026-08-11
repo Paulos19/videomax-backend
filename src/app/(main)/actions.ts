@@ -7,19 +7,33 @@ import { z } from "zod"
 
 const SaveVideoSchema = z.object({
   title: z.string().min(1, "Título é obrigatório").max(200, "Título deve ter no máximo 200 caracteres"),
-  url: z.string().url("URL inválida"),
+  url: z.string().url("URL inválida").refine(
+    (val) => {
+      try {
+        const parsed = new URL(val);
+        return ["http:", "https:"].includes(parsed.protocol);
+      } catch {
+        return false;
+      }
+    },
+    "Apenas URLs HTTP/HTTPS são permitidas"
+  ),
   folderId: z.string().nullable().optional(),
 })
 
 const UpdateProfileSchema = z.object({
   name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres").max(40, "Nome deve ter no máximo 40 caracteres").optional(),
-  chatColor: z.string().optional(),
-  image: z.string().optional(),
+  chatColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida. Use o formato #RRGGBB").optional(),
+  image: z.string().url("URL de imagem inválida").optional(),
 })
 
 const SendFriendRequestSchema = z.object({
   target: z.string().min(1, "Insira um e-mail ou nome de usuário"),
 })
+
+const FolderNameSchema = z.string().min(1, "Nome da pasta é obrigatório").max(50, "Nome da pasta deve ter no máximo 50 caracteres")
+const IdSchema = z.string().min(1, "ID é obrigatório").max(128, "ID inválido")
+const IdOrNullSchema = z.string().min(1, "ID inválido").max(128, "ID inválido").nullable()
 
 export async function saveVideo(title: string, url: string, folderId?: string | null) {
   const result = SaveVideoSchema.safeParse({ title, url, folderId })
@@ -90,10 +104,11 @@ export async function updateProfile(data: { name?: string; chatColor?: string; i
 // --- Folder actions ---
 
 export async function createFolder(name: string) {
-  const trimmed = name.trim()
-  if (!trimmed || trimmed.length > 50) {
-    throw new Error("Nome da pasta deve ter entre 1 e 50 caracteres")
+  const nameResult = FolderNameSchema.safeParse(name.trim())
+  if (!nameResult.success) {
+    throw new Error(nameResult.error.issues[0].message)
   }
+  const trimmed = nameResult.data
 
   const session = await auth()
   if (!session?.user?.id) {
@@ -119,10 +134,10 @@ export async function createFolder(name: string) {
 }
 
 export async function renameFolder(folderId: string, newName: string) {
-  const trimmed = newName.trim()
-  if (!trimmed || trimmed.length > 50) {
-    throw new Error("Nome da pasta deve ter entre 1 e 50 caracteres")
-  }
+  const idResult = IdSchema.safeParse(folderId)
+  const nameResult = FolderNameSchema.safeParse(newName.trim())
+  if (!idResult.success) throw new Error(idResult.error.issues[0].message)
+  if (!nameResult.success) throw new Error(nameResult.error.issues[0].message)
 
   const session = await auth()
   if (!session?.user?.id) {
@@ -130,28 +145,31 @@ export async function renameFolder(folderId: string, newName: string) {
   }
 
   const folder = await prisma.folder.findFirst({
-    where: { id: folderId, userId: session.user.id }
+    where: { id: idResult.data, userId: session.user.id }
   })
   if (!folder) {
     throw new Error("Pasta não encontrada")
   }
 
   await prisma.folder.update({
-    where: { id: folderId },
-    data: { name: trimmed }
+    where: { id: idResult.data },
+    data: { name: nameResult.data }
   })
 
   revalidatePath("/dashboard/videos")
 }
 
 export async function deleteFolder(folderId: string) {
+  const idResult = IdSchema.safeParse(folderId)
+  if (!idResult.success) throw new Error(idResult.error.issues[0].message)
+
   const session = await auth()
   if (!session?.user?.id) {
     throw new Error("Não autorizado")
   }
 
   const folder = await prisma.folder.findFirst({
-    where: { id: folderId, userId: session.user.id }
+    where: { id: idResult.data, userId: session.user.id }
   })
   if (!folder) {
     throw new Error("Pasta não encontrada")
@@ -159,23 +177,30 @@ export async function deleteFolder(folderId: string) {
 
   // Move videos to root (unset folderId)
   await prisma.video.updateMany({
-    where: { folderId },
+    where: { folderId: idResult.data },
     data: { folderId: null }
   })
 
-  await prisma.folder.delete({ where: { id: folderId } })
+  await prisma.folder.delete({ where: { id: idResult.data } })
 
   revalidatePath("/dashboard/videos")
 }
 
 export async function moveVideoToFolder(videoId: string, folderId: string | null) {
+  const videoIdResult = IdSchema.safeParse(videoId)
+  if (!videoIdResult.success) throw new Error(videoIdResult.error.issues[0].message)
+  if (folderId !== null) {
+    const fidResult = IdSchema.safeParse(folderId)
+    if (!fidResult.success) throw new Error(fidResult.error.issues[0].message)
+  }
+
   const session = await auth()
   if (!session?.user?.id) {
     throw new Error("Não autorizado")
   }
 
   const video = await prisma.video.findFirst({
-    where: { id: videoId, userId: session.user.id }
+    where: { id: videoIdResult.data, userId: session.user.id }
   })
   if (!video) {
     throw new Error("Vídeo não encontrado")
@@ -191,7 +216,7 @@ export async function moveVideoToFolder(videoId: string, folderId: string | null
   }
 
   await prisma.video.update({
-    where: { id: videoId },
+    where: { id: videoIdResult.data },
     data: { folderId: folderId || null }
   })
 
@@ -199,19 +224,22 @@ export async function moveVideoToFolder(videoId: string, folderId: string | null
 }
 
 export async function deleteVideo(videoId: string) {
+  const idResult = IdSchema.safeParse(videoId)
+  if (!idResult.success) throw new Error(idResult.error.issues[0].message)
+
   const session = await auth()
   if (!session?.user?.id) {
     throw new Error("Não autorizado")
   }
 
   const video = await prisma.video.findFirst({
-    where: { id: videoId, userId: session.user.id }
+    where: { id: idResult.data, userId: session.user.id }
   })
   if (!video) {
     throw new Error("Vídeo não encontrado")
   }
 
-  await prisma.video.delete({ where: { id: videoId } })
+  await prisma.video.delete({ where: { id: idResult.data } })
 
   revalidatePath("/dashboard/videos")
 }
@@ -264,7 +292,7 @@ export async function sendFriendRequest(target: string) {
   })
 
   if (!targetUser) {
-    throw new Error(`Nenhum usuário encontrado com o e-mail ou nome "${trimmed}"`)
+    throw new Error("Nenhum usuário encontrado com esse e-mail ou nome.")
   }
 
   if (targetUser.id === session.user.id) {
@@ -321,13 +349,16 @@ export async function sendFriendRequest(target: string) {
 }
 
 export async function acceptFriendRequest(requestId: string) {
+  const idResult = IdSchema.safeParse(requestId)
+  if (!idResult.success) throw new Error(idResult.error.issues[0].message)
+
   const session = await auth()
   if (!session?.user?.id) {
     throw new Error("Não autorizado")
   }
 
   const request = await prisma.friendRequest.findFirst({
-    where: { id: requestId, receiverId: session.user.id },
+    where: { id: idResult.data, receiverId: session.user.id },
     include: { sender: true }
   })
 
@@ -336,7 +367,7 @@ export async function acceptFriendRequest(requestId: string) {
   }
 
   await prisma.friendRequest.update({
-    where: { id: requestId },
+    where: { id: idResult.data },
     data: { status: 'ACCEPTED' }
   })
 
@@ -350,25 +381,31 @@ export async function acceptFriendRequest(requestId: string) {
 }
 
 export async function rejectFriendRequest(requestId: string) {
+  const idResult = IdSchema.safeParse(requestId)
+  if (!idResult.success) throw new Error(idResult.error.issues[0].message)
+
   const session = await auth()
   if (!session?.user?.id) {
     throw new Error("Não autorizado")
   }
 
   const request = await prisma.friendRequest.findFirst({
-    where: { id: requestId, receiverId: session.user.id }
+    where: { id: idResult.data, receiverId: session.user.id }
   })
 
   if (!request) {
     throw new Error("Pedido de amizade não encontrado")
   }
 
-  await prisma.friendRequest.delete({ where: { id: requestId } })
+  await prisma.friendRequest.delete({ where: { id: idResult.data } })
 
   revalidatePath("/dashboard/friends")
 }
 
 export async function removeFriend(friendId: string) {
+  const idResult = IdSchema.safeParse(friendId)
+  if (!idResult.success) throw new Error(idResult.error.issues[0].message)
+
   const session = await auth()
   if (!session?.user?.id) {
     throw new Error("Não autorizado")
@@ -378,8 +415,8 @@ export async function removeFriend(friendId: string) {
     where: {
       status: 'ACCEPTED',
       OR: [
-        { senderId: session.user.id, receiverId: friendId },
-        { senderId: friendId, receiverId: session.user.id }
+        { senderId: session.user.id, receiverId: idResult.data },
+        { senderId: idResult.data, receiverId: session.user.id }
       ]
     }
   })

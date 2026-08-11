@@ -51,8 +51,7 @@ export async function GET(req: Request) {
     })
 
     return NextResponse.json({ user })
-  } catch (error) {
-    console.error("Profile API Error:", error)
-    return NextResponse.json({ error: "Erro interno." }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: "Erro interno no servidor." }, { status: 500 })
   }
 }

@@ -41,9 +41,11 @@ export function useSocket(roomId: string) {
 
     const initSocket = async () => {
       const user = session.user!
-      const userId = (user as Record<string, unknown>).id as string || `user-${Math.floor(Math.random() * 1000)}`
+      const userId = (user as Record<string, unknown>).id as string
       const userName = user.name || 'Usuário'
       const userImage = (user as Record<string, unknown>).image as string || ''
+
+      if (!userId) return
 
       let profileData: SocketUserProfile = { chatColor: '#4f46e5', image: userImage }
 
@@ -63,7 +65,24 @@ export function useSocket(roomId: string) {
 
       if (cancelled) return
 
-      newSocket = io(SOCKET_SERVER_URL)
+      // Fetch JWT token for WebSocket authentication
+      let wsToken: string | null = null
+      try {
+        const tokenRes = await fetch('/api/auth/token')
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json()
+          wsToken = tokenData.token
+        }
+      } catch {
+        // Token fetch failed — connect without auth (server will warn)
+      }
+
+      if (cancelled) return
+
+      // Connect with JWT token for server-side verification
+      newSocket = io(SOCKET_SERVER_URL, {
+        auth: wsToken ? { token: wsToken } : undefined,
+      })
 
       newSocket.on('connect', () => {
         if (cancelled) return

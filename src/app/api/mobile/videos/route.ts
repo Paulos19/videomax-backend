@@ -44,8 +44,7 @@ export async function GET(req: Request) {
         pages: Math.ceil(total / limit),
       }
     })
-  } catch (error) {
-    console.error("Error fetching videos:", error)
-    return NextResponse.json({ error: "Failed to fetch videos" }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: "Erro interno no servidor." }, { status: 500 })
   }
 }

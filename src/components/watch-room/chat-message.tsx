@@ -22,8 +22,14 @@ export function ChatMessage({ message, isOwn, showAvatar = true }: ChatMessagePr
   let payload = { text: message.message, color: '#7C4DFF', image: '' }
   try {
     const parsed = JSON.parse(message.message)
-    if (parsed.text) {
-      payload = parsed
+    if (parsed.text && typeof parsed.text === 'string') {
+      payload = {
+        text: parsed.text.slice(0, 4096),
+        color: typeof parsed.color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(parsed.color)
+          ? parsed.color : '#7C4DFF',
+        image: typeof parsed.image === 'string' && /^https?:\/\//.test(parsed.image)
+          ? parsed.image : ''
+      }
     }
   } catch {
     // Plain text message

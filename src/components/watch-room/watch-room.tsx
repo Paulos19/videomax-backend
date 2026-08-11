@@ -323,6 +323,7 @@ export function WatchRoom({
           <VideoPlayer
             ref={videoPlayerRef}
             src={localVideoUrl}
+            canControl={canControl}
             onPlay={handlePlay}
             onPause={handlePause}
             onSeek={handleSeek}

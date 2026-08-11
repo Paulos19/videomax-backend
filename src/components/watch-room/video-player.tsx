@@ -31,6 +31,7 @@ export interface VideoPlayerHandle {
 interface VideoPlayerProps {
   src: string
   poster?: string
+  canControl?: boolean
   onPlay?: () => void
   onPause?: () => void
   onSeek?: (time: number) => void
@@ -45,6 +46,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     {
       src,
       poster,
+      canControl = true,
       onPlay,
       onPause,
       onSeek,
@@ -337,9 +339,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
         {/* Click layer to toggle play/pause */}
         <div
-          className="absolute inset-0 z-10 cursor-pointer"
+          className={cn("absolute inset-0 z-10", canControl ? "cursor-pointer" : "cursor-default")}
           style={{ touchAction: 'manipulation' }}
-          onClick={togglePlay}
+          onClick={canControl ? togglePlay : undefined}
         />
 
         {/* Top-left Overlay: AO VIVO + Sincronizado */}
@@ -406,8 +408,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 max={duration || 100}
                 step="0.1"
                 value={currentTime}
-                onChange={handleSeek}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                onChange={canControl ? handleSeek : undefined}
+                disabled={!canControl}
+                className={cn("absolute inset-0 w-full h-full opacity-0", canControl ? "cursor-pointer" : "cursor-not-allowed")}
               />
 
               {/* Thumb */}
@@ -423,7 +426,13 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               <div className="flex items-center gap-3">
                 <button
                   onClick={togglePlay}
-                  className="text-white hover:text-room-accent transition-colors hover:scale-105 active:scale-95"
+                  disabled={!canControl}
+                  className={cn(
+                    "transition-colors",
+                    canControl
+                      ? "text-white hover:text-room-accent hover:scale-105 active:scale-95"
+                      : "text-white/40 cursor-not-allowed"
+                  )}
                   aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
                 >
                   {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}

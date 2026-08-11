@@ -31,8 +31,14 @@ export function PlayerControlBar({
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 my-3">
       {/* 1. Play / Pause */}
       <button
-        onClick={onTogglePlay}
-        className="bg-[#0B0B0B] hover:bg-[#111111] border border-[#242424] hover:border-[#FF5A00]/40 rounded-2xl p-3 flex items-center justify-between transition-all group"
+        onClick={canControl ? onTogglePlay : undefined}
+        disabled={!canControl}
+        className={cn(
+          "bg-[#0B0B0B] border border-[#242424] rounded-2xl p-3 flex items-center justify-between transition-all group",
+          canControl
+            ? "hover:bg-[#111111] hover:border-[#FF5A00]/40 cursor-pointer"
+            : "opacity-60 cursor-not-allowed"
+        )}
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-[#151515] flex items-center justify-center text-[#FF5A00] group-hover:scale-105 transition-transform">
@@ -40,7 +46,7 @@ export function PlayerControlBar({
           </div>
           <div className="text-left">
             <p className="text-xs font-bold text-[#F5F5F5]">{isPlaying ? 'Pausar' : 'Reproduzir'}</p>
-            <p className="text-[10px] text-[#8A8A8A]">(Espaço)</p>
+            <p className="text-[10px] text-[#8A8A8A]">{canControl ? '(Espaço)' : 'Somente Host'}</p>
           </div>
         </div>
       </button>
@@ -49,7 +55,7 @@ export function PlayerControlBar({
       <button
         onClick={onSyncAll}
         className="bg-[#0B0B0B] hover:bg-[#111111] border border-[#242424] hover:border-emerald-500/40 rounded-2xl p-3 flex items-center gap-3 transition-all text-left group cursor-pointer"
-        title="Sincronizar todos os espectadores com o seu player"
+        title="Sincronizar com o player do Host"
       >
         <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
           <Activity className="w-4 h-4 animate-pulse" />
@@ -62,8 +68,14 @@ export function PlayerControlBar({
 
       {/* 3. Próximo */}
       <button
-        onClick={onNextVideo}
-        className="bg-[#0B0B0B] hover:bg-[#111111] border border-[#242424] hover:border-[#FF5A00]/40 rounded-2xl p-3 flex items-center gap-3 transition-all group"
+        onClick={canControl ? onNextVideo : undefined}
+        disabled={!canControl}
+        className={cn(
+          "bg-[#0B0B0B] border border-[#242424] rounded-2xl p-3 flex items-center gap-3 transition-all group",
+          canControl
+            ? "hover:bg-[#111111] hover:border-[#FF5A00]/40 cursor-pointer"
+            : "opacity-60 cursor-not-allowed"
+        )}
       >
         <div className="w-8 h-8 rounded-xl bg-[#151515] flex items-center justify-center text-[#8A8A8A] group-hover:text-[#FF5A00] transition-colors">
           <FastForward className="w-4 h-4" />
@@ -76,8 +88,14 @@ export function PlayerControlBar({
 
       {/* 4. -10s */}
       <button
-        onClick={onSeekBack}
-        className="bg-[#0B0B0B] hover:bg-[#111111] border border-[#242424] hover:border-[#FF5A00]/40 rounded-2xl p-3 flex items-center gap-3 transition-all group"
+        onClick={canControl ? onSeekBack : undefined}
+        disabled={!canControl}
+        className={cn(
+          "bg-[#0B0B0B] border border-[#242424] rounded-2xl p-3 flex items-center gap-3 transition-all group",
+          canControl
+            ? "hover:bg-[#111111] hover:border-[#FF5A00]/40 cursor-pointer"
+            : "opacity-60 cursor-not-allowed"
+        )}
       >
         <div className="w-8 h-8 rounded-xl bg-[#151515] flex items-center justify-center text-[#8A8A8A] group-hover:text-[#FF5A00] transition-colors">
           <Rewind className="w-4 h-4" />
@@ -90,8 +108,14 @@ export function PlayerControlBar({
 
       {/* 5. +10s */}
       <button
-        onClick={onSeekForward}
-        className="bg-[#0B0B0B] hover:bg-[#111111] border border-[#242424] hover:border-[#FF5A00]/40 rounded-2xl p-3 flex items-center gap-3 transition-all group"
+        onClick={canControl ? onSeekForward : undefined}
+        disabled={!canControl}
+        className={cn(
+          "bg-[#0B0B0B] border border-[#242424] rounded-2xl p-3 flex items-center gap-3 transition-all group",
+          canControl
+            ? "hover:bg-[#111111] hover:border-[#FF5A00]/40 cursor-pointer"
+            : "opacity-60 cursor-not-allowed"
+        )}
       >
         <div className="w-8 h-8 rounded-xl bg-[#151515] flex items-center justify-center text-[#8A8A8A] group-hover:text-[#FF5A00] transition-colors">
           <FastForward className="w-4 h-4" />

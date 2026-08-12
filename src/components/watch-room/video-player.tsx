@@ -15,10 +15,8 @@ import {
 } from 'lucide-react'
 import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { cn } from '@/lib/utils'
-import { isYouTubeUrl } from '@/lib/youtube'
-
-// Dynamically import ReactPlayer to prevent SSR hydration mismatches
-const ReactPlayer = dynamic(() => import('react-player'), { ssr: false })
+import { isYouTubeUrl, getYouTubeVideoId } from '@/lib/youtube'
+import YouTube from 'react-youtube'
 
 export interface VideoPlayerHandle {
   play: () => Promise<void>
@@ -62,6 +60,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const reactPlayerRef = useRef<any>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null)
+    const playPromiseRef = useRef<Promise<void> | null>(null)
 
     const [isPlaying, setIsPlaying] = useState(false)
     const [isMuted, setIsMuted] = useState(false)
@@ -77,27 +76,43 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
     // Expose imperative methods for remote socket control (Play, Pause, Seek, Time)
     useImperativeHandle(ref, () => ({
-      play: () => {
+      play: async () => {
         if (isYouTube) {
           setIsPlaying(true)
+          reactPlayerRef.current?.playVideo?.()
           return Promise.resolve()
         }
-        return videoRef.current?.play().catch(() => {}) ?? Promise.resolve()
+        if (videoRef.current) {
+          try {
+            playPromiseRef.current = videoRef.current.play()
+            await playPromiseRef.current
+          } catch (e) {
+            // Ignore AbortError: The play() request was interrupted by a call to pause()
+          } finally {
+            playPromiseRef.current = null
+          }
+        }
       },
-      pause: () => {
+      pause: async () => {
         if (isYouTube) {
           setIsPlaying(false)
-        } else {
-          videoRef.current?.pause()
+          reactPlayerRef.current?.pauseVideo?.()
+        } else if (videoRef.current) {
+          if (playPromiseRef.current) {
+            try {
+              await playPromiseRef.current
+            } catch (e) {
+              // Ignore
+            }
+          }
+          videoRef.current.pause()
         }
       },
       seek: (time: number) => {
         setCurrentTime(time)
         if (isYouTube) {
           if (typeof reactPlayerRef.current?.seekTo === 'function') {
-            reactPlayerRef.current.seekTo(time, 'seconds')
-          } else if (reactPlayerRef.current) {
-            reactPlayerRef.current.currentTime = time
+            reactPlayerRef.current.seekTo(time, true)
           }
         } else if (videoRef.current) {
           videoRef.current.currentTime = time
@@ -137,6 +152,36 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         onRemoteUpdateDone?.()
       }
     }, [isRemoteUpdate, onRemoteUpdateDone])
+
+    // YouTube time polling
+    useEffect(() => {
+      if (!isYouTube || !isPlaying) return;
+      const interval = setInterval(() => {
+        if (reactPlayerRef.current?.getCurrentTime) {
+          const time = reactPlayerRef.current.getCurrentTime();
+          if (typeof time === 'number') {
+             setCurrentTime(time);
+          }
+          const loaded = reactPlayerRef.current.getVideoLoadedFraction?.();
+          if (typeof loaded === 'number' && duration > 0) {
+             setBuffered(loaded * duration);
+          }
+        }
+      }, 500);
+      return () => clearInterval(interval);
+    }, [isYouTube, isPlaying, duration]);
+
+    // YouTube play/pause sync
+    useEffect(() => {
+      if (isYouTube && reactPlayerRef.current) {
+        const state = reactPlayerRef.current.getPlayerState?.()
+        if (isPlaying && state !== 1 && state !== 3) {
+          reactPlayerRef.current.playVideo?.()
+        } else if (!isPlaying && state === 1) {
+          reactPlayerRef.current.pauseVideo?.()
+        }
+      }
+    }, [isPlaying, isYouTube])
 
     // --- HTML5 Video Event Handlers ---
     const handleTimeUpdate = useCallback(() => {
@@ -191,20 +236,36 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       startHideControlsTimer()
     }, [startHideControlsTimer])
 
-    // Toggle Play/Pause
-    const togglePlay = useCallback(() => {
+    // Toggle Play/Pause safely avoiding AbortError
+    const togglePlay = useCallback(async () => {
       if (isYouTube) {
         if (isPlaying) {
           setIsPlaying(false)
+          reactPlayerRef.current?.pauseVideo?.()
           handlePause()
         } else {
           setIsPlaying(true)
+          reactPlayerRef.current?.playVideo?.()
           handlePlay()
         }
       } else if (videoRef.current) {
         if (videoRef.current.paused) {
-          videoRef.current.play()
+          try {
+            playPromiseRef.current = videoRef.current.play()
+            await playPromiseRef.current
+          } catch (e) {
+            // Ignore play interruption
+          } finally {
+            playPromiseRef.current = null
+          }
         } else {
+          if (playPromiseRef.current) {
+            try {
+              await playPromiseRef.current
+            } catch (e) {
+              // Ignore
+            }
+          }
           videoRef.current.pause()
         }
       }
@@ -214,7 +275,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const toggleMute = useCallback(() => {
       const newMuted = !isMuted
       setIsMuted(newMuted)
-      if (!isYouTube && videoRef.current) {
+      if (isYouTube && reactPlayerRef.current) {
+        if (newMuted) reactPlayerRef.current.mute?.()
+        else reactPlayerRef.current.unMute?.()
+      } else if (!isYouTube && videoRef.current) {
         videoRef.current.muted = newMuted
       }
     }, [isMuted, isYouTube])
@@ -225,9 +289,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       setCurrentTime(time)
       if (isYouTube) {
         if (typeof reactPlayerRef.current?.seekTo === 'function') {
-          reactPlayerRef.current.seekTo(time, 'seconds')
-        } else if (reactPlayerRef.current) {
-          reactPlayerRef.current.currentTime = time
+          reactPlayerRef.current.seekTo(time, true)
         }
       } else if (videoRef.current) {
         videoRef.current.currentTime = time
@@ -269,54 +331,62 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
       >
-        {/* Render ReactPlayer for YouTube or native <video> for uploaded files */}
-        {isYouTube ? (
-          <div className="w-full h-full relative pointer-events-auto">
-            <ReactPlayer
-              ref={reactPlayerRef}
-              {...({
-                url: src,
-                playing: isPlaying,
-                muted: isMuted,
-                volume: volume,
-                controls: false,
-                width: "100%",
-                height: "100%",
-                onReady: () => {
-                  setIsLoading(false)
-                  onCanPlay?.()
-                },
-                onPlay: handlePlay,
-                onPause: handlePause,
-                onProgress: (state: { playedSeconds: number; loadedSeconds: number }) => {
-                  if (typeof state?.playedSeconds === 'number') {
-                    setCurrentTime(state.playedSeconds)
-                  }
-                  if (typeof state?.loadedSeconds === 'number') {
-                    setBuffered(state.loadedSeconds)
-                  }
-                },
-                onDuration: (dur: number) => {
-                  if (typeof dur === 'number' && dur > 0) {
-                    setDuration(dur)
-                    setIsLoading(false)
-                  }
-                },
-                onError: (err: unknown) => {
-                  console.warn('ReactPlayer YouTube Error:', err)
-                  setIsLoading(false)
-                },
-                config: {
-                  youtube: {
-                    playerVars: {
-                      origin: typeof window !== 'undefined' ? window.location.origin : '',
-                      autoplay: 1,
-                      modestbranding: 1,
-                      rel: 0
-                    }
-                  }
+        {/* Render react-youtube for YouTube or native <video> for uploaded files */}
+        {isYouTube && src ? (
+          <div className="w-full h-full relative pointer-events-auto overflow-hidden">
+            <YouTube
+              videoId={getYouTubeVideoId(src) || ''}
+              className="w-full h-full pointer-events-none"
+              iframeClassName="w-full h-full scale-[1.2]"
+              opts={{
+                width: '100%',
+                height: '100%',
+                playerVars: {
+                  autoplay: 1,
+                  controls: 0,
+                  modestbranding: 1,
+                  rel: 0,
+                  disablekb: 1,
+                  fs: 0,
+                  iv_load_policy: 3
                 }
-              } as any)}
+              }}
+              onReady={(e) => {
+                console.log('YouTube onReady fired')
+                reactPlayerRef.current = e.target
+                if (isMuted) e.target.mute()
+                else e.target.unMute()
+                e.target.setVolume(volume * 100)
+                
+                if (isPlaying) {
+                  e.target.playVideo()
+                }
+                
+                const dur = e.target.getDuration()
+                if (dur > 0) setDuration(dur)
+                
+                setIsLoading(false)
+                onCanPlay?.()
+              }}
+              onPlay={() => {
+                console.log('YouTube onPlay fired')
+                handlePlay()
+              }}
+              onPause={() => {
+                console.log('YouTube onPause fired')
+                handlePause()
+              }}
+              onError={(e) => {
+                console.warn('YouTube Error:', e?.data || e)
+                setIsLoading(false)
+              }}
+              onStateChange={(e) => {
+                // 1=playing, 2=paused, 3=buffering
+                if (e.data === 1 && !isPlaying) handlePlay()
+                if (e.data === 2 && isPlaying) handlePause()
+                if (e.data === 3) setIsLoading(true)
+                else setIsLoading(false)
+              }}
             />
           </div>
         ) : (

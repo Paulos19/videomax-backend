@@ -39,6 +39,8 @@ interface WatchRoomProps {
   videoTitle?: string
   userRole?: 'host' | 'cohost' | 'viewer'
   lastPlayerAction?: PlayerActionNotice | null
+  selectedColor?: string
+  onSelectColor?: (color: string) => void
   onSendMessage: (message: string) => void
   onSyncPlayerState?: (state: PlayerStateData) => void
   onRemotePlayerState?: PlayerStateData | null
@@ -63,6 +65,8 @@ export function WatchRoom({
   videoTitle: propVideoTitle,
   userRole = 'viewer',
   lastPlayerAction,
+  selectedColor,
+  onSelectColor,
   onSendMessage,
   onSyncPlayerState,
   onRemotePlayerState,
@@ -381,6 +385,8 @@ export function WatchRoom({
                 currentUserId={currentUserId}
                 viewerCount={viewers.length}
                 viewers={viewers}
+                selectedColor={selectedColor}
+                onSelectColor={onSelectColor}
                 onSend={onSendMessage}
                 onClose={() => setShowChat(false)}
               />
@@ -411,6 +417,8 @@ export function WatchRoom({
               currentUserId={currentUserId}
               viewerCount={viewers.length}
               viewers={viewers}
+              selectedColor={selectedColor}
+              onSelectColor={onSelectColor}
               onSend={onSendMessage}
               onClose={() => setShowChat(false)}
             />

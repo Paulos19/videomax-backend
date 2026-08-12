@@ -277,16 +277,23 @@ export function useSocket(roomId: string) {
     }
   }, [roomId, session?.user?.id, session?.user?.name, roomInfo?.hostUserId])
 
+  const [selectedColor, setSelectedColor] = useState<string>('#F5F5F5')
+
+  const changeChatColor = useCallback((color: string) => {
+    setSelectedColor(color)
+    userProfileRef.current.chatColor = color
+  }, [])
+
   const sendMessage = useCallback((messageText: string) => {
     if (socket && messageText.trim() !== '') {
       const payload = {
         text: messageText,
-        color: userProfileRef.current.chatColor,
+        color: userProfileRef.current.chatColor || selectedColor,
         image: userProfileRef.current.image
       }
       socket.emit('send-message', { message: JSON.stringify(payload) })
     }
-  }, [socket])
+  }, [socket, selectedColor])
 
   const syncPlayerState = useCallback((stateData: PlayerStateData) => {
     if (socket) {
@@ -309,6 +316,8 @@ export function useSocket(roomId: string) {
     userRole,
     roomInfo,
     lastPlayerAction,
+    selectedColor,
+    changeChatColor,
     sendMessage,
     syncPlayerState,
     changeUserRole,

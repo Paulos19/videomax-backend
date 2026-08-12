@@ -13,6 +13,8 @@ interface ChatPanelProps {
   currentUserId: string | null
   viewerCount: number
   viewers: Viewer[]
+  selectedColor?: string
+  onSelectColor?: (color: string) => void
   onSend: (message: string) => void
   onClose?: () => void
 }
@@ -22,6 +24,8 @@ export function ChatPanel({
   currentUserId,
   viewerCount,
   viewers,
+  selectedColor,
+  onSelectColor,
   onSend,
   onClose
 }: ChatPanelProps) {
@@ -43,6 +47,8 @@ export function ChatPanel({
       <ChatHeader
         viewerCount={viewerCount}
         viewers={headerViewers}
+        selectedColor={selectedColor}
+        onSelectColor={onSelectColor}
         onClose={onClose}
       />
 

@@ -88,17 +88,46 @@ export function ChatMessage({ message, isOwn }: ChatMessageProps) {
         </div>
 
         {/* Bubble */}
-        <div
-          className={cn(
-            "p-3 rounded-2xl text-xs leading-relaxed break-words",
-            isOwn
-              ? "bg-gradient-to-r from-[#EF2020] via-[#FF5A00] to-[#FFB800] text-white font-medium rounded-tr-none shadow-md shadow-[#FF5A00]/10"
-              : "bg-[#151515] border border-[#242424] text-[#F5F5F5] rounded-tl-none"
-          )}
-          style={{ color: !isOwn && parsedContent.color ? parsedContent.color : undefined }}
-        >
-          {parsedContent.text}
-        </div>
+        {(() => {
+          const color = parsedContent.color
+          const isLightColor = color ? ['#F5F5F5', '#FFB800', '#FFFFFF', '#FDE047'].includes(color.toUpperCase()) : false
+
+          if (isOwn) {
+            if (color) {
+              return (
+                <div
+                  className={cn(
+                    "p-3 rounded-2xl text-xs leading-relaxed break-words rounded-tr-none font-semibold shadow-md transition-all",
+                    isLightColor ? "text-[#090909]" : "text-white"
+                  )}
+                  style={{
+                    backgroundColor: color,
+                    boxShadow: `0 4px 14px 0 ${color}40`
+                  }}
+                >
+                  {parsedContent.text}
+                </div>
+              )
+            }
+            return (
+              <div className="p-3 rounded-2xl text-xs leading-relaxed break-words bg-gradient-to-r from-[#EF2020] via-[#FF5A00] to-[#FFB800] text-white font-medium rounded-tr-none shadow-md shadow-[#FF5A00]/10">
+                {parsedContent.text}
+              </div>
+            )
+          } else {
+            return (
+              <div
+                className="p-3 rounded-2xl text-xs leading-relaxed break-words bg-[#151515] border rounded-tl-none font-medium transition-all"
+                style={{
+                  borderColor: color ? `${color}50` : '#242424',
+                  color: color ? (isLightColor ? '#F5F5F5' : color) : '#F5F5F5'
+                }}
+              >
+                {parsedContent.text}
+              </div>
+            )
+          }
+        })()}
 
         {/* Reaction Counters & Hover Picker */}
         <div className={cn("flex items-center gap-1 pt-0.5", isOwn && "justify-end")}>

@@ -29,7 +29,9 @@ export default function RoomPage() {
     sendMessage,
     syncPlayerState,
     changeUserRole,
-    currentUserId
+    currentUserId,
+    selectedColor,
+    changeChatColor
   } = useSocket(roomId)
 
   // Listen for remote player-state-change events from socket
@@ -105,6 +107,8 @@ export default function RoomPage() {
       videoTitle={roomInfo?.videoTitle}
       userRole={userRole}
       lastPlayerAction={lastPlayerAction}
+      selectedColor={selectedColor}
+      onSelectColor={changeChatColor}
       onSendMessage={sendMessage}
       onSyncPlayerState={syncPlayerState}
       onRemotePlayerState={remotePlayerEvent?.data ?? null}

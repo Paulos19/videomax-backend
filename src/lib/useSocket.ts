@@ -40,7 +40,7 @@ export interface HostAccessRequest {
 
 let systemMessageCounter = 0
 
-export function useSocket(roomId: string) {
+export function useSocket(roomId: string, initialHostUserId?: string) {
   const { data: session } = useSession()
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
@@ -69,30 +69,20 @@ export function useSocket(roomId: string) {
     const initSocket = async () => {
       const user = session.user!
       const userId = (user as Record<string, unknown>).id as string
-      const userName = user.name || 'Usuário'
-      const userImage = (user as Record<string, unknown>).image as string || ''
-
-      if (!userId) return
-
-      let profileData: SocketUserProfile = { chatColor: '#4f46e5', image: userImage }
+      const userName = user.name || user.email || 'Usuário'
+      setCurrentUserId(userId)
 
       try {
-        const res = await fetch('/api/mobile/profile')
-        if (res.ok) {
-          const data = await res.json()
-          if (data?.user) {
-            profileData.chatColor = data.user.chatColor || '#4f46e5'
-            profileData.image = data.user.image || userImage
-            userProfileRef.current = profileData
+        const profileRes = await fetch('/api/user/profile')
+        if (profileRes.ok) {
+          const profile = await profileRes.json()
+          userProfileRef.current = {
+            chatColor: profile.chatColor || '#4f46e5',
+            image: profile.image || ''
           }
         }
-      } catch {
-        // Profile fetch failed, use defaults
-      }
+      } catch {}
 
-      if (cancelled) return
-
-      // Fetch JWT token for WebSocket authentication
       let wsToken: string | null = null
       try {
         const tokenRes = await fetch('/api/auth/token')
@@ -100,13 +90,10 @@ export function useSocket(roomId: string) {
           const tokenData = await tokenRes.json()
           wsToken = tokenData.token
         }
-      } catch {
-        // Token fetch failed — connect without auth (server will warn)
-      }
+      } catch {}
 
       if (cancelled) return
 
-      // Connect with JWT token for server-side verification
       newSocket = io(SOCKET_SERVER_URL, {
         auth: wsToken ? { token: wsToken } : undefined,
         transports: ['websocket', 'polling'],
@@ -114,11 +101,8 @@ export function useSocket(roomId: string) {
 
       newSocket.on('connect', () => {
         if (cancelled) return
-        console.log('[WebSocket] Conectado com sucesso!')
         setIsConnected(true)
-        setCurrentUserId(userId)
 
-        // Add current user to viewers
         const currentUser: Viewer = {
           id: userId,
           name: userName,
@@ -129,7 +113,13 @@ export function useSocket(roomId: string) {
         viewersRef.current = [currentUser]
         setViewers([currentUser])
 
-        newSocket.emit('join-room', { roomId, userId, userName, userImage: userProfileRef.current.image || '' })
+        newSocket.emit('join-room', {
+          roomId,
+          userId,
+          userName,
+          userImage: userProfileRef.current.image || '',
+          hostUserId: initialHostUserId || roomInfoRef.current?.hostUserId
+        })
         newSocket.emit('join-user-room', { userId })
       })
 
@@ -165,7 +155,8 @@ export function useSocket(roomId: string) {
           roomId,
           userId: session?.user?.id,
           userName: session?.user?.name || session?.user?.email || 'Usuário',
-          userImage: userProfileRef.current.image || ''
+          userImage: userProfileRef.current.image || '',
+          hostUserId: initialHostUserId || roomInfoRef.current?.hostUserId
         })
       })
 

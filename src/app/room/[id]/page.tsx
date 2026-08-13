@@ -59,7 +59,7 @@ export default function RoomPage() {
     currentUserId,
     selectedColor,
     changeChatColor
-  } = useSocket(roomId)
+  } = useSocket(roomId, hostUser?.id)
 
   // 1. Check friendship access with backend once roomInfo.hostUserId is known
   useEffect(() => {

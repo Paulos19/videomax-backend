@@ -106,6 +106,8 @@ export default function RoomPage() {
       currentVideoUrl={currentVideoUrl}
       videoTitle={roomInfo?.videoTitle}
       userRole={userRole}
+      hostPlan={roomInfo?.hostPlan}
+      maxViewers={roomInfo?.maxViewers}
       lastPlayerAction={lastPlayerAction}
       selectedColor={selectedColor}
       onSelectColor={changeChatColor}

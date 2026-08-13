@@ -21,6 +21,11 @@ model User {
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
   chatColor              String?         @default("#4f46e5")
+  plan                   String          @default("FREE")
+  stripeCustomerId       String?         @unique
+  stripeSubscriptionId   String?         @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
   videos                 Video[]
   folders                Folder[]
   sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")

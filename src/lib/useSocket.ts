@@ -23,6 +23,8 @@ export interface Viewer {
 export interface RoomInfo {
   roomId: string
   hostUserId: string
+  hostPlan?: string
+  maxViewers?: number
   coHostIds: string[]
   videoTitle?: string
   videoUrl?: string

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { User, Palette, Save, Check, Camera, Mail, Calendar, Loader2 } from 'lucide-react'
+import { User, Palette, Save, Check, Camera, Mail, Calendar, Loader2, Crown, Zap, CreditCard, ExternalLink, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { generateReactHelpers } from '@uploadthing/react'
 import type { OurFileRouter } from '@/app/api/uploadthing/core'
@@ -25,6 +25,13 @@ interface UserProfile {
   createdAt: string
 }
 
+interface SubscriptionData {
+  plan: 'FREE' | 'PRO'
+  isPro: boolean
+  isCanceled?: boolean
+  stripeCurrentPeriodEnd?: string
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [name, setName] = useState('')
@@ -36,13 +43,20 @@ export default function ProfilePage() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Load current profile
+  const [subData, setSubData] = useState<SubscriptionData>({ plan: 'FREE', isPro: false })
+  const [loadingStripe, setLoadingStripe] = useState(false)
+
+  // Load current profile & subscription
   useEffect(() => {
-    async function loadProfile() {
+    async function loadData() {
       try {
-        const res = await fetch('/api/mobile/profile')
-        if (res.ok) {
-          const data = await res.json()
+        const [profRes, subRes] = await Promise.all([
+          fetch('/api/mobile/profile'),
+          fetch('/api/stripe/subscription')
+        ])
+
+        if (profRes.ok) {
+          const data = await profRes.json()
           if (data?.user) {
             const u = data.user
             setProfile({
@@ -57,14 +71,53 @@ export default function ProfilePage() {
             setImageUrl(u.image || '')
           }
         }
+
+        if (subRes.ok) {
+          const s = await subRes.json()
+          setSubData(s)
+        }
       } catch {
-        // Profile load failed
+        // Load failed
       } finally {
         setLoading(false)
       }
     }
-    loadProfile()
+    loadData()
   }, [])
+
+  const handleSubscribePro = async () => {
+    setLoadingStripe(true)
+    try {
+      const res = await fetch('/api/stripe/checkout', { method: 'POST' })
+      const data = await res.json()
+      if (data?.url) {
+        window.location.href = data.url
+      } else {
+        toast.error(data?.error || 'Erro ao iniciar checkout')
+      }
+    } catch {
+      toast.error('Erro ao conectar com o servidor do Stripe')
+    } finally {
+      setLoadingStripe(false)
+    }
+  }
+
+  const handleManageSubscription = async () => {
+    setLoadingStripe(true)
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const data = await res.json()
+      if (data?.url) {
+        window.location.href = data.url
+      } else {
+        toast.error(data?.error || 'Erro ao abrir o portal do Stripe')
+      }
+    } catch {
+      toast.error('Erro ao conectar com o Stripe Customer Portal')
+    } finally {
+      setLoadingStripe(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -142,20 +195,106 @@ export default function ProfilePage() {
         <div className="absolute inset-0 brand-gradient-subtle" />
         <div className="absolute top-0 right-0 w-80 h-80 bg-room-accent/8 rounded-full blur-[100px] -translate-y-1/3 translate-x-1/4 pointer-events-none" />
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-room-accent/10 border border-room-accent/20">
-              <User className="w-4 h-4 text-room-accent" />
-              <span className="text-room-accent text-xs font-semibold tracking-wide uppercase">Meu Perfil</span>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-room-accent/10 border border-room-accent/20">
+                <User className="w-4 h-4 text-room-accent" />
+                <span className="text-room-accent text-xs font-semibold tracking-wide uppercase">Meu Perfil</span>
+              </div>
+
+              {subData.isPro ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs">
+                  <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                  <span>Plano PRO (Até 6 pessoas/sala)</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-room-text-secondary font-semibold text-xs">
+                  <span>Plano FREE (Até 2 pessoas/sala)</span>
+                </div>
+              )}
+            </div>
+
+            <h1 className="text-room-text text-2xl lg:text-3xl font-bold mb-2">
+              Personalize seu <span className="brand-gradient-text">perfil</span>
+            </h1>
+            <p className="text-room-text-secondary text-sm max-w-md">
+              Gerencie suas informações, aparência e plano de assinatura.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ STRIPE SUBSCRIPTION CARD ═══ */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0e0e15] to-[#12121c] border border-amber-500/30 p-6 lg:p-8 shadow-2xl">
+        <div className="absolute top-0 right-0 p-8 pointer-events-none opacity-10">
+          <Crown className="w-48 h-48 text-amber-400" />
+        </div>
+
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/30 px-3 py-1 rounded-full">
+                {subData.isPro ? 'Sua Assinatura é PRO' : 'Upgrade de Plano'}
+              </span>
+            </div>
+
+            <h2 className="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2">
+              {subData.isPro ? 'Plano Pro Ativo ⭐' : 'Passe para o Plano Pro'}
+            </h2>
+
+            <p className="text-xs sm:text-sm text-[#A0A0B0] max-w-xl leading-relaxed">
+              {subData.isPro
+                ? 'Você possui acesso ilimitado a salas Pro com suporte a até 6 participantes simultâneos, compartilhamento de tela com áudio em HD e transmissões ao vivo.'
+                : 'Salas gratuitas aceitam até 2 integrantes. Faça upgrade para o Plano Pro e crie salas para até 6 pessoas com compartilhamento de tela com áudio em alta definição!'}
+            </p>
+
+            <div className="flex flex-wrap gap-4 pt-2 text-xs font-semibold text-[#D0D0E0]">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>{subData.isPro ? 'Até 6 participantes por sala' : 'Grátis: até 2 pessoas por sala'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-amber-400" />
+                <span>Pagamento via Cartão de Crédito e Débito</span>
+              </div>
             </div>
           </div>
 
-          <h1 className="text-room-text text-2xl lg:text-3xl font-bold mb-2">
-            Personalize seu <span className="brand-gradient-text">perfil</span>
-          </h1>
-          <p className="text-room-text-secondary text-sm max-w-md">
-            Gerencie suas informações e aparência nas salas de assistir.
-          </p>
+          <div className="shrink-0 w-full md:w-auto">
+            {subData.isPro ? (
+              <button
+                onClick={handleManageSubscription}
+                disabled={loadingStripe}
+                className="w-full md:w-auto px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-lg"
+              >
+                {loadingStripe ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 text-amber-400" />
+                    <span>Gerenciar ou Cancelar Assinatura</span>
+                    <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleSubscribePro}
+                disabled={loadingStripe}
+                className="w-full md:w-auto px-7 py-4 rounded-xl brand-gradient text-white font-extrabold text-sm shadow-2xl brand-glow-strong hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2.5 border border-amber-400/40"
+              >
+                {loadingStripe ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 fill-white text-white" />
+                    <span>Assinar Plano PRO</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

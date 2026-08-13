@@ -10,6 +10,8 @@ interface RoomHeaderProps {
   userRole?: 'host' | 'cohost' | 'viewer'
   showChat?: boolean
   hostName?: string
+  hostPlan?: 'FREE' | 'PRO' | string
+  maxViewers?: number
   isStreamingScreen?: boolean
   isLocalStreamer?: boolean
   onBack?: () => void
@@ -27,6 +29,8 @@ export function RoomHeader({
   userRole = 'viewer',
   showChat,
   hostName = 'Host',
+  hostPlan = 'FREE',
+  maxViewers = 2,
   isStreamingScreen = false,
   isLocalStreamer = false,
   onBack,
@@ -65,12 +69,12 @@ export function RoomHeader({
 
           <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-[#FFB800] bg-[#FFB800]/10 border border-[#FFB800]/30 px-2.5 py-1 rounded-full shrink-0">
             <Crown className="w-3.5 h-3.5 fill-[#FFB800]" />
-            Host
+            Host {hostPlan === 'PRO' && 'PRO ⭐'}
           </span>
 
-          <div className="flex items-center gap-1.5 text-[#8A8A8A] text-xs font-semibold hidden md:flex shrink-0">
+          <div className="flex items-center gap-1.5 text-[#8A8A8A] text-xs font-semibold hidden md:flex shrink-0 bg-[#0B0B0B] px-2.5 py-1 rounded-xl border border-[#242424]">
             <Users className="w-4 h-4 text-[#FF5A00]" />
-            <span>{viewerCount} assistindo</span>
+            <span>{viewerCount}/{maxViewers} <span className="text-[10px] text-[#A0A0A0]">({hostPlan === 'PRO' ? 'Plano Pro' : 'Plano Free'})</span></span>
           </div>
         </div>
       </div>

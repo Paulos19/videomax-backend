@@ -39,6 +39,8 @@ interface WatchRoomProps {
   currentVideoUrl: string | null
   videoTitle?: string
   userRole?: 'host' | 'cohost' | 'viewer'
+  hostPlan?: 'FREE' | 'PRO' | string
+  maxViewers?: number
   lastPlayerAction?: PlayerActionNotice | null
   selectedColor?: string
   onSelectColor?: (color: string) => void
@@ -65,6 +67,8 @@ export function WatchRoom({
   currentVideoUrl: socketVideoUrl,
   videoTitle: propVideoTitle,
   userRole = 'viewer',
+  hostPlan = 'FREE',
+  maxViewers = 2,
   lastPlayerAction,
   selectedColor,
   onSelectColor,
@@ -359,6 +363,8 @@ export function WatchRoom({
         viewerCount={viewers.length}
         isConnected={isConnected}
         userRole={userRole}
+        hostPlan={hostPlan}
+        maxViewers={maxViewers}
         showChat={showChat}
         hostName={hostName}
         isStreamingScreen={isStreamingScreen}

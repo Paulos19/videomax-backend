@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { SignJWT } from 'jose'
+import { prisma } from '@/lib/prisma'
 
 /**
  * GET /api/auth/token
@@ -25,11 +26,26 @@ export async function GET() {
 
   const secretBytes = new TextEncoder().encode(secret)
 
+  const userId = (session.user as Record<string, unknown>).id as string
+  let userPlan = 'FREE'
+  if (userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, stripeCurrentPeriodEnd: true },
+    })
+    if (user?.plan === 'PRO' && user?.stripeCurrentPeriodEnd && user.stripeCurrentPeriodEnd.getTime() + 86_400_000 > Date.now()) {
+      userPlan = 'PRO'
+    } else if (user?.plan === 'PRO') {
+      userPlan = 'PRO'
+    }
+  }
+
   // Build a minimal JWT using jose — same library the WebSocket server uses
   const token = await new SignJWT({
-    id: (session.user as Record<string, unknown>).id,
+    id: userId,
     email: session.user.email,
     name: session.user.name,
+    plan: userPlan,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()

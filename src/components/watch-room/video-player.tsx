@@ -544,151 +544,156 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           />
         )}
 
-        {/* Click layer to toggle play/pause */}
-        <div
-          className={cn("absolute inset-0 z-10", canControl ? "cursor-pointer" : "cursor-default")}
-          style={{ touchAction: 'manipulation' }}
-          onClick={canControl ? togglePlay : undefined}
-        />
-
-        {/* Top Overlay Bar: AO VIVO + Sincronizado + Host Pill (Auto-hides after 5s) */}
-        <div
-          className={cn(
-            "absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-20 transition-opacity duration-300 pointer-events-auto",
-            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-        >
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="flex items-center gap-1.5 bg-[#EF2020] text-white text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wider shadow-lg shadow-[#EF2020]/30 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-              AO VIVO
-            </div>
-
+        {/* Render VOD Overlays & Controls only when NOT streaming screen */}
+        {!isStreamingScreen && (
+          <>
+            {/* Click layer to toggle play/pause */}
             <div
-              className="flex items-center gap-1 bg-black/70 backdrop-blur-md border border-white/10 text-white text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg truncate"
-              title="Seu vídeo é sincronizado automaticamente com o host desta sala."
+              className={cn("absolute inset-0 z-10", canControl ? "cursor-pointer" : "cursor-default")}
+              style={{ touchAction: 'manipulation' }}
+              onClick={canControl ? togglePlay : undefined}
+            />
+
+            {/* Top Overlay Bar: AO VIVO + Sincronizado + Host Pill (Auto-hides after 5s) */}
+            <div
+              className={cn(
+                "absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-20 transition-opacity duration-300 pointer-events-auto",
+                showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
             >
-              <span className="text-[#FFB800]">⚡</span>
-              <span className="truncate">Sincronizado <span className="hidden sm:inline">com Host</span></span>
-              <span className="text-[10px] text-[#8A8A8A] font-mono cursor-help hidden xs:inline">ⓘ</span>
-            </div>
-          </div>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex items-center gap-1.5 bg-[#EF2020] text-white text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wider shadow-lg shadow-[#EF2020]/30 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                  AO VIVO
+                </div>
 
-          <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-white/10 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg text-[11px] sm:text-xs font-bold text-[#F5F5F5] shrink-0">
-            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#FF5A00] flex items-center justify-center text-[9px] sm:text-[10px] text-white font-extrabold">
-              H
-            </div>
-            <span className="hidden xs:inline">Henrique</span>
-            <span className="text-[#FFB800]">👑</span>
-          </div>
-        </div>
+                <div
+                  className="flex items-center gap-1 bg-black/70 backdrop-blur-md border border-white/10 text-white text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg truncate"
+                  title="Seu vídeo é sincronizado automaticamente com o host desta sala."
+                >
+                  <span className="text-[#FFB800]">⚡</span>
+                  <span className="truncate">Sincronizado <span className="hidden sm:inline">com Host</span></span>
+                  <span className="text-[10px] text-[#8A8A8A] font-mono cursor-help hidden xs:inline">ⓘ</span>
+                </div>
+              </div>
 
-        {/* Loading indicator */}
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 pointer-events-none">
-            <Loader2 className="w-10 h-10 text-[#FF5A00] animate-spin" />
-          </div>
+              <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-white/10 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg text-[11px] sm:text-xs font-bold text-[#F5F5F5] shrink-0">
+                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#FF5A00] flex items-center justify-center text-[9px] sm:text-[10px] text-white font-extrabold">
+                  H
+                </div>
+                <span className="hidden xs:inline">Henrique</span>
+                <span className="text-[#FFB800]">👑</span>
+              </div>
+            </div>
+
+            {/* Loading indicator */}
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 pointer-events-none">
+                <Loader2 className="w-10 h-10 text-[#FF5A00] animate-spin" />
+              </div>
+            )}
+
+            {/* Controls overlay */}
+            <div
+              className={cn(
+                "absolute bottom-0 left-0 right-0 video-gradient transition-opacity duration-300 z-20",
+                showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <div className="px-4 pb-4 pt-16">
+                {/* Progress bar */}
+                <div className="relative h-1.5 mb-3 group/progress">
+                  {/* Buffered */}
+                  <div
+                    className="absolute inset-0 bg-white/20 rounded-full"
+                    style={{ width: `${bufferedProgress}%` }}
+                  />
+
+                  {/* Progress */}
+                  <div
+                    className="absolute top-0 left-0 h-full brand-gradient rounded-full"
+                    style={{ width: `${progress}%` }}
+                  />
+
+                  {/* Input range */}
+                  <input
+                    type="range"
+                    min="0"
+                    max={duration || 100}
+                    step="0.1"
+                    value={currentTime}
+                    onChange={canControl ? handleSeek : undefined}
+                    disabled={!canControl}
+                    className={cn("absolute inset-0 w-full h-full opacity-0", canControl ? "cursor-pointer" : "cursor-not-allowed")}
+                  />
+
+                  {/* Thumb */}
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg opacity-0 group-hover/progress:opacity-100 transition-opacity pointer-events-none"
+                    style={{ left: `calc(${progress}% - 7px)` }}
+                  />
+                </div>
+
+                {/* Controls row */}
+                <div className="flex items-center justify-between">
+                  {/* Left controls */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={togglePlay}
+                      disabled={!canControl}
+                      className={cn(
+                        "transition-colors",
+                        canControl
+                          ? "text-white hover:text-room-accent hover:scale-105 active:scale-95"
+                          : "text-white/40 cursor-not-allowed"
+                      )}
+                      aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
+                    >
+                      {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                    </button>
+
+                    <button
+                      onClick={toggleMute}
+                      className="text-white/80 hover:text-white transition-colors"
+                      aria-label={isMuted ? 'Ativar som' : 'Desativar som'}
+                    >
+                      {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                    </button>
+
+                    <span className="text-white/70 text-xs font-medium">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </span>
+                  </div>
+
+                  {/* Right controls */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      className="text-white/60 hover:text-white transition-colors"
+                      aria-label="Legendas"
+                    >
+                      <Subtitles className="w-4.5 h-4.5" />
+                    </button>
+
+                    <button
+                      className="text-white/60 hover:text-white transition-colors"
+                      aria-label="Configurações"
+                    >
+                      <Settings className="w-4.5 h-4.5" />
+                    </button>
+
+                    <button
+                      onClick={toggleFullscreen}
+                      className="text-white/60 hover:text-white transition-colors"
+                      aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
+                    >
+                      {isFullscreen ? <Minimize className="w-4.5 h-4.5" /> : <Maximize className="w-4.5 h-4.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
-
-        {/* Controls overlay */}
-        <div
-          className={cn(
-            "absolute bottom-0 left-0 right-0 video-gradient transition-opacity duration-300 z-20",
-            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-        >
-          <div className="px-4 pb-4 pt-16">
-            {/* Progress bar */}
-            <div className="relative h-1.5 mb-3 group/progress">
-              {/* Buffered */}
-              <div
-                className="absolute inset-0 bg-white/20 rounded-full"
-                style={{ width: `${bufferedProgress}%` }}
-              />
-
-              {/* Progress */}
-              <div
-                className="absolute top-0 left-0 h-full brand-gradient rounded-full"
-                style={{ width: `${progress}%` }}
-              />
-
-              {/* Input range */}
-              <input
-                type="range"
-                min="0"
-                max={duration || 100}
-                step="0.1"
-                value={currentTime}
-                onChange={canControl ? handleSeek : undefined}
-                disabled={!canControl}
-                className={cn("absolute inset-0 w-full h-full opacity-0", canControl ? "cursor-pointer" : "cursor-not-allowed")}
-              />
-
-              {/* Thumb */}
-              <div
-                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg opacity-0 group-hover/progress:opacity-100 transition-opacity pointer-events-none"
-                style={{ left: `calc(${progress}% - 7px)` }}
-              />
-            </div>
-
-            {/* Controls row */}
-            <div className="flex items-center justify-between">
-              {/* Left controls */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={togglePlay}
-                  disabled={!canControl}
-                  className={cn(
-                    "transition-colors",
-                    canControl
-                      ? "text-white hover:text-room-accent hover:scale-105 active:scale-95"
-                      : "text-white/40 cursor-not-allowed"
-                  )}
-                  aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
-                >
-                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                </button>
-
-                <button
-                  onClick={toggleMute}
-                  className="text-white/80 hover:text-white transition-colors"
-                  aria-label={isMuted ? 'Ativar som' : 'Desativar som'}
-                >
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                </button>
-
-                <span className="text-white/70 text-xs font-medium">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </span>
-              </div>
-
-              {/* Right controls */}
-              <div className="flex items-center gap-3">
-                <button
-                  className="text-white/60 hover:text-white transition-colors"
-                  aria-label="Legendas"
-                >
-                  <Subtitles className="w-4.5 h-4.5" />
-                </button>
-
-                <button
-                  className="text-white/60 hover:text-white transition-colors"
-                  aria-label="Configurações"
-                >
-                  <Settings className="w-4.5 h-4.5" />
-                </button>
-
-                <button
-                  onClick={toggleFullscreen}
-                  className="text-white/60 hover:text-white transition-colors"
-                  aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
-                >
-                  {isFullscreen ? <Minimize className="w-4.5 h-4.5" /> : <Maximize className="w-4.5 h-4.5" />}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     )
   }

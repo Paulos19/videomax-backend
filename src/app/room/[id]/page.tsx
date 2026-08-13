@@ -35,6 +35,7 @@ export default function RoomPage() {
   const [requestSent, setRequestSent] = useState(false)
   const [sendingRequest, setSendingRequest] = useState(false)
   const [loadingCheckout, setLoadingCheckout] = useState(false)
+  const [dismissHostUpgradeModal, setDismissHostUpgradeModal] = useState(false)
 
   const {
     socket,
@@ -358,7 +359,7 @@ export default function RoomPage() {
   return (
     <div className="relative w-full h-full flex flex-col">
       {/* HOST UPGRADE MODAL (OVERLAY WHEN A 3rd PERSON TRIES TO ENTER A FREE ROOM) */}
-      {userRole === 'host' && roomFullError && (
+      {userRole === 'host' && roomFullError && !dismissHostUpgradeModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="max-w-md w-full bg-[#0F0F17] border border-amber-500/40 rounded-2xl p-6 sm:p-8 text-center space-y-5 shadow-2xl relative overflow-hidden">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/40 flex items-center justify-center mx-auto text-amber-400">
@@ -386,6 +387,13 @@ export default function RoomPage() {
                     <span>⭐ Assinar Plano PRO no Stripe (Cartão de Crédito/Débito)</span>
                   </>
                 )}
+              </button>
+
+              <button
+                onClick={() => setDismissHostUpgradeModal(true)}
+                className="w-full py-2.5 rounded-xl text-white/60 hover:text-white text-xs font-semibold transition-colors"
+              >
+                Continuar no Plano Free (Manter 2 Pessoas)
               </button>
             </div>
           </div>

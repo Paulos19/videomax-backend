@@ -10,6 +10,12 @@ interface UseWebRTCProps {
   viewers: Array<{ id: string; name: string }>
 }
 
+export interface StartScreenShareResult {
+  success: boolean
+  reason?: 'cancelled' | 'denied' | 'not_supported' | 'error'
+  message?: string
+}
+
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -79,9 +85,18 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
       const pc = new RTCPeerConnection(ICE_SERVERS)
       peerConnections.current.set(targetUserId, pc)
 
-      // Add local video & audio tracks to peer connection
+      // Add local video & audio tracks to peer connection with quality parameters
       stream.getTracks().forEach((track) => {
-        pc.addTrack(track, stream)
+        const sender = pc.addTrack(track, stream)
+        if (track.kind === 'video' && sender.setParameters) {
+          try {
+            const params = sender.getParameters()
+            if (params) {
+              params.degradationPreference = 'maintain-resolution'
+              sender.setParameters(params).catch(() => {})
+            }
+          } catch {}
+        }
       })
 
       // Send ICE candidates to target user
@@ -109,15 +124,28 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
   )
 
   // Start screen sharing (Broadcaster)
-  const startScreenShare = useCallback(async () => {
-    if (!socket || !currentUserId) return false
+  const startScreenShare = useCallback(async (): Promise<StartScreenShareResult> => {
+    if (!socket || !currentUserId) {
+      return { success: false, reason: 'error', message: 'Sem conexão com a sala.' }
+    }
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getDisplayMedia) {
+      return {
+        success: false,
+        reason: 'not_supported',
+        message: 'Seu navegador não possui suporte para compartilhamento de tela.'
+      }
+    }
 
     try {
-      // Capture screen + audio (system/tab audio)
+      // Capture screen + audio (system/tab audio) with high resolution & 60fps
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           displaySurface: 'monitor',
           cursor: 'always',
+          width: { ideal: 1920, max: 2560 },
+          height: { ideal: 1080, max: 1440 },
+          frameRate: { ideal: 30, max: 60 }
         } as any,
         audio: {
           echoCancellation: true,
@@ -130,8 +158,10 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
       setLocalStream(stream)
 
       // If user stops sharing via browser bar
-      stream.getVideoTracks()[0].onended = () => {
-        stopScreenShare()
+      if (stream.getVideoTracks().length > 0) {
+        stream.getVideoTracks()[0].onended = () => {
+          stopScreenShare()
+        }
       }
 
       // Signal stream start to room
@@ -143,10 +173,29 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
         await createBroadcasterPeer(viewer.id, stream)
       }
 
-      return true
-    } catch (err) {
-      console.error('[WebRTC] Erro ao capturar tela:', err)
-      return false
+      return { success: true }
+    } catch (err: any) {
+      // Graceful handling of user cancellation or permission refusal (avoids Next.js dev error overlay)
+      if (
+        err?.name === 'NotAllowedError' ||
+        err?.name === 'PermissionDeniedError' ||
+        err?.message?.includes('Permission denied') ||
+        err?.message?.includes('cancelled')
+      ) {
+        console.log('[WebRTC] Compartilhamento de tela cancelado pelo usuário.')
+        return {
+          success: false,
+          reason: 'cancelled',
+          message: 'Compartilhamento de tela cancelado.'
+        }
+      }
+
+      console.warn('[WebRTC] Erro na captura de mídia:', err?.message || err)
+      return {
+        success: false,
+        reason: 'error',
+        message: err?.message || 'Não foi possível capturar a tela.'
+      }
     }
   }, [socket, currentUserId, stopScreenShare, createBroadcasterPeer])
 
@@ -170,7 +219,25 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
       }
     }
 
-    // 2. Incoming WebRTC offer (Viewer side)
+    // 2. Room Info on join/refresh (for users entering mid-stream)
+    const handleRoomInfo = (info: {
+      isStreamingScreen?: boolean
+      streamerId?: string | null
+      streamerName?: string | null
+    }) => {
+      if (info.isStreamingScreen) {
+        setIsStreaming(true)
+        setStreamerId(info.streamerId || null)
+        setStreamerName(info.streamerName || null)
+      } else {
+        setIsStreaming(false)
+        setStreamerId(null)
+        setStreamerName(null)
+        setRemoteStream(null)
+      }
+    }
+
+    // 3. Incoming WebRTC offer (Viewer side)
     const handleOffer = async ({
       senderId,
       offer,
@@ -179,6 +246,10 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
       offer: RTCSessionDescriptionInit
     }) => {
       if (senderId === currentUserId) return
+
+      // Instantly switch viewer to stream mode when offer arrives mid-stream
+      setIsStreaming(true)
+      setStreamerId(senderId)
 
       closePeer(senderId)
 
@@ -214,7 +285,7 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
       }
     }
 
-    // 3. Incoming WebRTC answer (Broadcaster side)
+    // 4. Incoming WebRTC answer (Broadcaster side)
     const handleAnswer = async ({
       senderId,
       answer,
@@ -232,7 +303,7 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
       }
     }
 
-    // 4. Incoming ICE candidate
+    // 5. Incoming ICE candidate
     const handleIceCandidate = async ({
       senderId,
       candidate,
@@ -250,19 +321,24 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
       }
     }
 
-    // 5. New user joined (Broadcaster side: send offer if currently sharing screen)
+    // 6. New user joined (Broadcaster side: send offer after slight delay so new user's socket is ready)
     const handleUserJoined = (data: { userId: string }) => {
       if (localStreamRef.current && data.userId !== currentUserId) {
-        createBroadcasterPeer(data.userId, localStreamRef.current)
+        setTimeout(() => {
+          if (localStreamRef.current) {
+            createBroadcasterPeer(data.userId, localStreamRef.current)
+          }
+        }, 300)
       }
     }
 
-    // 6. User left (clean peer)
+    // 7. User left (clean peer)
     const handleUserLeft = (data: { userId: string }) => {
       closePeer(data.userId)
     }
 
     socket.on('stream-state-change', handleStreamStateChange)
+    socket.on('room-info', handleRoomInfo)
     socket.on('webrtc-offer', handleOffer)
     socket.on('webrtc-answer', handleAnswer)
     socket.on('webrtc-ice-candidate', handleIceCandidate)
@@ -271,6 +347,7 @@ export function useWebRTC({ socket, roomId, currentUserId, viewers }: UseWebRTCP
 
     return () => {
       socket.off('stream-state-change', handleStreamStateChange)
+      socket.off('room-info', handleRoomInfo)
       socket.off('webrtc-offer', handleOffer)
       socket.off('webrtc-answer', handleAnswer)
       socket.off('webrtc-ice-candidate', handleIceCandidate)

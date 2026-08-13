@@ -128,12 +128,15 @@ export function WatchRoom({
         toast.error('Já existe outra pessoa transmitindo a tela no momento.')
       }
     } else {
-      toast.info('Iniciando compartilhamento de tela e áudio do sistema...')
-      const success = await startScreenShare()
-      if (success) {
+      const res = await startScreenShare()
+      if (res.success) {
         toast.success('Compartilhamento de tela ativo ao vivo!')
+      } else if (res.reason === 'cancelled') {
+        toast.info('Seleção de tela cancelada.')
+      } else if (res.reason === 'not_supported') {
+        toast.error('Seu navegador não possui suporte para compartilhamento de tela.')
       } else {
-        toast.error('Não foi possível iniciar a captura da tela.')
+        toast.error(res.message || 'Não foi possível iniciar a captura da tela.')
       }
     }
   }, [canControl, isStreamingScreen, isLocalStreamer, stopScreenShare, startScreenShare])

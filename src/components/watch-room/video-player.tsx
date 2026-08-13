@@ -14,7 +14,9 @@ import {
   Loader2,
   Monitor,
   Square,
-  Radio
+  Radio,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { cn } from '@/lib/utils'
@@ -85,6 +87,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [volume, setVolume] = useState(1)
+    const [showLocalPreview, setShowLocalPreview] = useState(false)
 
     const isYouTube = isYouTubeUrl(src)
 
@@ -353,56 +356,119 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       >
         {/* Render Live WebRTC Screen Stream when active */}
         {isStreamingScreen ? (
-          <div className="relative w-full h-full bg-black flex items-center justify-center">
-            <video
-              ref={streamVideoRef}
-              autoPlay
-              playsInline
-              muted={isLocalStreamer ? true : isMuted}
-              className="w-full h-full object-contain"
-            />
-
-            {/* Top Stream Status Overlay */}
-            <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-30 pointer-events-auto">
-              <div className="flex items-center gap-2 bg-red-600/90 backdrop-blur-md text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-lg border border-red-500/30">
-                <Radio className="w-4 h-4 animate-pulse text-white" />
-                <span>TELA AO VIVO — {isLocalStreamer ? 'Sua Tela' : streamerName || 'Host'}</span>
+          isLocalStreamer && !showLocalPreview ? (
+            /* Host Presenter Dashboard (Prevents infinite mirror loop) */
+            <div className="relative w-full h-full bg-[#07070a] flex flex-col items-center justify-center p-6 text-center select-none border border-red-500/20">
+              <div className="relative mb-3">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-600/10 border-2 border-red-500/60 flex items-center justify-center animate-pulse">
+                  <Monitor className="w-8 h-8 sm:w-10 sm:h-10 text-red-500" />
+                </div>
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
+                </span>
               </div>
 
-              {isLocalStreamer && onStopStream && (
-                <button
-                  onClick={onStopStream}
-                  className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-xl transition-all hover:scale-105 active:scale-95 border border-red-400/40"
-                >
-                  <Square className="w-3.5 h-3.5 fill-white" />
-                  <span>Parar Transmissão</span>
-                </button>
-              )}
-            </div>
-
-            {/* Stream View Controls (Mute/Unmute & Fullscreen for viewers) */}
-            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-30 bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={toggleMute}
-                  className="text-white/80 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold"
-                >
-                  {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-emerald-400" />}
-                  <span>{isMuted ? 'Áudio Mudo' : 'Áudio do Sistema Ativo'}</span>
-                </button>
+              <div className="inline-flex items-center gap-2 bg-red-600/90 text-white text-[11px] sm:text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider mb-2 shadow-lg shadow-red-600/30">
+                <Radio className="w-3.5 h-3.5 animate-pulse" />
+                Transmitindo Sua Tela Ao Vivo
               </div>
 
-              <div className="flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-extrabold text-white mb-1">
+                Sua Transmissão está Ativa para a Sala
+              </h3>
+
+              <p className="text-xs text-[#8A8A8A] max-w-md mb-5 leading-relaxed hidden xs:block">
+                Mude para o aplicativo, jogo ou aba que deseja apresentar. Todos os participantes estão assistindo sua tela com áudio do sistema em tempo real.
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                {onStopStream && (
+                  <button
+                    onClick={onStopStream}
+                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xl transition-all hover:scale-105 active:scale-95 border border-red-400/40"
+                  >
+                    <Square className="w-3.5 h-3.5 fill-white" />
+                    <span>Parar Transmissão</span>
+                  </button>
+                )}
+
                 <button
-                  onClick={toggleFullscreen}
-                  className="text-white/80 hover:text-white transition-colors p-1"
-                  aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
+                  onClick={() => setShowLocalPreview(true)}
+                  className="flex items-center gap-1.5 bg-[#151515] hover:bg-[#202020] text-[#F5F5F5] text-xs font-semibold px-3.5 py-2 rounded-xl border border-white/10 transition-all hover:border-white/30"
+                  title="Ver imagem do próprio vídeo"
                 >
-                  {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                  <Eye className="w-4 h-4 text-emerald-400" />
+                  <span>Ver Prévia</span>
                 </button>
               </div>
             </div>
-          </div>
+          ) : (
+            /* Stream Video Player (Viewers & Host Preview Mode) */
+            <div className="relative w-full h-full bg-black flex items-center justify-center">
+              <video
+                ref={streamVideoRef}
+                autoPlay
+                playsInline
+                muted={isLocalStreamer ? true : isMuted}
+                className="w-full h-full object-contain"
+              />
+
+              {/* Top Stream Status Overlay */}
+              <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-30 pointer-events-auto">
+                <div className="flex items-center gap-2 bg-red-600/90 backdrop-blur-md text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-lg border border-red-500/30">
+                  <Radio className="w-4 h-4 animate-pulse text-white" />
+                  <span>TELA AO VIVO — {isLocalStreamer ? 'Sua Tela' : streamerName || 'Host'}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {isLocalStreamer && (
+                    <button
+                      onClick={() => setShowLocalPreview(false)}
+                      className="flex items-center gap-1.5 bg-black/70 hover:bg-black/90 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md border border-white/20 transition-all"
+                      title="Ocultar prévia para evitar espelhamento"
+                    >
+                      <EyeOff className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="hidden sm:inline">Ocultar Prévia</span>
+                    </button>
+                  )}
+
+                  {isLocalStreamer && onStopStream && (
+                    <button
+                      onClick={onStopStream}
+                      className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-xl transition-all hover:scale-105 active:scale-95 border border-red-400/40"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-white" />
+                      <span className="hidden sm:inline">Parar Transmissão</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Stream View Controls (Mute/Unmute & Fullscreen for viewers) */}
+              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-30 bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleMute}
+                    className="text-white/80 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold"
+                  >
+                    {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-emerald-400" />}
+                    <span>{isMuted ? 'Áudio Mudo' : 'Áudio do Sistema Ativo'}</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleFullscreen}
+                    className="text-white/80 hover:text-white transition-colors p-1"
+                    aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
+                  >
+                    {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         ) : isYouTube && src ? (
           <div className="w-full h-full relative pointer-events-auto overflow-hidden">
             <YouTube

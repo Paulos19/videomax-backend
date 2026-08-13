@@ -170,6 +170,12 @@ export function useSocket(roomId: string) {
         if (cancelled) return
         setAccessApproved(true)
         toast.success('Sua entrada na sala foi aprovada pelo Host!')
+        newSocket.emit('join-room', {
+          roomId,
+          userId: session?.user?.id,
+          userName: session?.user?.name || session?.user?.email || 'Usuário',
+          userImage: userProfileRef.current.image || ''
+        })
       })
 
       newSocket.on('room-access-rejected', (data: { message?: string }) => {

@@ -412,6 +412,41 @@ export async function rejectFriendRequest(requestId: string) {
   revalidatePath("/dashboard/friends")
 }
 
+export async function ensureAndAcceptFriendship(targetUserId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Não autorizado")
+  const currentUserId = session.user.id
+
+  const existing = await prisma.friendRequest.findFirst({
+    where: {
+      OR: [
+        { senderId: currentUserId, receiverId: targetUserId },
+        { senderId: targetUserId, receiverId: currentUserId },
+      ]
+    }
+  })
+
+  if (existing) {
+    if (existing.status !== 'ACCEPTED') {
+      await prisma.friendRequest.update({
+        where: { id: existing.id },
+        data: { status: 'ACCEPTED' }
+      })
+    }
+  } else {
+    await prisma.friendRequest.create({
+      data: {
+        senderId: targetUserId,
+        receiverId: currentUserId,
+        status: 'ACCEPTED'
+      }
+    })
+  }
+
+  revalidatePath("/dashboard/friends")
+  return { success: true }
+}
+
 export async function removeFriend(friendId: string) {
   const idResult = IdSchema.safeParse(friendId)
   if (!idResult.success) throw new Error(idResult.error.issues[0].message)

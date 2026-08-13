@@ -12,6 +12,7 @@ import { VideoInfo } from './video-info'
 import { ChatPanel } from './chat-panel'
 import { VideoSelectorModal } from './video-selector-modal'
 import { InviteFriendsModal } from './invite-friends-modal'
+import { useWebRTC } from '@/lib/useWebRTC'
 import { Video, ChatMessage, PlayerStateData } from '@/types'
 import { Viewer } from '@/lib/useSocket'
 import { PlayerActionNotice } from '@/lib/useSocket'
@@ -95,6 +96,47 @@ export function WatchRoom({
   const hostUser = viewers.find(v => v.role === 'host')
   const hostName = hostUser?.name || 'Henrique'
   const canControl = userRole === 'host' || userRole === 'cohost'
+
+  const {
+    localStream,
+    remoteStream,
+    isStreaming: isStreamingScreen,
+    streamerId,
+    streamerName: screenStreamerName,
+    isLocalStreamer,
+    startScreenShare,
+    stopScreenShare
+  } = useWebRTC({
+    socket: socket ?? null,
+    roomId,
+    currentUserId,
+    viewers: viewers.map(v => ({ id: v.id, name: v.name }))
+  })
+
+  const activeStreamMedia = isLocalStreamer ? localStream : remoteStream
+
+  const handleToggleScreenShare = useCallback(async () => {
+    if (!canControl) {
+      toast.error('Somente o Host ou Co-host pode compartilhar a tela!')
+      return
+    }
+    if (isStreamingScreen) {
+      if (isLocalStreamer) {
+        stopScreenShare()
+        toast.info('Transmissão de tela encerrada.')
+      } else {
+        toast.error('Já existe outra pessoa transmitindo a tela no momento.')
+      }
+    } else {
+      toast.info('Iniciando compartilhamento de tela e áudio do sistema...')
+      const success = await startScreenShare()
+      if (success) {
+        toast.success('Compartilhamento de tela ativo ao vivo!')
+      } else {
+        toast.error('Não foi possível iniciar a captura da tela.')
+      }
+    }
+  }, [canControl, isStreamingScreen, isLocalStreamer, stopScreenShare, startScreenShare])
 
   // Update title if received from socket room-info
   useEffect(() => {
@@ -316,8 +358,11 @@ export function WatchRoom({
         userRole={userRole}
         showChat={showChat}
         hostName={hostName}
+        isStreamingScreen={isStreamingScreen}
+        isLocalStreamer={isLocalStreamer}
         onBack={onBack}
         onChangeVideo={() => setShowVideoSelector(true)}
+        onToggleScreenShare={handleToggleScreenShare}
         onShare={() => setShowShareModal(true)}
         onToggleChat={() => setShowChat(!showChat)}
         onMore={() => setShowShareModal(true)}
@@ -336,6 +381,11 @@ export function WatchRoom({
             onPause={handlePause}
             onSeek={handleSeek}
             onCanPlay={handleVideoReady}
+            isStreamingScreen={isStreamingScreen}
+            streamMedia={activeStreamMedia}
+            streamerName={screenStreamerName || 'Host'}
+            isLocalStreamer={isLocalStreamer}
+            onStopStream={stopScreenShare}
           />
 
           {/* 2. Player Controls Bar */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { Crown, ArrowLeft, Users, Clapperboard, Share2, MoreVertical, MessageCircle, Link2 } from 'lucide-react'
+import { Crown, ArrowLeft, Users, Clapperboard, Share2, MoreVertical, MessageCircle, Link2, Monitor, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface RoomHeaderProps {
@@ -10,8 +10,11 @@ interface RoomHeaderProps {
   userRole?: 'host' | 'cohost' | 'viewer'
   showChat?: boolean
   hostName?: string
+  isStreamingScreen?: boolean
+  isLocalStreamer?: boolean
   onBack?: () => void
   onChangeVideo?: () => void
+  onToggleScreenShare?: () => void
   onShare?: () => void
   onMore?: () => void
   onToggleChat?: () => void
@@ -24,8 +27,11 @@ export function RoomHeader({
   userRole = 'viewer',
   showChat,
   hostName = 'Host',
+  isStreamingScreen = false,
+  isLocalStreamer = false,
   onBack,
   onChangeVideo,
+  onToggleScreenShare,
   onShare,
   onMore,
   onToggleChat
@@ -71,6 +77,26 @@ export function RoomHeader({
 
       {/* Right section: Action Buttons & Status */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {(userRole === 'host' || userRole === 'cohost') && (
+          <button
+            onClick={onToggleScreenShare}
+            className={cn(
+              "px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border shadow-md",
+              isStreamingScreen
+                ? isLocalStreamer
+                  ? "bg-red-600 hover:bg-red-700 text-white border-red-500 animate-pulse"
+                  : "bg-red-950/80 text-red-400 border-red-800/60 cursor-not-allowed"
+                : "bg-[#0B0B0B] hover:bg-[#151515] border-[#242424] hover:border-[#FF5A00] text-[#F5F5F5]"
+            )}
+            title={isStreamingScreen ? "Parar Transmissão de Tela" : "Compartilhar Tela ao Vivo"}
+          >
+            <Monitor className={cn("w-4 h-4", isStreamingScreen ? "text-white" : "text-[#FF5A00]")} />
+            <span className="hidden sm:inline">
+              {isStreamingScreen ? (isLocalStreamer ? 'Parar Tela' : 'Ao Vivo') : 'Compartilhar Tela'}
+            </span>
+          </button>
+        )}
+
         <button
           onClick={onChangeVideo}
           className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[#0B0B0B] hover:bg-[#151515] border border-[#242424] hover:border-[#FF5A00] text-[#F5F5F5] text-xs font-bold transition-all hidden sm:flex items-center gap-2"

@@ -11,7 +11,10 @@ import {
   Minimize,
   Settings,
   Subtitles,
-  Loader2
+  Loader2,
+  Monitor,
+  Square,
+  Radio
 } from 'lucide-react'
 import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { cn } from '@/lib/utils'
@@ -37,6 +40,11 @@ interface VideoPlayerProps {
   isRemoteUpdate?: boolean
   onRemoteUpdateDone?: () => void
   onCanPlay?: () => void
+  isStreamingScreen?: boolean
+  streamMedia?: MediaStream | null
+  streamerName?: string
+  isLocalStreamer?: boolean
+  onStopStream?: () => void
 }
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
@@ -51,11 +59,17 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       onFullscreen,
       isRemoteUpdate = false,
       onRemoteUpdateDone,
-      onCanPlay
+      onCanPlay,
+      isStreamingScreen = false,
+      streamMedia = null,
+      streamerName,
+      isLocalStreamer = false,
+      onStopStream
     },
     ref
   ) {
     const videoRef = useRef<HTMLVideoElement>(null)
+    const streamVideoRef = useRef<HTMLVideoElement>(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const reactPlayerRef = useRef<any>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -319,6 +333,12 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }, [])
 
+    useEffect(() => {
+      if (isStreamingScreen && streamVideoRef.current && streamMedia) {
+        streamVideoRef.current.srcObject = streamMedia
+      }
+    }, [isStreamingScreen, streamMedia])
+
     // Progress percentage
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0
     const bufferedProgress = duration > 0 ? (buffered / duration) * 100 : 0
@@ -331,8 +351,59 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
       >
-        {/* Render react-youtube for YouTube or native <video> for uploaded files */}
-        {isYouTube && src ? (
+        {/* Render Live WebRTC Screen Stream when active */}
+        {isStreamingScreen ? (
+          <div className="relative w-full h-full bg-black flex items-center justify-center">
+            <video
+              ref={streamVideoRef}
+              autoPlay
+              playsInline
+              muted={isLocalStreamer ? true : isMuted}
+              className="w-full h-full object-contain"
+            />
+
+            {/* Top Stream Status Overlay */}
+            <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-30 pointer-events-auto">
+              <div className="flex items-center gap-2 bg-red-600/90 backdrop-blur-md text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-lg border border-red-500/30">
+                <Radio className="w-4 h-4 animate-pulse text-white" />
+                <span>TELA AO VIVO — {isLocalStreamer ? 'Sua Tela' : streamerName || 'Host'}</span>
+              </div>
+
+              {isLocalStreamer && onStopStream && (
+                <button
+                  onClick={onStopStream}
+                  className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-xl transition-all hover:scale-105 active:scale-95 border border-red-400/40"
+                >
+                  <Square className="w-3.5 h-3.5 fill-white" />
+                  <span>Parar Transmissão</span>
+                </button>
+              )}
+            </div>
+
+            {/* Stream View Controls (Mute/Unmute & Fullscreen for viewers) */}
+            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-30 bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleMute}
+                  className="text-white/80 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold"
+                >
+                  {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-emerald-400" />}
+                  <span>{isMuted ? 'Áudio Mudo' : 'Áudio do Sistema Ativo'}</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-white/80 hover:text-white transition-colors p-1"
+                  aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
+                >
+                  {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : isYouTube && src ? (
           <div className="w-full h-full relative pointer-events-auto overflow-hidden">
             <YouTube
               videoId={getYouTubeVideoId(src) || ''}

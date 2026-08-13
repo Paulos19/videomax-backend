@@ -70,15 +70,23 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
       const user = session.user!
       const userId = (user as Record<string, unknown>).id as string
       const userName = user.name || user.email || 'Usuário'
+      const sessionImage = (user as Record<string, unknown>).image as string || user.image || ''
       setCurrentUserId(userId)
 
+      userProfileRef.current = {
+        chatColor: '#4f46e5',
+        image: sessionImage
+      }
+
       try {
-        const profileRes = await fetch('/api/user/profile')
+        const profileRes = await fetch('/api/mobile/profile')
         if (profileRes.ok) {
-          const profile = await profileRes.json()
-          userProfileRef.current = {
-            chatColor: profile.chatColor || '#4f46e5',
-            image: profile.image || ''
+          const profileData = await profileRes.json()
+          if (profileData?.user) {
+            userProfileRef.current = {
+              chatColor: profileData.user.chatColor || '#4f46e5',
+              image: profileData.user.image || sessionImage
+            }
           }
         }
       } catch {}
@@ -97,6 +105,10 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
       newSocket = io(SOCKET_SERVER_URL, {
         auth: wsToken ? { token: wsToken } : undefined,
         transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 15,
+        reconnectionDelay: 1000,
+        timeout: 15000,
       })
 
       newSocket.on('connect', () => {
@@ -106,7 +118,7 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
         const currentUser: Viewer = {
           id: userId,
           name: userName,
-          image: userProfileRef.current.image,
+          image: userProfileRef.current.image || sessionImage,
           isCurrentUser: true,
           role: 'viewer'
         }
@@ -117,7 +129,7 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
           roomId,
           userId,
           userName,
-          userImage: userProfileRef.current.image || '',
+          userImage: userProfileRef.current.image || sessionImage,
           hostUserId: initialHostUserId || roomInfoRef.current?.hostUserId
         })
         newSocket.emit('join-user-room', { userId })
@@ -125,7 +137,7 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
 
       newSocket.on('connect_error', (err) => {
         if (cancelled) return
-        console.error('[WebSocket] Erro de conexão:', err.message)
+        console.warn('[WebSocket] Reconectando em segundo plano:', err.message)
         setIsConnected(false)
       })
 
@@ -155,7 +167,7 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
           roomId,
           userId: session?.user?.id,
           userName: session?.user?.name || session?.user?.email || 'Usuário',
-          userImage: userProfileRef.current.image || '',
+          userImage: userProfileRef.current.image || session?.user?.image || '',
           hostUserId: initialHostUserId || roomInfoRef.current?.hostUserId
         })
       })

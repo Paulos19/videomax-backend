@@ -51,3 +51,16 @@ export interface VideosResponse {
   videos: Video[]
   pagination: PaginationInfo
 }
+
+export interface RoomInfo {
+  roomId: string
+  hostUserId: string
+  hostPlan?: string
+  maxViewers?: number
+  coHostIds?: string[]
+  videoTitle?: string
+  videoUrl?: string
+  isStreamingScreen?: boolean
+  streamerId?: string | null
+  streamerName?: string | null
+}

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import io, { Socket } from 'socket.io-client'
-import { ChatMessage, PlayerStateData } from '@/types'
+import { ChatMessage, PlayerStateData, RoomInfo } from '@/types'
 import { toast } from 'sonner'
 
 const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'https://services-videomax-websocket.khdya3.easypanel.host/'
@@ -19,16 +19,6 @@ export interface Viewer {
   image?: string
   isCurrentUser?: boolean
   role?: 'host' | 'cohost' | 'viewer'
-}
-
-export interface RoomInfo {
-  roomId: string
-  hostUserId: string
-  hostPlan?: string
-  maxViewers?: number
-  coHostIds: string[]
-  videoTitle?: string
-  videoUrl?: string
 }
 
 export interface PlayerActionNotice {
@@ -68,6 +58,7 @@ export function useSocket(roomId: string) {
   const userProfileRef = useRef<SocketUserProfile>({ chatColor: '#4f46e5', image: '' })
   const seenMessageIds = useRef(new Set<string>())
   const viewersRef = useRef<Viewer[]>([])
+  const roomInfoRef = useRef<RoomInfo | null>(null)
 
   useEffect(() => {
     if (!session?.user) return
@@ -192,6 +183,7 @@ export function useSocket(roomId: string) {
 
       newSocket.on('room-info', (info: RoomInfo) => {
         if (cancelled) return
+        roomInfoRef.current = info
         setRoomInfo(info)
         if (info.videoUrl) {
           setCurrentVideoUrl(info.videoUrl)
@@ -203,6 +195,16 @@ export function useSocket(roomId: string) {
         } else {
           setUserRole('viewer')
         }
+      })
+
+      newSocket.on('stream-state-change', (data: { isStreaming: boolean; streamerId?: string; streamerName?: string }) => {
+        if (cancelled) return
+        if (roomInfoRef.current) {
+          roomInfoRef.current.isStreamingScreen = data.isStreaming
+          roomInfoRef.current.streamerId = data.streamerId || null
+          roomInfoRef.current.streamerName = data.streamerName || null
+        }
+        setRoomInfo((prev) => prev ? { ...prev, isStreamingScreen: data.isStreaming, streamerId: data.streamerId || null, streamerName: data.streamerName || null } : null)
       })
 
       newSocket.on('receive-message', (data: ChatMessage) => {
@@ -278,13 +280,14 @@ export function useSocket(roomId: string) {
       })
 
       // Listen for video sync from other users
-      newSocket.on('player-state-change', (data: PlayerStateData & { senderName?: string; videoTitle?: string }) => {
+      newSocket.on('player-state-change', (data: PlayerStateData & { senderName?: string; videoTitle?: string; isSync?: boolean }) => {
         if (cancelled) return
         if (data.url) {
           setCurrentVideoUrl(data.url)
         }
 
-        if (data.senderName) {
+        // Only show action notice / system message if NOT an initial position sync packet and NOT streaming screen
+        if (data.senderName && !data.isSync && !roomInfoRef.current?.isStreamingScreen) {
           setLastPlayerAction({
             senderId: data.senderId || '',
             senderName: data.senderName,

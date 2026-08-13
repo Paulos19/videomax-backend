@@ -333,7 +333,7 @@ export function WatchRoom({
   return (
     <div className="h-screen flex flex-col bg-[#050505] text-[#F5F5F5] overflow-y-auto lg:overflow-hidden relative font-sans">
       {/* Action Toast Overlay (Floating) */}
-      {lastPlayerAction && (Date.now() - lastPlayerAction.serverTimestamp < 4000) && (
+      {!isStreamingScreen && lastPlayerAction && (Date.now() - lastPlayerAction.serverTimestamp < 4000) && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/90 backdrop-blur-md border border-[#FF5A00]/40 text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2.5 animate-bounce">
           {lastPlayerAction.type === 'play' ? (
             <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" />

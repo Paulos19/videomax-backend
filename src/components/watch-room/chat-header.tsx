@@ -62,7 +62,7 @@ export function ChatHeader({
           <div className="flex -space-x-2 overflow-hidden">
             {viewers.slice(0, 3).map((v, i) => (
               <Avatar key={i} className="w-5 h-5 border-2 border-[#090909]">
-                <AvatarImage src={v.image} />
+                <AvatarImage src={v.image || undefined} />
                 <AvatarFallback className="bg-[#151515] text-[#FF5A00] text-[8px] font-bold">
                   {v.name?.charAt(0) || 'U'}
                 </AvatarFallback>

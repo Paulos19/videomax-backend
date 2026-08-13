@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import io, { Socket } from 'socket.io-client'
 import { ChatMessage, PlayerStateData } from '@/types'
+import { toast } from 'sonner'
 
 const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'https://services-videomax-websocket.khdya3.easypanel.host/'
 
@@ -39,6 +40,14 @@ export interface PlayerActionNotice {
   serverTimestamp: number
 }
 
+export interface HostAccessRequest {
+  socketId: string
+  requestingUserId: string
+  requestingUserName: string
+  requestingUserImage?: string
+  roomId: string
+}
+
 let systemMessageCounter = 0
 
 export function useSocket(roomId: string) {
@@ -52,6 +61,10 @@ export function useSocket(roomId: string) {
   const [userRole, setUserRole] = useState<'host' | 'cohost' | 'viewer'>('viewer')
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null)
   const [lastPlayerAction, setLastPlayerAction] = useState<PlayerActionNotice | null>(null)
+  const [roomFullError, setRoomFullError] = useState<string | null>(null)
+  const [pendingAccessRequests, setPendingAccessRequests] = useState<HostAccessRequest[]>([])
+  const [accessApproved, setAccessApproved] = useState(false)
+  const [accessRejectedReason, setAccessRejectedReason] = useState<string | null>(null)
   const userProfileRef = useRef<SocketUserProfile>({ chatColor: '#4f46e5', image: '' })
   const seenMessageIds = useRef(new Set<string>())
   const viewersRef = useRef<Viewer[]>([])
@@ -138,6 +151,31 @@ export function useSocket(roomId: string) {
       newSocket.on('error', (err) => {
         if (cancelled) return
         console.error('[WebSocket] Erro retornado pelo servidor:', err)
+      })
+
+      newSocket.on('room-full-error', (data: { message: string; maxViewers?: number; hostPlan?: string }) => {
+        if (cancelled) return
+        console.warn('[WebSocket] Sala cheia:', data.message)
+        setRoomFullError(data.message)
+        toast.error(data.message)
+      })
+
+      newSocket.on('host-access-request', (req: HostAccessRequest) => {
+        if (cancelled) return
+        setPendingAccessRequests((prev) => [...prev.filter((p) => p.socketId !== req.socketId), req])
+        toast.info(`🙋‍♂️ ${req.requestingUserName} solicitou entrada na sala.`)
+      })
+
+      newSocket.on('room-access-approved', () => {
+        if (cancelled) return
+        setAccessApproved(true)
+        toast.success('Sua entrada na sala foi aprovada pelo Host!')
+      })
+
+      newSocket.on('room-access-rejected', (data: { message?: string }) => {
+        if (cancelled) return
+        setAccessRejectedReason(data.message || 'Solicitação de entrada recusada.')
+        toast.error(data.message || 'Solicitação de entrada recusada pelo Host.')
       })
 
       newSocket.on('disconnect', (reason) => {
@@ -309,6 +347,26 @@ export function useSocket(roomId: string) {
     }
   }, [socket])
 
+  const requestRoomAccess = useCallback((data: { roomId: string; hostUserId: string; userName: string; userImage?: string }) => {
+    if (socket) {
+      socket.emit('request-room-access', data)
+    }
+  }, [socket])
+
+  const approveAccessRequest = useCallback((requestingSocketId: string) => {
+    if (socket) {
+      socket.emit('approve-room-access', { requestingSocketId, roomId })
+      setPendingAccessRequests((prev) => prev.filter((p) => p.socketId !== requestingSocketId))
+    }
+  }, [socket, roomId])
+
+  const rejectAccessRequest = useCallback((requestingSocketId: string) => {
+    if (socket) {
+      socket.emit('reject-room-access', { requestingSocketId, roomId })
+      setPendingAccessRequests((prev) => prev.filter((p) => p.socketId !== requestingSocketId))
+    }
+  }, [socket, roomId])
+
   return {
     socket,
     isConnected,
@@ -319,10 +377,17 @@ export function useSocket(roomId: string) {
     roomInfo,
     lastPlayerAction,
     selectedColor,
+    roomFullError,
+    pendingAccessRequests,
+    accessApproved,
+    accessRejectedReason,
     changeChatColor,
     sendMessage,
     syncPlayerState,
     changeUserRole,
+    requestRoomAccess,
+    approveAccessRequest,
+    rejectAccessRequest,
     currentUserId
   }
 }

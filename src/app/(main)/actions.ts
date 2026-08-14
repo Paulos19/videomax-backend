@@ -349,6 +349,16 @@ export async function sendFriendRequest(target: string) {
     }
   })
 
+  await prisma.notification.create({
+    data: {
+      userId: targetUser.id,
+      type: 'FRIEND_REQUEST',
+      title: 'Pedido de Amizade',
+      message: `${session.user.name || session.user.email} enviou um pedido de amizade para você.`,
+      data: JSON.stringify({ senderId: session.user.id, requestId: newRequest.id })
+    }
+  })
+
   revalidatePath("/dashboard/friends")
   return {
     requestId: newRequest.id,
@@ -379,6 +389,16 @@ export async function acceptFriendRequest(requestId: string) {
   await prisma.friendRequest.update({
     where: { id: idResult.data },
     data: { status: 'ACCEPTED' }
+  })
+
+  await prisma.notification.create({
+    data: {
+      userId: request.senderId,
+      type: 'SYSTEM',
+      title: 'Pedido de Amizade Aceito',
+      message: `${session.user.name || session.user.email} aceitou seu pedido de amizade.`,
+      data: JSON.stringify({ receiverId: session.user.id })
+    }
   })
 
   revalidatePath("/dashboard/friends")
@@ -562,4 +582,64 @@ export async function getFriendSuggestions() {
     image: s.image || undefined,
     mutualCount: 0
   }))
+}
+
+// --- Notifications ---
+
+export async function getNotifications() {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  const notifications = await prisma.notification.findMany({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return notifications
+}
+
+export async function markNotificationAsRead(id: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Não autorizado")
+
+  await prisma.notification.update({
+    where: { id, userId: session.user.id },
+    data: { read: true }
+  })
+}
+
+export async function markAllNotificationsAsRead() {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Não autorizado")
+
+  await prisma.notification.updateMany({
+    where: { userId: session.user.id, read: false },
+    data: { read: true }
+  })
+}
+
+export async function deleteNotification(id: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Não autorizado")
+
+  await prisma.notification.delete({
+    where: { id, userId: session.user.id }
+  })
+}
+
+export async function createRoomInviteNotification(targetUserId: string, roomId: string, senderName: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Não autorizado")
+
+  const notif = await prisma.notification.create({
+    data: {
+      userId: targetUserId,
+      type: 'ROOM_INVITE',
+      title: 'Convite para Sala',
+      message: `${senderName} convidou você para assistir vídeos em sincronia.`,
+      data: JSON.stringify({ roomId, senderId: session.user.id }),
+    }
+  })
+
+  return notif
 }

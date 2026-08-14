@@ -18,7 +18,6 @@ import { useSession } from 'next-auth/react'
 import { HomeHeader } from '../components/home-header'
 
 import { cn } from '@/lib/utils'
-import '@uploadthing/react/styles.css'
 
 interface VideoItem {
   id: string
@@ -703,8 +702,8 @@ export default function VideosPage() {
                       toast.error(`Erro no upload: ${error.message}`)
                     }}
                     appearance={{
-                      container: "border-dashed border-[#242424] bg-[#151515] rounded-xl p-6 hover:border-[#FF5A00]/40 transition-colors",
-                      uploadIcon: "text-[#FF5A00]/40",
+                      container: "flex flex-col items-center justify-center border-dashed border-[#242424] bg-[#151515] rounded-xl p-6 hover:border-[#FF5A00]/40 transition-colors",
+                      uploadIcon: "text-[#FF5A00]/40 mb-2",
                       label: "text-[#8A8A8A] hover:text-[#FF5A00] text-sm font-medium",
                       allowedContent: "text-[#5F5F5F] text-xs",
                       button: "brand-gradient px-5 py-2 rounded-lg text-white text-sm font-bold mt-3"

@@ -2,6 +2,8 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 
+import { NotificationProvider } from '@/contexts/notification-context'
+
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
 
@@ -9,5 +11,9 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     redirect('/login')
   }
 
-  return <AppShell user={session.user}>{children}</AppShell>
+  return (
+    <NotificationProvider userId={session.user.id}>
+      <AppShell user={session.user}>{children}</AppShell>
+    </NotificationProvider>
+  )
 }

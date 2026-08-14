@@ -9,9 +9,9 @@ import {
   Menu, X, Plus, Settings, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react'
 import { toast } from 'sonner'
-import io from 'socket.io-client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { useNotifications } from '@/contexts/notification-context'
 import { CreateRoomDialog } from '@/app/(main)/dashboard/components/create-room-dialog'
 
 const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'https://services-videomax-websocket.khdya3.easypanel.host/'
@@ -37,7 +37,7 @@ const navItems = [
 export function AppShell({ user, children }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const [pendingInvitesCount, setPendingInvitesCount] = useState(0)
+  const { unreadCount } = useNotifications()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [createRoomOpen, setCreateRoomOpen] = useState(false)
@@ -67,79 +67,6 @@ export function AppShell({ user, children }: AppShellProps) {
     })
   }
 
-  // Real-time notification listener
-  useEffect(() => {
-    if (!user) return
-    let socket: ReturnType<typeof io> | null = null
-    let cancelled = false
-
-    const init = async () => {
-      let wsToken: string | undefined
-      try {
-        const tokenRes = await fetch('/api/auth/token')
-        if (tokenRes.ok) {
-          const tokenData = await tokenRes.json()
-          wsToken = tokenData.token
-        }
-      } catch {}
-
-      if (cancelled) return
-
-      socket = io(SOCKET_SERVER_URL, {
-        auth: wsToken ? { token: wsToken } : undefined,
-        transports: ['websocket', 'polling'],
-      })
-
-      socket.on('connect', () => {
-        if (cancelled) return
-        fetch('/api/mobile/profile').then(r => r.json()).then(data => {
-          if (data?.user?.id && socket) {
-            socket.emit('join-user-room', { userId: data.user.id })
-          }
-        }).catch(() => {})
-      })
-
-      socket.on('friend-request-received', (data: { senderName: string }) => {
-        if (cancelled) return
-        toast.info(`Novo pedido de amizade de ${data.senderName}!`, {
-          action: {
-            label: 'Ver pedidos',
-            onClick: () => router.push('/dashboard/friends')
-          }
-        })
-      })
-
-      socket.on('friend-request-accepted', (data: { receiverName: string }) => {
-        if (cancelled) return
-        toast.success(`${data.receiverName} aceitou seu pedido de amizade!`, {
-          action: {
-            label: 'Ver amigos',
-            onClick: () => router.push('/dashboard/friends')
-          }
-        })
-      })
-
-      socket.on('room-invite-received', (data: { senderName: string; roomCode: string }) => {
-        if (cancelled) return
-        setPendingInvitesCount(c => c + 1)
-        toast.info(`${data.senderName} convidou você para assistir na sala ${data.roomCode}!`, {
-          action: {
-            label: 'Entrar na Sala',
-            onClick: () => router.push(`/room/${data.roomCode}`)
-          },
-          duration: 10000
-        })
-      })
-    }
-
-    init()
-
-    return () => {
-      cancelled = true
-      if (socket) socket.disconnect()
-    }
-  }, [user, router])
-
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard' || pathname === '/'
     return pathname.startsWith(href)
@@ -151,11 +78,11 @@ export function AppShell({ user, children }: AppShellProps) {
     'U'
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#F5F5F5] flex flex-col relative overflow-x-hidden">
+    <div className="h-screen w-full bg-[#050505] text-[#F5F5F5] flex overflow-hidden">
       {/* Desktop Permanent Sidebar (>= 768px md) */}
       <aside
         className={cn(
-          "hidden md:flex fixed left-0 top-0 h-screen z-40 bg-[#050505] border-r border-[#242424] flex-col justify-between p-3.5 transition-all duration-300 ease-in-out shrink-0 select-none",
+          "hidden md:flex flex-col h-full z-40 bg-[#050505] border-r border-[#242424] justify-between p-3.5 transition-all duration-300 ease-in-out shrink-0 select-none",
           isSidebarCollapsed ? "w-[80px]" : "w-[260px]"
         )}
       >
@@ -204,7 +131,7 @@ export function AppShell({ user, children }: AppShellProps) {
           <nav className="space-y-1.5">
             {navItems.map((item) => {
               const active = isActive(item.href)
-              const hasBadge = item.badgeKey === 'invites' && pendingInvitesCount > 0
+              const hasBadge = item.badgeKey === 'invites' && unreadCount > 0
 
               return (
                 <Link
@@ -238,7 +165,7 @@ export function AppShell({ user, children }: AppShellProps) {
                       <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-[#EF2020] rounded-full ring-2 ring-[#050505] animate-pulse" />
                     ) : (
                       <span className="bg-[#EF2020] text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                        {pendingInvitesCount}
+                        {unreadCount}
                       </span>
                     )
                   )}
@@ -317,54 +244,62 @@ export function AppShell({ user, children }: AppShellProps) {
         </div>
       </aside>
 
-      {/* Mobile Top Header (< 768px md) */}
-      <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 bg-[#050505]/95 backdrop-blur-md border-b border-[#242424] md:hidden">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="p-2 rounded-xl bg-[#151515] border border-[#242424] text-[#F5F5F5] hover:bg-[#242424] transition-colors"
-            aria-label="Abrir menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+      {/* Main Content & Mobile Header Wrapper */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto relative">
+        {/* Mobile Top Header (< 768px md) */}
+        <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 bg-[#050505]/95 backdrop-blur-md border-b border-[#242424] md:hidden shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 rounded-xl bg-[#151515] border border-[#242424] text-[#F5F5F5] hover:bg-[#242424] transition-colors"
+              aria-label="Abrir menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
 
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image
-              src="/logo/simplelogo.png"
-              alt="VideoMax Logo"
-              width={30}
-              height={30}
-              className="object-contain"
-            />
-            <span className="font-bold text-base tracking-tight">
-              <span className="text-[#F5F5F5]">VIDEO</span>
-              <span className="brand-gradient-text ml-0.5">MAX</span>
-            </span>
-          </Link>
-        </div>
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Image
+                src="/logo/simplelogo.png"
+                alt="VideoMax Logo"
+                width={30}
+                height={30}
+                className="object-contain"
+              />
+              <span className="font-bold text-base tracking-tight">
+                <span className="text-[#F5F5F5]">VIDEO</span>
+                <span className="brand-gradient-text ml-0.5">MAX</span>
+              </span>
+            </Link>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push('/dashboard/notifications')}
-            className="relative p-2 rounded-xl bg-[#151515] border border-[#242424] text-[#8A8A8A] hover:text-[#F5F5F5]"
-            aria-label="Notificações"
-          >
-            <Bell className="w-4 h-4" />
-            {pendingInvitesCount > 0 && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-[#EF2020] animate-ping" />
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/dashboard/notifications')}
+              className="relative p-2 rounded-xl bg-[#151515] border border-[#242424] text-[#8A8A8A] hover:text-[#F5F5F5]"
+              aria-label="Notificações"
+            >
+              <Bell className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-[#EF2020] animate-ping" />
+              )}
+            </button>
 
-          <Link href="/profile">
-            <Avatar className="w-8 h-8 border border-[#242424]">
-              <AvatarImage src={user?.image || undefined} />
-              <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
-        </div>
-      </header>
+            <Link href="/profile">
+              <Avatar className="w-8 h-8 border border-[#242424]">
+                <AvatarImage src={user?.image || undefined} />
+                <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
 
       {/* Mobile Drawer Overlay (< 768px md) */}
       {mobileMenuOpen && (
@@ -403,7 +338,7 @@ export function AppShell({ user, children }: AppShellProps) {
               <nav className="space-y-1.5">
                 {navItems.map((item) => {
                   const active = isActive(item.href)
-                  const hasBadge = item.badgeKey === 'invites' && pendingInvitesCount > 0
+                  const hasBadge = item.badgeKey === 'invites' && unreadCount > 0
 
                   return (
                     <Link
@@ -429,7 +364,7 @@ export function AppShell({ user, children }: AppShellProps) {
 
                       {hasBadge && (
                         <span className="bg-[#EF2020] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                          {pendingInvitesCount}
+                          {unreadCount}
                         </span>
                       )}
                     </Link>
@@ -474,18 +409,6 @@ export function AppShell({ user, children }: AppShellProps) {
           </aside>
         </div>
       )}
-
-      {/* Main Content Area */}
-      <div
-        className={cn(
-          "flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out",
-          isSidebarCollapsed ? "md:pl-[80px]" : "md:pl-[260px]"
-        )}
-      >
-        <main className="flex-1 relative min-w-0 p-4 sm:p-6 lg:p-8 w-full">
-          {children}
-        </main>
-      </div>
 
       {/* Create Room Dialog */}
       {createRoomOpen && (

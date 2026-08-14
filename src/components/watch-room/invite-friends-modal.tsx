@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { X, Copy, Check, Link, Users, Send, Loader2, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Socket } from 'socket.io-client'
-import { getFriendsAndRequests } from '@/app/(main)/actions'
+import { getFriendsAndRequests, createRoomInviteNotification } from '@/app/(main)/actions'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Viewer } from '@/lib/useSocket'
 import { cn } from '@/lib/utils'
@@ -122,6 +122,8 @@ export function InviteFriendsModal({
 
     const selected = availableFriends.filter(f => selectedIds.has(f.id))
     for (const friend of selected) {
+      await createRoomInviteNotification(friend.id, roomId, senderName).catch(console.error)
+
       socket.emit('invite-to-room', {
         targetUserId: friend.id,
         roomCode: roomId,

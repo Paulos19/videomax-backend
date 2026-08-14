@@ -46,7 +46,7 @@ export function HomeHeader({
     'U'
 
   return (
-    <header className="w-full flex items-center justify-between gap-4 pb-4 border-b border-[#242424]">
+    <header className="w-full hidden md:flex items-center justify-between gap-4 pb-4 border-b border-[#242424]">
       {/* Search Input (~580px, 44px height) */}
       <form onSubmit={handleSearch} className="relative flex-1 max-w-[580px]">
         <Search className="w-4 h-4 text-[#8A8A8A] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />

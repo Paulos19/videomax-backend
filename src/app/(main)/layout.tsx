@@ -7,7 +7,7 @@ import { NotificationProvider } from '@/contexts/notification-context'
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
 
-  if (!session) {
+  if (!session || !session.user || !session.user.id) {
     redirect('/login')
   }
 

@@ -4,15 +4,19 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Film, Folder, FolderPlus, Upload, MoreVertical, Trash2,
   FolderOpen, ArrowLeft, X, Check, Pencil, GripVertical,
-  Plus
+  Plus, Sparkles, Search
 } from 'lucide-react'
-import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
+import { YoutubeIcon } from '@/components/icons/youtube'
+import { toast } from 'sonner'
 import { UploadDropzone } from '@/lib/uploadthing'
 import {
   getVideosWithFolders, createFolder, deleteFolder, renameFolder,
   saveVideo, deleteVideo, moveVideoToFolder
 } from '../../actions'
 import { isYouTubeUrl, getYouTubeThumbnail } from '@/lib/youtube'
+import { useSession } from 'next-auth/react'
+import { HomeHeader } from '../components/home-header'
+
 import { cn } from '@/lib/utils'
 import '@uploadthing/react/styles.css'
 
@@ -31,10 +35,13 @@ interface FolderItem {
 }
 
 export default function VideosPage() {
+  const { data: session } = useSession();
+
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [folders, setFolders] = useState<FolderItem[]>([])
   const [loading, setLoading] = useState(true)
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [editingFolder, setEditingFolder] = useState<string | null>(null)
@@ -62,7 +69,7 @@ export default function VideosPage() {
       setVideos(data.videos as VideoItem[])
       setFolders(data.folders as FolderItem[])
     } catch {
-      // Failed to load
+      toast.error('Erro ao carregar vídeos e pastas.')
     } finally {
       setLoading(false)
     }
@@ -79,9 +86,14 @@ export default function VideosPage() {
     }
   }, [contextMenu])
 
-  const filteredVideos = activeFolder
-    ? videos.filter(v => v.folderId === activeFolder)
-    : videos.filter(v => !v.folderId)
+  const filteredVideos = (
+    activeFolder
+      ? videos.filter(v => v.folderId === activeFolder)
+      : videos.filter(v => !v.folderId)
+  ).filter(v => {
+    if (!searchQuery.trim()) return true
+    return v.title.toLowerCase().includes(searchQuery.toLowerCase().trim())
+  })
 
   const activeFolderName = activeFolder
     ? folders.find(f => f.id === activeFolder)?.name || 'Pasta'
@@ -93,9 +105,10 @@ export default function VideosPage() {
       await createFolder(newFolderName.trim())
       setNewFolderName('')
       setShowNewFolder(false)
+      toast.success('Pasta criada com sucesso!')
       await loadData()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erro ao criar pasta')
+      toast.error(e instanceof Error ? e.message : 'Erro ao criar pasta')
     }
   }, [newFolderName, loadData])
 
@@ -105,30 +118,33 @@ export default function VideosPage() {
       await renameFolder(folderId, editFolderName.trim())
       setEditingFolder(null)
       setEditFolderName('')
+      toast.success('Pasta renomeada com sucesso!')
       await loadData()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erro ao renomear pasta')
+      toast.error(e instanceof Error ? e.message : 'Erro ao renomear pasta')
     }
   }, [editFolderName, loadData])
 
   const handleDeleteFolder = useCallback(async (folderId: string) => {
-    if (!confirm('Excluir esta pasta? Os vídeos serão movidos para a raiz.')) return
+    if (!confirm('Excluir esta pasta? Os vídeos voltarão para a raiz da biblioteca.')) return
     try {
       await deleteFolder(folderId)
       if (activeFolder === folderId) setActiveFolder(null)
+      toast.success('Pasta excluída.')
       await loadData()
     } catch {
-      alert('Erro ao excluir pasta')
+      toast.error('Erro ao excluir pasta.')
     }
   }, [activeFolder, loadData])
 
   const handleDeleteVideo = useCallback(async (videoId: string) => {
-    if (!confirm('Excluir este vídeo?')) return
+    if (!confirm('Excluir este vídeo da sua biblioteca?')) return
     try {
       await deleteVideo(videoId)
+      toast.success('Vídeo removido.')
       await loadData()
     } catch {
-      alert('Erro ao excluir vídeo')
+      toast.error('Erro ao excluir vídeo.')
     }
   }, [loadData])
 
@@ -136,17 +152,19 @@ export default function VideosPage() {
     try {
       await moveVideoToFolder(videoId, folderId)
       setMovingVideo(null)
+      toast.success('Vídeo movido!')
       await loadData()
     } catch {
-      alert('Erro ao mover vídeo')
+      toast.error('Erro ao mover vídeo.')
     }
   }, [loadData])
 
   const handleUploadComplete = useCallback(async (url: string) => {
-    const title = uploadTitle.trim() || 'Sem título'
+    const title = uploadTitle.trim() || 'Vídeo Upload'
     await saveVideo(title, url, activeFolder)
     setAddSuccess(true)
     setUploadTitle('')
+    toast.success('Vídeo enviado com sucesso!')
     await loadData()
   }, [uploadTitle, activeFolder, loadData])
 
@@ -176,6 +194,7 @@ export default function VideosPage() {
       setAddSuccess(true)
       setYoutubeUrl('')
       setYoutubeTitle('')
+      toast.success('Vídeo do YouTube salvo!')
       await loadData()
     } catch (e: unknown) {
       setYoutubeError(e instanceof Error ? e.message : 'Erro ao salvar vídeo.')
@@ -191,55 +210,68 @@ export default function VideosPage() {
   }, [])
 
   return (
-    <div className="max-w-6xl mx-auto px-4 lg:px-6 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          {activeFolder && (
-            <button
-              onClick={() => setActiveFolder(null)}
-              className="w-8 h-8 rounded-lg bg-room-surface-2 hover:bg-room-surface-3 flex items-center justify-center transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 text-room-text-secondary" />
-            </button>
-          )}
-          <div>
-            <h1 className="text-room-text text-2xl font-bold">
-              {activeFolder ? activeFolderName : 'Meus vídeos'}
-            </h1>
-            <p className="text-room-text-secondary text-sm mt-0.5">
-              {activeFolder
-                ? `${filteredVideos.length} ${filteredVideos.length === 1 ? 'vídeo' : 'vídeos'} nesta pasta`
-                : `${videos.length} ${videos.length === 1 ? 'vídeo' : 'vídeos'} · ${folders.length} ${folders.length === 1 ? 'pasta' : 'pastas'}`
-              }
-            </p>
+    <div className="w-full min-w-0 space-y-6 animate-fade-in">
+      {/* Top Header */}
+      <HomeHeader user={session?.user} />
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-[#0B0B0B] border border-[#242424] relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#FF5A00]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="space-y-2 relative z-10">
+          <div className="flex items-center gap-3">
+            {activeFolder && (
+              <button
+                onClick={() => setActiveFolder(null)}
+                className="w-10 h-10 rounded-xl bg-[#151515] border border-[#242424] hover:border-[#FF5A00] flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-all"
+                title="Voltar para a raiz"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
+
+            <div className="w-12 h-12 rounded-2xl brand-gradient flex items-center justify-center text-white brand-glow-strong shrink-0">
+              <Folder className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F5F5F5] tracking-tight">
+                {activeFolder ? activeFolderName : 'Biblioteca de Vídeos'}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#8A8A8A]">
+                {activeFolder
+                  ? `${filteredVideos.length} vídeos salvos nesta pasta`
+                  : `${videos.length} vídeos salvos · ${folders.length} pastas organizadas`}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Action CTAs */}
+        <div className="flex items-center gap-3 relative z-10 shrink-0">
           {!activeFolder && (
             <button
               onClick={() => setShowNewFolder(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-room-surface-2 hover:bg-room-surface-3 border border-room-border text-room-text transition-colors"
+              className="py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold bg-[#151515] border border-[#242424] hover:border-[#FF5A00] text-[#F5F5F5] transition-all flex items-center gap-2"
             >
-              <FolderPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nova pasta</span>
+              <FolderPlus className="w-4 h-4 text-[#FF5A00]" />
+              <span>Nova pasta</span>
             </button>
           )}
+
           <button
             onClick={() => { setShowAddModal(true); setAddSuccess(false) }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold brand-gradient text-white transition-all hover:opacity-90 active:scale-[0.98]"
+            className="py-3 px-5 rounded-xl font-bold text-xs sm:text-sm text-white brand-gradient brand-glow-strong hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-2 shadow-xl border border-amber-400/30"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Adicionar vídeo</span>
+            <span>Adicionar vídeo</span>
           </button>
         </div>
       </div>
 
-      {/* New folder input */}
+      {/* New Folder Inline Form */}
       {showNewFolder && (
-        <div className="mb-6 flex items-center gap-2">
-          <FolderPlus className="w-5 h-5 text-room-accent shrink-0" />
+        <div className="p-4 rounded-xl bg-[#0B0B0B] border border-[#FF5A00]/50 flex items-center gap-3 animate-fade-in">
+          <FolderPlus className="w-5 h-5 text-[#FF5A00] shrink-0" />
           <input
             autoFocus
             type="text"
@@ -249,53 +281,69 @@ export default function VideosPage() {
               if (e.key === 'Enter') handleCreateFolder()
               if (e.key === 'Escape') { setShowNewFolder(false); setNewFolderName('') }
             }}
-            placeholder="Nome da pasta"
-            className="flex-1 max-w-xs bg-room-surface-2 border border-room-border-light text-room-text px-4 py-2 rounded-xl text-sm placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 transition-colors"
+            placeholder="Digite o nome da nova pasta..."
+            className="flex-1 bg-[#151515] border border-[#242424] text-[#F5F5F5] px-4 py-2.5 rounded-xl text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
           />
           <button
             onClick={handleCreateFolder}
-            className="w-8 h-8 rounded-lg bg-room-accent flex items-center justify-center text-white"
+            className="px-4 py-2.5 rounded-xl brand-gradient text-white text-xs font-bold flex items-center gap-1"
           >
             <Check className="w-4 h-4" />
+            <span>Criar</span>
           </button>
           <button
             onClick={() => { setShowNewFolder(false); setNewFolderName('') }}
-            className="w-8 h-8 rounded-lg bg-room-surface-3 flex items-center justify-center"
+            className="p-2.5 rounded-xl bg-[#151515] text-[#8A8A8A] hover:text-[#F5F5F5]"
           >
-            <X className="w-4 h-4 text-room-text-secondary" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
+      {/* Search Input Bar */}
+      <div className="relative max-w-md">
+        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#8A8A8A]" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar vídeos na biblioteca..."
+          className="w-full bg-[#0B0B0B] border border-[#242424] text-[#F5F5F5] pl-11 pr-4 py-2.5 rounded-xl text-xs sm:text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
+        />
+      </div>
+
       {loading ? (
-        <div className="text-center py-20 text-room-text-secondary">Carregando...</div>
+        <div className="py-20 text-center text-[#8A8A8A] text-sm font-medium">
+          Carregando biblioteca de vídeos...
+        </div>
       ) : (
-        <div className="space-y-6">
-          {/* Folders (only in root view) */}
+        <div className="space-y-8">
+          {/* Folders Section (Root View) */}
           {!activeFolder && folders.length > 0 && (
-            <div>
-              <h2 className="text-room-text-secondary text-xs font-semibold uppercase tracking-wider mb-3">Pastas</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <div className="space-y-3">
+              <h2 className="text-xs font-bold text-[#8A8A8A] uppercase tracking-wider">Pastas</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {folders.map((folder) => {
                   const count = videos.filter(v => v.folderId === folder.id).length
                   return (
                     <div
                       key={folder.id}
-                      className="group relative bg-room-surface border border-room-border rounded-xl p-4 cursor-pointer hover:border-room-accent/30 hover:bg-room-surface-2 transition-all"
+                      className="group relative bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00]/50 rounded-2xl p-4 cursor-pointer hover:bg-[#111111] transition-all duration-300 shadow-md"
                       onClick={() => setActiveFolder(folder.id)}
                       onContextMenu={(e) => showContextMenu(e, 'folder', folder.id)}
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-room-accent/10 flex items-center justify-center">
-                          <Folder className="w-5 h-5 text-room-accent" />
+                        <div className="w-10 h-10 rounded-xl bg-[#FF5A00]/10 border border-[#FF5A00]/30 flex items-center justify-center text-[#FF5A00]">
+                          <Folder className="w-5 h-5" />
                         </div>
                         <button
                           onClick={(e) => showContextMenu(e, 'folder', folder.id)}
-                          className="w-7 h-7 rounded-lg opacity-0 group-hover:opacity-100 bg-room-surface-3 flex items-center justify-center transition-opacity"
+                          className="w-7 h-7 rounded-lg opacity-0 group-hover:opacity-100 bg-[#151515] flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-all"
                         >
-                          <MoreVertical className="w-3.5 h-3.5 text-room-text-secondary" />
+                          <MoreVertical className="w-3.5 h-3.5" />
                         </button>
                       </div>
+
                       {editingFolder === folder.id ? (
                         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <input
@@ -307,13 +355,15 @@ export default function VideosPage() {
                               if (e.key === 'Escape') setEditingFolder(null)
                             }}
                             onBlur={() => handleRenameFolder(folder.id)}
-                            className="flex-1 bg-room-surface-3 border border-room-accent/50 text-room-text px-2 py-1 rounded-lg text-sm outline-none"
+                            className="flex-1 bg-[#151515] border border-[#FF5A00] text-[#F5F5F5] px-2 py-1 rounded-lg text-xs outline-none"
                           />
                         </div>
                       ) : (
                         <>
-                          <p className="text-room-text text-sm font-medium truncate">{folder.name}</p>
-                          <p className="text-room-text-secondary text-xs mt-0.5">
+                          <p className="text-[#F5F5F5] text-sm font-bold truncate group-hover:text-[#FF5A00] transition-colors">
+                            {folder.name}
+                          </p>
+                          <p className="text-[#8A8A8A] text-xs mt-0.5 font-medium">
                             {count} {count === 1 ? 'vídeo' : 'vídeos'}
                           </p>
                         </>
@@ -325,26 +375,31 @@ export default function VideosPage() {
             </div>
           )}
 
-          {/* Videos */}
-          <div>
-            <h2 className="text-room-text-secondary text-xs font-semibold uppercase tracking-wider mb-3">
-              {activeFolder ? 'Vídeos nesta pasta' : 'Vídeos recentes'}
+          {/* Videos Grid Section */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-bold text-[#8A8A8A] uppercase tracking-wider">
+              {activeFolder ? 'Vídeos nesta pasta' : 'Todos os Vídeos'}
             </h2>
+
             {filteredVideos.length === 0 ? (
-              <div className="text-center py-16 bg-room-surface border border-room-border rounded-2xl">
-                <Film className="w-12 h-12 text-room-text-secondary/20 mx-auto mb-3" />
-                <p className="text-room-text-secondary text-sm">
-                  {activeFolder ? 'Esta pasta está vazia' : 'Nenhum vídeo ainda'}
-                </p>
+              <div className="py-16 text-center bg-[#0B0B0B] border border-[#242424] rounded-2xl space-y-4 max-w-md mx-auto p-6">
+                <Film className="w-12 h-12 text-[#FF5A00]/40 mx-auto" />
+                <div>
+                  <h3 className="text-base font-bold text-[#F5F5F5]">Nenhum vídeo nesta pasta</h3>
+                  <p className="text-xs text-[#8A8A8A] mt-1">
+                    Adicione links do YouTube ou envie vídeos para assistir com seus amigos nas salas.
+                  </p>
+                </div>
                 <button
                   onClick={() => { setShowAddModal(true); setAddSuccess(false) }}
-                  className="mt-3 text-room-accent text-sm font-semibold hover:underline"
+                  className="py-2.5 px-4 rounded-xl brand-gradient text-white text-xs font-bold inline-flex items-center gap-1.5 brand-glow-strong hover:scale-105 transition-all"
                 >
-                  Adicionar primeiro vídeo
+                  <Plus className="w-4 h-4" />
+                  <span>Adicionar primeiro vídeo</span>
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredVideos.map((video) => {
                   const isYt = isYouTubeUrl(video.url)
                   const ytThumb = isYt ? getYouTubeThumbnail(video.url) : null
@@ -352,63 +407,62 @@ export default function VideosPage() {
                   return (
                     <div
                       key={video.id}
-                      className="group relative bg-room-surface border border-room-border rounded-xl overflow-hidden hover:border-room-accent/30 transition-all"
+                      className="group relative bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00]/50 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between"
                     >
-                      {/* Thumbnail container */}
-                      <div className="aspect-video bg-room-surface-2 flex items-center justify-center relative overflow-hidden">
+                      {/* Video Thumbnail Header */}
+                      <div className="relative aspect-video w-full bg-[#151515] overflow-hidden flex items-center justify-center">
                         {ytThumb ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={ytThumb}
                             alt={video.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         ) : (
-                          <Film className="w-8 h-8 text-room-text-secondary/20" />
-                        )}
-
-                        {/* YouTube Badge on thumbnail */}
-                        {isYt && (
-                          <div className="absolute top-2 left-2 bg-room-red/90 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 backdrop-blur-sm">
-                            <Youtube className="w-3 h-3" />
-                            YouTube
+                          <div className="w-full h-full bg-gradient-to-br from-[#151515] via-[#111111] to-[#0B0B0B] flex items-center justify-center">
+                            <Film className="w-10 h-10 text-[#FF5A00]/40" />
                           </div>
                         )}
 
-                        {/* Move dropdown overlay */}
+                        {/* YouTube Badge */}
+                        {isYt && (
+                          <div className="absolute top-3 left-3 bg-[#EF2020] text-white px-2.5 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1 shadow-md">
+                            <YoutubeIcon className="w-3.5 h-3.5" />
+                            <span>YouTube</span>
+                          </div>
+                        )}
+
+                        {/* Move overlay */}
                         {movingVideo === video.id && (
-                          <div className="absolute inset-0 bg-room-surface/95 flex flex-col p-3 z-10">
-                            <p className="text-room-text-secondary text-xs font-medium mb-2">Mover para:</p>
-                            <button
-                              onClick={() => handleMoveVideo(video.id, null)}
-                              className={cn(
-                                "text-left px-3 py-2 rounded-lg text-sm transition-colors",
-                                !video.folderId
-                                  ? "bg-room-accent/10 text-room-accent"
-                                  : "text-room-text hover:bg-room-surface-3"
-                              )}
-                            >
-                              <FolderOpen className="w-4 h-4 inline mr-2" />
-                              Raiz
-                            </button>
-                            {folders.map(f => (
+                          <div className="absolute inset-0 bg-[#0B0B0B]/95 flex flex-col p-4 z-10 space-y-2">
+                            <p className="text-xs font-bold text-[#F5F5F5]">Mover vídeo para:</p>
+                            <div className="space-y-1 overflow-y-auto max-h-32">
                               <button
-                                key={f.id}
-                                onClick={() => handleMoveVideo(video.id, f.id)}
+                                onClick={() => handleMoveVideo(video.id, null)}
                                 className={cn(
-                                  "text-left px-3 py-2 rounded-lg text-sm transition-colors",
-                                  video.folderId === f.id
-                                    ? "bg-room-accent/10 text-room-accent"
-                                    : "text-room-text hover:bg-room-surface-3"
+                                  "w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2",
+                                  !video.folderId ? "bg-[#FF5A00]/10 text-[#FF5A00]" : "text-[#8A8A8A] hover:bg-[#151515]"
                                 )}
                               >
-                                <Folder className="w-4 h-4 inline mr-2" />
-                                {f.name}
+                                <FolderOpen className="w-3.5 h-3.5" />
+                                <span>Raiz (Sem pasta)</span>
                               </button>
-                            ))}
+                              {folders.map((f) => (
+                                <button
+                                  key={f.id}
+                                  onClick={() => handleMoveVideo(video.id, f.id)}
+                                  className={cn(
+                                    "w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2",
+                                    video.folderId === f.id ? "bg-[#FF5A00]/10 text-[#FF5A00]" : "text-[#8A8A8A] hover:bg-[#151515]"
+                                  )}
+                                >
+                                  <Folder className="w-3.5 h-3.5" />
+                                  <span>{f.name}</span>
+                                </button>
+                              ))}
+                            </div>
                             <button
                               onClick={() => setMovingVideo(null)}
-                              className="mt-2 text-room-text-secondary text-xs hover:text-room-text"
+                              className="text-[11px] text-[#8A8A8A] hover:text-[#F5F5F5] pt-1"
                             >
                               Cancelar
                             </button>
@@ -416,27 +470,31 @@ export default function VideosPage() {
                         )}
                       </div>
 
-                      {/* Info */}
-                      <div className="p-3 flex items-center gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-room-text text-sm font-medium truncate">{video.title}</p>
-                          <p className="text-room-text-secondary text-xs">
+                      {/* Video Info Footer */}
+                      <div className="p-4 flex items-center justify-between gap-3 border-t border-[#242424]">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[#F5F5F5] font-bold text-sm truncate group-hover:text-[#FF5A00] transition-colors">
+                            {video.title}
+                          </p>
+                          <p className="text-[#8A8A8A] text-xs mt-0.5">
                             {new Date(video.createdAt).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                        <div className="flex items-center gap-1 shrink-0">
                           <button
                             onClick={(e) => { e.stopPropagation(); setMovingVideo(movingVideo === video.id ? null : video.id) }}
-                            className="w-7 h-7 rounded-lg bg-room-surface-3 flex items-center justify-center"
+                            className="p-2 rounded-lg bg-[#151515] text-[#8A8A8A] hover:text-[#F5F5F5] transition-colors"
                             title="Mover para pasta"
                           >
-                            <GripVertical className="w-3.5 h-3.5 text-room-text-secondary" />
+                            <GripVertical className="w-4 h-4" />
                           </button>
                           <button
                             onClick={(e) => showContextMenu(e, 'video', video.id)}
-                            className="w-7 h-7 rounded-lg bg-room-surface-3 flex items-center justify-center"
+                            className="p-2 rounded-lg bg-[#151515] text-[#8A8A8A] hover:text-[#F5F5F5] transition-colors"
+                            title="Opções"
                           >
-                            <MoreVertical className="w-3.5 h-3.5 text-room-text-secondary" />
+                            <MoreVertical className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -449,10 +507,10 @@ export default function VideosPage() {
         </div>
       )}
 
-      {/* Context menu */}
+      {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed z-50 bg-room-surface-2 border border-room-border rounded-xl shadow-xl py-1 min-w-[160px] animate-scale-in"
+          className="fixed z-50 bg-[#0B0B0B] border border-[#242424] rounded-xl shadow-2xl py-1.5 min-w-[160px] animate-scale-in"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -467,14 +525,14 @@ export default function VideosPage() {
                   }
                   setContextMenu(null)
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-room-text hover:bg-room-surface-3 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#F5F5F5] hover:bg-[#151515] transition-colors"
               >
-                <Pencil className="w-4 h-4 text-room-text-secondary" />
+                <Pencil className="w-4 h-4 text-[#8A8A8A]" />
                 Renomear
               </button>
               <button
                 onClick={() => { handleDeleteFolder(contextMenu.id); setContextMenu(null) }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-room-red hover:bg-room-red/10 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#EF2020] hover:bg-[#EF2020]/10 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
                 Excluir pasta
@@ -484,17 +542,17 @@ export default function VideosPage() {
             <>
               <button
                 onClick={() => { setMovingVideo(contextMenu.id); setContextMenu(null) }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-room-text hover:bg-room-surface-3 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#F5F5F5] hover:bg-[#151515] transition-colors"
               >
-                <Folder className="w-4 h-4 text-room-text-secondary" />
+                <Folder className="w-4 h-4 text-[#8A8A8A]" />
                 Mover para pasta
               </button>
               <button
                 onClick={() => { handleDeleteVideo(contextMenu.id); setContextMenu(null) }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-room-red hover:bg-room-red/10 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#EF2020] hover:bg-[#EF2020]/10 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
-                Excluir
+                Excluir vídeo
               </button>
             </>
           )}
@@ -504,53 +562,48 @@ export default function VideosPage() {
       {/* Add / Upload Video Modal */}
       {showAddModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in"
           onClick={(e) => { if (e.target === e.currentTarget) { setShowAddModal(false); setAddSuccess(false) } }}
         >
-          <div className="bg-room-surface border border-room-border rounded-2xl w-full max-w-lg mx-4 animate-scale-in relative overflow-hidden">
-            {/* Top gradient accent */}
+          <div className="bg-[#0B0B0B] border border-[#242424] rounded-2xl w-full max-w-lg mx-4 animate-scale-in relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 left-0 right-0 h-[2px] brand-gradient" />
 
-            <div className="flex items-center justify-between px-5 py-4 border-b border-room-border">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#242424]">
               <div className="flex items-center gap-2">
-                <Plus className="w-5 h-5 text-room-accent" />
-                <h2 className="text-room-text font-semibold">Adicionar vídeo</h2>
-                {activeFolderName && (
-                  <span className="text-room-text-secondary text-xs bg-room-surface-3 px-2 py-0.5 rounded-full">
-                    {activeFolderName}
-                  </span>
-                )}
+                <Sparkles className="w-5 h-5 text-[#FF5A00]" />
+                <h2 className="text-[#F5F5F5] font-bold text-lg">Adicionar à Biblioteca</h2>
               </div>
               <button
                 onClick={() => { setShowAddModal(false); setAddSuccess(false) }}
-                className="w-8 h-8 rounded-full bg-room-surface-2 hover:bg-room-surface-3 flex items-center justify-center"
+                className="w-8 h-8 rounded-xl bg-[#151515] hover:bg-[#242424] flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-colors"
               >
-                <X className="w-4 h-4 text-room-text-secondary" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Tabs selection */}
             {!addSuccess && (
-              <div className="flex border-b border-room-border bg-room-surface-2/50 px-5 pt-3">
+              <div className="flex bg-[#151515] p-1 mx-6 mt-5 rounded-xl border border-[#242424]">
                 <button
                   onClick={() => setAddTab('youtube')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-all",
+                    "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
                     addTab === 'youtube'
-                      ? "border-room-red text-room-red"
-                      : "border-transparent text-room-text-secondary hover:text-room-text"
+                      ? "brand-gradient text-white shadow-md"
+                      : "text-[#8A8A8A] hover:text-[#F5F5F5]"
                   )}
                 >
-                  <Youtube className="w-4 h-4" />
-                  Link do YouTube
+                  <YoutubeIcon className="w-4 h-4 text-red-500" />
+                  YouTube
                 </button>
                 <button
                   onClick={() => setAddTab('upload')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-all",
+                    "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
                     addTab === 'upload'
-                      ? "border-room-accent text-room-accent"
-                      : "border-transparent text-room-text-secondary hover:text-room-text"
+                      ? "brand-gradient text-white shadow-md"
+                      : "text-[#8A8A8A] hover:text-[#F5F5F5]"
                   )}
                 >
                   <Upload className="w-4 h-4" />
@@ -559,74 +612,84 @@ export default function VideosPage() {
               </div>
             )}
 
-            <div className="p-5">
+            <div className="p-6">
               {addSuccess ? (
-                <div className="text-center py-8">
-                  <Check className="w-12 h-12 text-room-online mx-auto mb-3" />
-                  <p className="text-room-text font-medium mb-1">Vídeo adicionado com sucesso!</p>
-                  {activeFolderName && (
-                    <p className="text-room-text-secondary text-xs mb-4">
-                      Salvo na pasta <span className="text-room-text font-semibold">{activeFolderName}</span>
+                <div className="text-center py-6 space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+                    <Check className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[#F5F5F5] font-bold text-base">Vídeo adicionado com sucesso!</p>
+                    <p className="text-[#8A8A8A] text-xs mt-1">
+                      O vídeo está salvo e pronto para ser assistido nas suas salas.
                     </p>
-                  )}
+                  </div>
                   <button
                     onClick={() => { setAddSuccess(false); setYoutubeUrl(''); setYoutubeTitle(''); setUploadTitle('') }}
-                    className="text-room-accent text-sm font-semibold hover:underline mt-2"
+                    className="py-2.5 px-4 rounded-xl brand-gradient text-white text-xs font-bold inline-flex items-center gap-1"
                   >
-                    Adicionar outro vídeo
+                    <Plus className="w-4 h-4" />
+                    <span>Adicionar outro vídeo</span>
                   </button>
                 </div>
               ) : addTab === 'youtube' ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-room-text-secondary text-xs font-semibold mb-1.5 block">Link do YouTube *</label>
+                    <label className="text-[#8A8A8A] text-xs font-semibold mb-1.5 block uppercase tracking-wider">
+                      Link do Vídeo (YouTube) *
+                    </label>
                     <input
                       type="url"
                       value={youtubeUrl}
                       onChange={(e) => setYoutubeUrl(e.target.value)}
                       placeholder="https://www.youtube.com/watch?v=..."
-                      className="w-full bg-room-surface-3 border border-room-border-light text-room-text px-4 py-2.5 rounded-xl text-sm placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 transition-colors"
+                      className="w-full bg-[#151515] border border-[#242424] text-[#F5F5F5] px-4 py-3 rounded-xl text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="text-room-text-secondary text-xs font-semibold mb-1.5 block">Título do Vídeo *</label>
+                    <label className="text-[#8A8A8A] text-xs font-semibold mb-1.5 block uppercase tracking-wider">
+                      Título do Vídeo *
+                    </label>
                     <input
                       type="text"
                       value={youtubeTitle}
                       onChange={(e) => setYoutubeTitle(e.target.value)}
-                      placeholder="Ex: Trailer Oficial - O Senhor dos Anéis"
-                      className="w-full bg-room-surface-3 border border-room-border-light text-room-text px-4 py-2.5 rounded-xl text-sm placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 transition-colors"
+                      placeholder="Ex: Filmes da Noite — Arcane Ep 3"
+                      className="w-full bg-[#151515] border border-[#242424] text-[#F5F5F5] px-4 py-3 rounded-xl text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
                     />
                   </div>
 
                   {youtubeError && (
-                    <p className="text-room-red text-xs font-medium">{youtubeError}</p>
+                    <p className="text-[#EF2020] text-xs font-medium">{youtubeError}</p>
                   )}
 
                   <button
                     onClick={handleSaveYoutube}
                     disabled={isSavingYoutube || !youtubeUrl.trim() || !youtubeTitle.trim()}
                     className={cn(
-                      "w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2",
+                      "w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
                       !isSavingYoutube && youtubeUrl.trim() && youtubeTitle.trim()
-                        ? "brand-gradient text-white brand-glow-strong hover:opacity-90 active:scale-[0.98]"
-                        : "bg-room-surface-3 text-room-text-secondary/40 cursor-not-allowed"
+                        ? "brand-gradient text-white brand-glow-strong hover:brightness-110 active:scale-[0.98]"
+                        : "bg-[#151515] text-[#5F5F5F] cursor-not-allowed"
                     )}
                   >
-                    {isSavingYoutube ? 'Salvando...' : 'Salvar vídeo do YouTube'}
+                    <Plus className="w-4 h-4" />
+                    <span>{isSavingYoutube ? 'Salvando...' : 'Salvar vídeo'}</span>
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-room-text-secondary text-xs font-semibold mb-1.5 block">Título (opcional)</label>
+                    <label className="text-[#8A8A8A] text-xs font-semibold mb-1.5 block uppercase tracking-wider">
+                      Título (opcional)
+                    </label>
                     <input
                       type="text"
                       value={uploadTitle}
                       onChange={(e) => setUploadTitle(e.target.value)}
-                      placeholder="Ex: O Senhor dos Anéis"
-                      className="w-full bg-room-surface-3 border border-room-border-light text-room-text px-4 py-2.5 rounded-xl text-sm placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 transition-colors"
+                      placeholder="Ex: Vídeo de Férias"
+                      className="w-full bg-[#151515] border border-[#242424] text-[#F5F5F5] px-4 py-3 rounded-xl text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
                     />
                   </div>
                   <UploadDropzone
@@ -637,14 +700,14 @@ export default function VideosPage() {
                       }
                     }}
                     onUploadError={(error: Error) => {
-                      alert(`Erro no upload: ${error.message}`)
+                      toast.error(`Erro no upload: ${error.message}`)
                     }}
                     appearance={{
-                      container: "border-dashed border-room-border bg-room-surface-2/50 rounded-xl p-6 hover:border-room-accent/30 transition-colors",
-                      uploadIcon: "text-room-accent/40",
-                      label: "text-room-text-secondary hover:text-room-accent text-sm font-medium",
-                      allowedContent: "text-room-text-secondary/40 text-xs",
-                      button: "brand-gradient px-5 py-2 rounded-lg text-white text-sm font-semibold mt-3"
+                      container: "border-dashed border-[#242424] bg-[#151515] rounded-xl p-6 hover:border-[#FF5A00]/40 transition-colors",
+                      uploadIcon: "text-[#FF5A00]/40",
+                      label: "text-[#8A8A8A] hover:text-[#FF5A00] text-sm font-medium",
+                      allowedContent: "text-[#5F5F5F] text-xs",
+                      button: "brand-gradient px-5 py-2 rounded-lg text-white text-sm font-bold mt-3"
                     }}
                   />
                 </div>

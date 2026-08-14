@@ -285,7 +285,7 @@ export default function FriendsPage() {
   })
 
   return (
-    <div className="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="w-full space-y-6 animate-fade-in">
       {/* Top Header */}
       <HomeHeader user={session?.user} />
 

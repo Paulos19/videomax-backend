@@ -336,12 +336,14 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     userProfileRef.current.chatColor = color
   }, [])
 
-  const sendMessage = useCallback((messageText: string) => {
-    if (socket && messageText.trim() !== '') {
+  const sendMessage = useCallback((messageText: string, type: 'text' | 'sticker' = 'text', stickerUrl?: string) => {
+    if (socket && (messageText.trim() !== '' || type === 'sticker')) {
       const payload = {
         text: messageText,
         color: userProfileRef.current.chatColor || selectedColor,
-        image: userProfileRef.current.image
+        image: userProfileRef.current.image,
+        type,
+        stickerUrl
       }
       socket.emit('send-message', { message: JSON.stringify(payload) })
     }

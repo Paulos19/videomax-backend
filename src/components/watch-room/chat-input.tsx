@@ -1,25 +1,28 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { Send, Smile } from 'lucide-react'
+import { Send, Smile, Sticker } from 'lucide-react'
 import { EmojiPickerPopover } from './emoji-picker-popover'
+import { StickerPicker } from './sticker-picker'
 import { cn } from '@/lib/utils'
 
 interface ChatInputProps {
-  onSend: (message: string) => void
+  onSend: (message: string, type?: 'text' | 'sticker', stickerUrl?: string) => void
   disabled?: boolean
 }
 
 export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [message, setMessage] = useState('')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [showStickerPicker, setShowStickerPicker] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleSend = useCallback(() => {
     if (message.trim()) {
-      onSend(message.trim())
+      onSend(message.trim(), 'text')
       setMessage('')
       setShowEmojiPicker(false)
+      setShowStickerPicker(false)
     }
   }, [message, onSend])
 
@@ -37,29 +40,58 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   }, [])
 
+  const handleSelectSticker = useCallback((url: string) => {
+    onSend('', 'sticker', url)
+    setShowStickerPicker(false)
+  }, [onSend])
+
   return (
     <div className="p-3 border-t border-[#242424] bg-[#090909] relative shrink-0">
-      {/* Popover de Emojis que agora sobrepõe o input sem ser cortado */}
+      {/* Popovers */}
       {showEmojiPicker && (
         <EmojiPickerPopover
           onSelectEmoji={handleSelectEmoji}
           onClose={() => setShowEmojiPicker(false)}
         />
       )}
+      
+      {showStickerPicker && (
+        <div className="absolute bottom-[70px] left-3 z-50">
+          <StickerPicker
+            onSelectSticker={handleSelectSticker}
+            onClose={() => setShowStickerPicker(false)}
+          />
+        </div>
+      )}
 
       <div className="flex items-center gap-2 bg-[#151515] border border-[#292929] focus-within:border-[#FF5A00] rounded-2xl px-3 py-2 h-[52px] transition-all">
-        <button
-          type="button"
-          onClick={() => setShowEmojiPicker((prev) => !prev)}
-          className={cn(
-            "p-1.5 rounded-xl transition-colors hover:bg-[#242424]",
-            showEmojiPicker ? "text-[#FF5A00]" : "text-[#8A8A8A] hover:text-[#F5F5F5]"
-          )}
-          aria-label="Selecionar Emoji"
-          title="Escolher emoji"
-        >
-          <Smile className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => { setShowEmojiPicker((prev) => !prev); setShowStickerPicker(false) }}
+            className={cn(
+              "p-1.5 rounded-xl transition-colors hover:bg-[#242424]",
+              showEmojiPicker ? "text-[#FF5A00]" : "text-[#8A8A8A] hover:text-[#F5F5F5]"
+            )}
+            aria-label="Selecionar Emoji"
+            title="Escolher emoji"
+          >
+            <Smile className="w-5 h-5" />
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => { setShowStickerPicker((prev) => !prev); setShowEmojiPicker(false) }}
+            className={cn(
+              "p-1.5 rounded-xl transition-colors hover:bg-[#242424]",
+              showStickerPicker ? "text-[#FF5A00]" : "text-[#8A8A8A] hover:text-[#F5F5F5]"
+            )}
+            aria-label="Selecionar Figurinha"
+            title="Enviar figurinha"
+          >
+            <Sticker className="w-5 h-5" />
+          </button>
+        </div>
 
         <input
           ref={inputRef}

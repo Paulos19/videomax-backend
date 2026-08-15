@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Play, Upload, Check, Loader2, Sparkles } from 'lucide-react'
+import { X, Play, Upload, Check, Loader2, Sparkles, Plus } from 'lucide-react'
 import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { UploadDropzone } from '@/lib/uploadthing'
 import { saveVideo } from '@/app/(main)/actions'
@@ -24,7 +24,7 @@ interface CreateRoomDialogProps {
 
 export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'youtube' | 'upload'>('youtube')
+  const [activeTab, setActiveTab] = useState<'youtube' | 'upload' | 'empty'>('youtube')
 
   // YouTube state
   const [youtubeUrl, setYoutubeUrl] = useState('')
@@ -90,6 +90,12 @@ export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
     }
   }, [youtubeUrl, youtubeTitle, onClose, router])
 
+  const handleCreateEmptyRoom = useCallback(() => {
+    const roomCode = generateRoomCode()
+    onClose()
+    router.push(`/room/${roomCode}`)
+  }, [onClose, router])
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in"
@@ -117,6 +123,18 @@ export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
           {/* Tabs */}
           <div className="flex bg-[#151515] p-1 rounded-xl border border-[#242424]">
             <button
+              onClick={() => { setActiveTab('empty'); setErrorMsg('') }}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
+                activeTab === 'empty'
+                  ? "brand-gradient text-white shadow-md"
+                  : "text-[#8A8A8A] hover:text-[#F5F5F5]"
+              )}
+            >
+              <Plus className="w-4 h-4" />
+              Em Branco
+            </button>
+            <button
               onClick={() => { setActiveTab('youtube'); setErrorMsg('') }}
               className={cn(
                 "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
@@ -138,11 +156,31 @@ export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
               )}
             >
               <Upload className="w-4 h-4" />
-              Upload de Arquivo
+              Upload
             </button>
           </div>
 
-          {activeTab === 'youtube' ? (
+          {activeTab === 'empty' ? (
+            <div className="space-y-4 text-center py-4">
+              <div className="w-16 h-16 rounded-full bg-[#151515] border border-[#242424] flex items-center justify-center mx-auto mb-4">
+                <Play className="w-6 h-6 text-[#FF5A00] ml-1" />
+              </div>
+              <h3 className="text-[#F5F5F5] font-bold text-lg">Comece uma sala em branco</h3>
+              <p className="text-[#8A8A8A] text-sm max-w-sm mx-auto">
+                Crie a sala agora, convide seus amigos e escolha o vídeo depois, diretamente de dentro da sala.
+              </p>
+
+              <div className="pt-2">
+                <button
+                  onClick={handleCreateEmptyRoom}
+                  className="w-full py-3.5 rounded-xl font-bold text-sm text-white brand-gradient brand-glow-strong hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Criar sala em branco
+                </button>
+              </div>
+            </div>
+          ) : activeTab === 'youtube' ? (
             <div className="space-y-4">
               <div>
                 <label className="text-[#8A8A8A] text-xs font-semibold mb-1.5 block uppercase tracking-wider">

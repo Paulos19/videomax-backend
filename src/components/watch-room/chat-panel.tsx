@@ -15,7 +15,7 @@ interface ChatPanelProps {
   viewers: Viewer[]
   selectedColor?: string
   onSelectColor?: (color: string) => void
-  onSend: (message: string) => void
+  onSend: (message: string, type?: 'text' | 'sticker', stickerUrl?: string) => void
   onClose?: () => void
 }
 

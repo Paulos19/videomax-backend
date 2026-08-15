@@ -13,7 +13,8 @@ export interface ChatMessage {
   color?: string
   image?: string
   message: string
-  type?: 'system' | 'user'
+  type?: 'system' | 'user' | 'sticker'
+  stickerUrl?: string
   timestamp?: string
   reactions?: Array<{ emoji: string; count: number }>
 }
@@ -22,6 +23,8 @@ export interface ChatPayload {
   text: string
   color: string
   image: string
+  type?: 'text' | 'sticker'
+  stickerUrl?: string
 }
 
 export interface UserProfile {

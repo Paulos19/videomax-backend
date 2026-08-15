@@ -31,6 +31,7 @@ model User {
   sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")
   receivedFriendRequests FriendRequest[] @relation("ReceivedFriendRequests")
   notifications          Notification[]
+  stickerPacks           StickerPack[]
 }
 
 model FriendRequest {
@@ -84,5 +85,25 @@ model Notification {
   createdAt DateTime         @default(now())
   
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StickerPack {
+  id        String    @id @default(cuid())
+  name      String
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stickers  Sticker[]
+}
+
+model Sticker {
+  id        String      @id @default(cuid())
+  url       String
+  packId    String
+  createdAt DateTime    @default(now())
+  
+  pack      StickerPack @relation(fields: [packId], references: [id], onDelete: Cascade)
 }
 

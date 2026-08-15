@@ -14,6 +14,8 @@ function parseChatMessageContent(rawMessage: string, msgColor?: string, msgImage
   let text = rawMessage
   let color = msgColor
   let image = msgImage
+  let type = 'text'
+  let stickerUrl = ''
 
   if (typeof rawMessage === 'string' && rawMessage.trim().startsWith('{')) {
     try {
@@ -22,13 +24,15 @@ function parseChatMessageContent(rawMessage: string, msgColor?: string, msgImage
         text = parsed.text || text
         color = parsed.color || color
         image = parsed.image || image
+        type = parsed.type || type
+        stickerUrl = parsed.stickerUrl || stickerUrl
       }
     } catch {
       // Not JSON
     }
   }
 
-  return { text, color, image }
+  return { text, color, image, type, stickerUrl }
 }
 
 export function ChatMessage({ message, isOwn }: ChatMessageProps) {
@@ -89,6 +93,18 @@ export function ChatMessage({ message, isOwn }: ChatMessageProps) {
 
         {/* Bubble */}
         {(() => {
+          if (parsedContent.type === 'sticker' && parsedContent.stickerUrl) {
+            return (
+              <div className={cn("mt-1", isOwn ? "origin-bottom-right" : "origin-bottom-left")}>
+                <img 
+                  src={parsedContent.stickerUrl} 
+                  alt="Sticker" 
+                  className="w-32 h-32 object-contain drop-shadow-md hover:scale-105 transition-transform cursor-pointer"
+                />
+              </div>
+            )
+          }
+
           const color = parsedContent.color
           const isLightColor = color ? ['#F5F5F5', '#FFB800', '#FFFFFF', '#FDE047'].includes(color.toUpperCase()) : false
 

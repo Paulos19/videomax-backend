@@ -252,3 +252,25 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* SVG Icon Drawing Animation */
+.draw-icon path, 
+.draw-icon polyline, 
+.draw-icon circle, 
+.draw-icon rect, 
+.draw-icon line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawIcon 1.2s cubic-bezier(0.2, 1, 0.25, 1) forwards;
+}
+
+@keyframes drawIcon {
+  from {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}

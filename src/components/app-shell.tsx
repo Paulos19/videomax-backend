@@ -152,9 +152,10 @@ export function AppShell({ user, children }: AppShellProps) {
 
                   <div className="flex items-center gap-3">
                     <item.icon
+                      key={active ? `active-${pathname}` : item.href}
                       className={cn(
                         "w-5 h-5 transition-colors shrink-0",
-                        active ? "text-[#FF5A00]" : "text-[#8A8A8A] group-hover:text-[#F5F5F5]"
+                        active ? "text-[#FF5A00] draw-icon" : "text-[#8A8A8A] group-hover:text-[#F5F5F5]"
                       )}
                     />
                     {!isSidebarCollapsed && <span>{item.label}</span>}
@@ -212,33 +213,49 @@ export function AppShell({ user, children }: AppShellProps) {
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-between p-2 rounded-xl bg-[#0B0B0B] border border-[#242424]">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="relative shrink-0">
-                  <Avatar className="w-9 h-9 border border-[#242424]">
-                    <AvatarImage src={user?.image || undefined} />
-                    <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#0B0B0B]" />
+            <div className="p-3 rounded-2xl bg-gradient-to-b from-[#111111] to-[#0A0A0A] border border-[#242424] hover:border-[#FF5A00]/30 transition-colors relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#FF5A00]/5 blur-2xl rounded-full pointer-events-none group-hover:bg-[#FF5A00]/10 transition-colors" />
+              
+              <div className="flex items-center justify-between mb-3 relative z-10">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="relative shrink-0">
+                    <Avatar className="w-10 h-10 border-2 border-[#151515] shadow-lg">
+                      <AvatarImage src={user?.image || undefined} />
+                      <AvatarFallback className="bg-gradient-to-br from-[#242424] to-[#151515] text-[#FF5A00] font-bold text-xs">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#0A0A0A]" />
+                  </div>
+                  
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[#F5F5F5] truncate">
+                      {user?.name || user?.email?.split('@')[0] || 'Usuário'}
+                    </p>
+                    <p className="text-[11px] text-[#8A8A8A] font-medium truncate">
+                      {user?.email}
+                    </p>
+                  </div>
                 </div>
-
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-[#F5F5F5] truncate">
-                    {user?.name || user?.email?.split('@')[0] || 'Usuário'}
-                  </p>
-                  <p className="text-[11px] text-emerald-400 font-medium">Online</p>
-                </div>
+                
+                <button
+                  onClick={() => router.push('/profile')}
+                  className="p-2 rounded-xl text-[#8A8A8A] hover:text-[#F5F5F5] hover:bg-[#1A1A1A] transition-colors"
+                  title="Configurações"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
               </div>
-
-              <button
-                onClick={() => router.push('/profile')}
-                className="p-1.5 rounded-lg text-[#8A8A8A] hover:text-[#F5F5F5] hover:bg-[#151515] transition-colors"
-                title="Configurações do perfil"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
+              
+              <div className="relative z-10 flex items-center justify-between p-2 rounded-xl bg-[#050505] border border-[#1A1A1A]">
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] animate-pulse" />
+                  <span className="text-[11px] font-bold text-[#F5F5F5] tracking-wide">MAXPRO</span>
+                </div>
+                <span className="text-[10px] text-[#FF5A00] font-semibold bg-[#FF5A00]/10 px-2 py-0.5 rounded-md">
+                  ATIVO
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -354,9 +371,10 @@ export function AppShell({ user, children }: AppShellProps) {
                     >
                       <div className="flex items-center gap-3">
                         <item.icon
+                          key={active ? `active-mobile-${pathname}` : item.href}
                           className={cn(
                             "w-5 h-5",
-                            active ? "text-[#FF5A00]" : "text-[#8A8A8A]"
+                            active ? "text-[#FF5A00] draw-icon" : "text-[#8A8A8A]"
                           )}
                         />
                         <span>{item.label}</span>
@@ -382,28 +400,48 @@ export function AppShell({ user, children }: AppShellProps) {
                 <span>Criar nova sala</span>
               </button>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0B0B] border border-[#242424]">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-9 h-9 border border-[#242424]">
-                    <AvatarImage src={user?.image || undefined} />
-                    <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-[#F5F5F5] truncate">
-                      {user?.name || user?.email?.split('@')[0] || 'Usuário'}
-                    </p>
-                    <p className="text-[11px] text-emerald-400 font-medium">Online</p>
+              <div className="p-3 rounded-2xl bg-gradient-to-b from-[#111111] to-[#0A0A0A] border border-[#242424] relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-[#FF5A00]/5 blur-2xl rounded-full pointer-events-none" />
+                
+                <div className="flex items-center justify-between mb-3 relative z-10">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative shrink-0">
+                      <Avatar className="w-10 h-10 border-2 border-[#151515] shadow-lg">
+                        <AvatarImage src={user?.image || undefined} />
+                        <AvatarFallback className="bg-gradient-to-br from-[#242424] to-[#151515] text-[#FF5A00] font-bold text-xs">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#0A0A0A]" />
+                    </div>
+                    
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-[#F5F5F5] truncate">
+                        {user?.name || user?.email?.split('@')[0] || 'Usuário'}
+                      </p>
+                      <p className="text-[11px] text-[#8A8A8A] font-medium truncate">
+                        {user?.email}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <button
-                  onClick={() => { setMobileMenuOpen(false); router.push('/profile') }}
-                  className="p-1.5 text-[#8A8A8A] hover:text-[#F5F5F5]"
-                >
-                  <Settings className="w-4 h-4" />
-                </button>
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); router.push('/profile') }}
+                    className="p-2 rounded-xl text-[#8A8A8A] hover:text-[#F5F5F5] hover:bg-[#1A1A1A] transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="relative z-10 flex items-center justify-between p-2 rounded-xl bg-[#050505] border border-[#1A1A1A]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] animate-pulse" />
+                    <span className="text-[11px] font-bold text-[#F5F5F5] tracking-wide">MAXPRO</span>
+                  </div>
+                  <span className="text-[10px] text-[#FF5A00] font-semibold bg-[#FF5A00]/10 px-2 py-0.5 rounded-md">
+                    ATIVO
+                  </span>
+                </div>
               </div>
             </div>
           </aside>

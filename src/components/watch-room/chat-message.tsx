@@ -95,11 +95,11 @@ export function ChatMessage({ message, isOwn }: ChatMessageProps) {
         {(() => {
           if (parsedContent.type === 'sticker' && parsedContent.stickerUrl) {
             return (
-              <div className={cn("mt-1", isOwn ? "origin-bottom-right" : "origin-bottom-left")}>
+              <div className={cn("mt-1 animate-message-in", isOwn ? "origin-bottom-right" : "origin-bottom-left")}>
                 <img 
                   src={parsedContent.stickerUrl} 
                   alt="Sticker" 
-                  className="w-32 h-32 object-contain drop-shadow-md hover:scale-105 transition-transform cursor-pointer"
+                  className="w-32 h-32 object-contain drop-shadow-lg hover:scale-105 transition-transform cursor-pointer"
                 />
               </div>
             )
@@ -113,7 +113,7 @@ export function ChatMessage({ message, isOwn }: ChatMessageProps) {
               return (
                 <div
                   className={cn(
-                    "p-3 rounded-2xl text-xs leading-relaxed break-words rounded-tr-none font-semibold shadow-md transition-all",
+                    "p-3 rounded-2xl text-xs leading-relaxed break-words rounded-tr-none font-semibold shadow-md transition-all animate-message-in origin-bottom-right",
                     isLightColor ? "text-[#090909]" : "text-white"
                   )}
                   style={{
@@ -126,16 +126,16 @@ export function ChatMessage({ message, isOwn }: ChatMessageProps) {
               )
             }
             return (
-              <div className="p-3 rounded-2xl text-xs leading-relaxed break-words bg-gradient-to-r from-[#EF2020] via-[#FF5A00] to-[#FFB800] text-white font-medium rounded-tr-none shadow-md shadow-[#FF5A00]/10">
+              <div className="p-3 rounded-2xl text-xs leading-relaxed break-words brand-gradient text-white font-medium rounded-tr-none shadow-md shadow-[#FF5A00]/20 animate-message-in origin-bottom-right">
                 {parsedContent.text}
               </div>
             )
           } else {
             return (
               <div
-                className="p-3 rounded-2xl text-xs leading-relaxed break-words bg-[#151515] border rounded-tl-none font-medium transition-all"
+                className="p-3 rounded-2xl text-xs leading-relaxed break-words bg-room-surface/80 backdrop-blur-sm border rounded-tl-none font-medium transition-all animate-message-in origin-bottom-left shadow-sm"
                 style={{
-                  borderColor: color ? `${color}50` : '#242424',
+                  borderColor: color ? `${color}50` : 'rgba(255,255,255,0.05)',
                   color: color ? (isLightColor ? '#F5F5F5' : color) : '#F5F5F5'
                 }}
               >

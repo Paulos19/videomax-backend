@@ -33,11 +33,11 @@ export function VideoInfo({
   }
 
   return (
-    <div className="bg-[#0B0B0B] border border-[#242424] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 mt-3">
+    <div className="bg-room-surface/40 backdrop-blur-xl border border-white/5 rounded-[28px] p-5 flex flex-wrap items-center justify-between gap-4 mt-3 shadow-sm">
       {/* Left: Music/Video Icon & Editable Title */}
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="w-9 h-9 rounded-xl bg-[#151515] border border-[#242424] flex items-center justify-center text-[#FF5A00] shrink-0">
-          <Music className="w-4 h-4 animate-pulse" />
+      <div className="flex items-center gap-4 min-w-0 flex-1">
+        <div className="w-[42px] h-[42px] rounded-2xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-accent shrink-0 shadow-sm">
+          <Music className="w-5 h-5 animate-pulse drop-shadow-md" />
         </div>
         
         <div className="min-w-0 flex-1">
@@ -48,33 +48,33 @@ export function VideoInfo({
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
-                className="bg-[#151515] border border-[#FF5A00] text-[#F5F5F5] text-xs font-bold px-2 py-1 rounded-lg outline-none w-full"
+                className="bg-room-surface/50 border border-room-accent/50 text-white text-[13px] font-extrabold px-3 py-1.5 rounded-full outline-none w-full shadow-sm"
                 autoFocus
               />
               <button
                 onClick={handleSaveTitle}
-                className="p-1 rounded-lg brand-gradient text-white"
+                className="p-1.5 rounded-full brand-gradient text-white shadow-md hover:scale-105 active:scale-95 transition-transform"
                 title="Salvar título"
               >
-                <Check className="w-3.5 h-3.5" />
+                <Check className="w-4 h-4" />
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2 group">
-              <h3 className="text-xs font-bold text-[#F5F5F5] truncate">{videoTitle}</h3>
+              <h3 className="text-[13px] font-extrabold text-white truncate tracking-wide">{videoTitle}</h3>
               {canControl && (
                 <button
                   onClick={() => { setEditTitle(videoTitle); setIsEditing(true) }}
-                  className="opacity-0 group-hover:opacity-100 text-[#8A8A8A] hover:text-[#FF5A00] transition-all"
+                  className="opacity-0 group-hover:opacity-100 text-room-text-secondary hover:text-room-accent transition-all"
                   title="Editar título"
                 >
-                  <Edit2 className="w-3 h-3" />
+                  <Edit2 className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
           )}
 
-          <p className="text-[11px] text-[#8A8A8A] mt-0.5 truncate">
+          <p className="text-[11px] text-room-text-secondary mt-0.5 truncate font-semibold">
             {currentTime} / {duration}
           </p>
         </div>
@@ -83,12 +83,12 @@ export function VideoInfo({
       {/* Right: Playback Queue button */}
       <button
         onClick={onToggleQueue}
-        className="flex items-center gap-2 text-xs font-semibold text-[#8A8A8A] hover:text-[#F5F5F5] bg-[#151515] hover:bg-[#1C1C24] px-3.5 py-2 rounded-xl border border-[#242424] transition-all shrink-0"
+        className="flex items-center gap-2 text-[12px] font-extrabold text-room-text-secondary hover:text-white bg-room-surface/50 hover:bg-room-surface/80 px-4 py-2.5 rounded-full border border-white/10 hover:border-room-accent/30 transition-all shrink-0 hover:shadow-[0_0_15px_rgba(255,90,0,0.15)] active:scale-95"
       >
-        <ListVideo className="w-4 h-4 text-[#FF5A00]" />
+        <ListVideo className="w-4 h-4 text-room-accent" />
         <span>Fila de reprodução</span>
-        <span className="text-[10px] text-[#8A8A8A] font-bold">({queueCount})</span>
-        <ChevronDown className="w-3.5 h-3.5" />
+        <span className="text-[10px] text-room-text-secondary font-bold">({queueCount})</span>
+        <ChevronDown className="w-4 h-4 opacity-70" />
       </button>
     </div>
   )

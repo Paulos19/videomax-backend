@@ -46,7 +46,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }, [onSend])
 
   return (
-    <div className="p-3 border-t border-[#242424] bg-[#090909] relative shrink-0">
+    <div className="p-4 bg-transparent relative shrink-0">
       {/* Popovers */}
       {showEmojiPicker && (
         <EmojiPickerPopover
@@ -56,7 +56,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       )}
       
       {showStickerPicker && (
-        <div className="absolute bottom-[70px] left-3 z-50">
+        <div className="absolute bottom-[80px] left-4 z-50">
           <StickerPicker
             onSelectSticker={handleSelectSticker}
             onClose={() => setShowStickerPicker(false)}
@@ -64,14 +64,14 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         </div>
       )}
 
-      <div className="flex items-center gap-2 bg-[#151515] border border-[#292929] focus-within:border-[#FF5A00] rounded-2xl px-3 py-2 h-[52px] transition-all">
+      <div className="flex items-center gap-2 bg-room-surface/80 backdrop-blur-md border border-white/10 focus-within:border-room-accent focus-within:shadow-[0_0_20px_rgba(255,90,0,0.15)] rounded-full px-4 py-2 h-[52px] transition-all duration-300 shadow-lg">
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => { setShowEmojiPicker((prev) => !prev); setShowStickerPicker(false) }}
             className={cn(
-              "p-1.5 rounded-xl transition-colors hover:bg-[#242424]",
-              showEmojiPicker ? "text-[#FF5A00]" : "text-[#8A8A8A] hover:text-[#F5F5F5]"
+              "p-1.5 rounded-full transition-colors hover:bg-white/10",
+              showEmojiPicker ? "text-room-accent" : "text-room-text-secondary hover:text-white"
             )}
             aria-label="Selecionar Emoji"
             title="Escolher emoji"
@@ -83,8 +83,8 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             type="button"
             onClick={() => { setShowStickerPicker((prev) => !prev); setShowEmojiPicker(false) }}
             className={cn(
-              "p-1.5 rounded-xl transition-colors hover:bg-[#242424]",
-              showStickerPicker ? "text-[#FF5A00]" : "text-[#8A8A8A] hover:text-[#F5F5F5]"
+              "p-1.5 rounded-full transition-colors hover:bg-white/10",
+              showStickerPicker ? "text-room-accent" : "text-room-text-secondary hover:text-white"
             )}
             aria-label="Selecionar Figurinha"
             title="Enviar figurinha"
@@ -102,7 +102,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           onKeyDown={handleKeyDown}
           placeholder="Envie uma mensagem..."
           disabled={disabled}
-          className="flex-1 bg-transparent text-[#F5F5F5] text-xs sm:text-sm placeholder:text-[#5F5F5F] outline-none disabled:opacity-50"
+          className="flex-1 bg-transparent text-white text-xs sm:text-sm placeholder:text-room-text-secondary outline-none disabled:opacity-50 px-1"
         />
 
         <button
@@ -110,10 +110,10 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           onClick={handleSend}
           disabled={!message.trim() || disabled}
           className={cn(
-            "w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0",
+            "w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0",
             message.trim()
-              ? "brand-gradient text-white brand-glow-strong hover:brightness-110 active:scale-95 shadow-md shadow-[#FF5A00]/20"
-              : "bg-[#242424] text-[#5F5F5F] cursor-not-allowed"
+              ? "brand-gradient text-white brand-glow-strong hover:scale-105 active:scale-95 shadow-md shadow-[#FF5A00]/20"
+              : "bg-white/5 text-room-text-secondary cursor-not-allowed"
           )}
           aria-label="Enviar mensagem"
         >

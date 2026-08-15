@@ -42,7 +42,7 @@ export function ChatPanel({
   const headerViewers = viewers.map(v => ({ name: v.name, image: v.image }))
 
   return (
-    <div className="w-full h-full flex flex-col bg-room-surface/80 backdrop-blur-xl border border-room-border rounded-2xl overflow-hidden shrink-0">
+    <div className="w-full h-full flex flex-col bg-room-bg/50 backdrop-blur-2xl border border-white/5 rounded-2xl overflow-hidden shrink-0 shadow-2xl">
       {/* Header */}
       <ChatHeader
         viewerCount={viewerCount}

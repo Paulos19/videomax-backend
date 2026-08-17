@@ -337,10 +337,17 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     }, [])
 
     useEffect(() => {
+      if (!isStreamingScreen) {
+        setShowLocalPreview(false)
+      }
+    }, [isStreamingScreen])
+
+    useEffect(() => {
       if (isStreamingScreen && streamVideoRef.current && streamMedia) {
         streamVideoRef.current.srcObject = streamMedia
+        streamVideoRef.current.play().catch(() => {})
       }
-    }, [isStreamingScreen, streamMedia])
+    }, [isStreamingScreen, streamMedia, showLocalPreview])
 
     // Progress percentage
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0

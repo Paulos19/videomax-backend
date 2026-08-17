@@ -45,6 +45,7 @@ interface WatchRoomProps {
   selectedColor?: string
   onSelectColor?: (color: string) => void
   onSendMessage: (message: string) => void
+  onReactMessage?: (messageId: string, emoji: string) => void
   onSyncPlayerState?: (state: PlayerStateData) => void
   onRemotePlayerState?: PlayerStateData | null
   onRemotePlayerStateVersion?: number
@@ -73,6 +74,7 @@ export function WatchRoom({
   selectedColor,
   onSelectColor,
   onSendMessage,
+  onReactMessage,
   onSyncPlayerState,
   onRemotePlayerState,
   onRemotePlayerStateVersion,
@@ -447,6 +449,7 @@ export function WatchRoom({
                 selectedColor={selectedColor}
                 onSelectColor={onSelectColor}
                 onSend={onSendMessage}
+                onReact={onReactMessage}
                 onClose={() => setShowChat(false)}
               />
             </div>
@@ -479,6 +482,7 @@ export function WatchRoom({
               selectedColor={selectedColor}
               onSelectColor={onSelectColor}
               onSend={onSendMessage}
+              onReact={onReactMessage}
               onClose={() => setShowChat(false)}
             />
           </div>

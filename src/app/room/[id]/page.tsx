@@ -58,7 +58,8 @@ export default function RoomPage() {
     rejectAccessRequest,
     currentUserId,
     selectedColor,
-    changeChatColor
+    changeChatColor,
+    reactToMessage
   } = useSocket(roomId, hostUser?.id)
 
   // 1. Check friendship access with backend once roomInfo.hostUserId is known
@@ -453,6 +454,7 @@ export default function RoomPage() {
         selectedColor={selectedColor}
         onSelectColor={changeChatColor}
         onSendMessage={sendMessage}
+        onReactMessage={reactToMessage}
         onSyncPlayerState={syncPlayerState}
         onRemotePlayerState={remotePlayerEvent?.data ?? null}
         onRemotePlayerStateVersion={remotePlayerEvent?.version}

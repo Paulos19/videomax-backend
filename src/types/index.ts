@@ -17,6 +17,7 @@ export interface ChatMessage {
   stickerUrl?: string
   timestamp?: string
   reactions?: Array<{ emoji: string; count: number }>
+  userReactions?: Record<string, string>
 }
 
 export interface ChatPayload {

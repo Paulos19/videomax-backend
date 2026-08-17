@@ -16,6 +16,7 @@ interface ChatPanelProps {
   selectedColor?: string
   onSelectColor?: (color: string) => void
   onSend: (message: string, type?: 'text' | 'sticker', stickerUrl?: string) => void
+  onReact?: (messageId: string, emoji: string) => void
   onClose?: () => void
 }
 
@@ -27,6 +28,7 @@ export function ChatPanel({
   selectedColor,
   onSelectColor,
   onSend,
+  onReact,
   onClose
 }: ChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -65,7 +67,9 @@ export function ChatPanel({
               <ChatMessage
                 key={msg.id}
                 message={msg}
+                currentUserId={currentUserId}
                 isOwn={msg.userId === currentUserId}
+                onReact={onReact}
               />
             ))}
           </div>

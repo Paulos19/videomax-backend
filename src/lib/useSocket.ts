@@ -222,6 +222,25 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
         setMessages((prev) => [...prev, msgWithTime])
       })
 
+      newSocket.on('message-reaction', (data: { messageId: string; userId: string; emoji: string }) => {
+        if (cancelled) return
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) => {
+            if (msg.id !== data.messageId) return msg
+            const currentReactions = { ...(msg.userReactions || {}) }
+            if (currentReactions[data.userId] === data.emoji) {
+              delete currentReactions[data.userId]
+            } else {
+              currentReactions[data.userId] = data.emoji
+            }
+            return {
+              ...msg,
+              userReactions: currentReactions
+            }
+          })
+        )
+      })
+
       // Server sends full room user list when we join — replaces our local-only list
       newSocket.on('room-users', (users: Array<{ userId: string; userName: string; userImage?: string; role?: 'host' | 'cohost' | 'viewer' }>) => {
         if (cancelled) return
@@ -349,6 +368,27 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     }
   }, [socket, selectedColor])
 
+  const reactToMessage = useCallback((messageId: string, emoji: string) => {
+    if (socket && currentUserId) {
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) => {
+          if (msg.id !== messageId) return msg
+          const currentReactions = { ...(msg.userReactions || {}) }
+          if (currentReactions[currentUserId] === emoji) {
+            delete currentReactions[currentUserId]
+          } else {
+            currentReactions[currentUserId] = emoji
+          }
+          return {
+            ...msg,
+            userReactions: currentReactions
+          }
+        })
+      )
+      socket.emit('message-reaction', { messageId, emoji })
+    }
+  }, [socket, currentUserId])
+
   const syncPlayerState = useCallback((stateData: PlayerStateData) => {
     if (socket) {
       socket.emit('player-state-change', stateData)
@@ -402,6 +442,7 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     requestRoomAccess,
     approveAccessRequest,
     rejectAccessRequest,
+    reactToMessage,
     currentUserId
   }
 }

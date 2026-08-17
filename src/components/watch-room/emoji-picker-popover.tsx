@@ -64,7 +64,7 @@ export function EmojiPickerPopover({ onSelectEmoji, onClose }: EmojiPickerPopove
   return (
     <div
       ref={popoverRef}
-      className="absolute bottom-full left-0 mb-3 z-50 w-[290px] sm:w-[320px] rounded-2xl border border-[#242424] bg-[#0B0B0B] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 origin-bottom-left p-3 space-y-3"
+      className="absolute bottom-full left-0 mb-3 z-50 w-[calc(100vw-32px)] max-w-[320px] sm:w-[320px] rounded-2xl border border-[#242424] bg-[#0B0B0B] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 origin-bottom-left p-3 space-y-3"
     >
       {/* Header & Search */}
       <div className="space-y-2 border-b border-[#242424] pb-2">

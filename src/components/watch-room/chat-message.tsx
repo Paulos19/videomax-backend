@@ -99,57 +99,66 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact }: ChatMess
     )
   }
 
+  // Mobile touch toggle for reaction bar
+  const [showMobileReactions, setShowMobileReactions] = useState(false)
+
   const isHost = message.role === 'host' || message.userName?.toLowerCase().includes('host')
   const isCoHost = message.role === 'cohost'
 
   const userAvatarUrl = message.userImage || (typeof parsedContent.image === 'string' && parsedContent.image.length > 5 ? parsedContent.image : undefined)
 
   return (
-    <div className={cn("group relative flex items-start gap-2.5 my-3.5 transition-all", isOwn && "flex-row-reverse")}>
+    <div className={cn("group relative flex items-start gap-2 sm:gap-2.5 my-3 sm:my-3.5 transition-all", isOwn && "flex-row-reverse")}>
       {/* Avatar */}
       <Avatar className={cn(
-        "w-9 h-9 border shrink-0 shadow-md transition-transform group-hover:scale-105",
+        "w-8 h-8 sm:w-9 sm:h-9 border shrink-0 shadow-md transition-transform group-hover:scale-105",
         isHost ? "border-[#FFB800] ring-2 ring-[#FFB800]/20" : isCoHost ? "border-[#00E5FF] ring-2 ring-[#00E5FF]/20" : "border-[#282838]"
       )}>
         <AvatarImage src={userAvatarUrl} />
-        <AvatarFallback className="bg-[#14141E] text-[#FF5A00] font-black text-xs">
+        <AvatarFallback className="bg-[#14141E] text-[#FF5A00] font-black text-[11px] sm:text-xs">
           {message.userName?.charAt(0)?.toUpperCase() || 'U'}
         </AvatarFallback>
       </Avatar>
 
       {/* Content */}
-      <div className={cn("space-y-1.5 max-w-[82%]", isOwn && "items-end text-right flex flex-col")}>
+      <div className={cn("space-y-1 sm:space-y-1.5 max-w-[85%] sm:max-w-[80%]", isOwn && "items-end text-right flex flex-col")}>
         {/* Header: Name + Badge + Timestamp */}
         <div className={cn("flex items-center gap-1.5 text-xs select-none", isOwn && "justify-end")}>
-          <span className="font-bold text-[#F5F5F5] truncate max-w-[130px]">
+          <span className="font-bold text-[#F5F5F5] truncate max-w-[110px] sm:max-w-[140px] text-[11px] sm:text-xs">
             {message.userName}
           </span>
 
           {isHost && (
-            <span className="text-[9px] font-black text-[#FFB800] bg-[#FFB800]/15 border border-[#FFB800]/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_8px_rgba(255,184,0,0.2)] flex items-center gap-0.5">
+            <span className="text-[8px] sm:text-[9px] font-black text-[#FFB800] bg-[#FFB800]/15 border border-[#FFB800]/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_8px_rgba(255,184,0,0.2)] flex items-center gap-0.5">
               <Shield className="w-2.5 h-2.5 fill-[#FFB800]" />
               HOST
             </span>
           )}
 
           {isCoHost && (
-            <span className="text-[9px] font-black text-[#00E5FF] bg-[#00E5FF]/15 border border-[#00E5FF]/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_8px_rgba(0,229,255,0.2)] flex items-center gap-0.5">
+            <span className="text-[8px] sm:text-[9px] font-black text-[#00E5FF] bg-[#00E5FF]/15 border border-[#00E5FF]/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_8px_rgba(0,229,255,0.2)] flex items-center gap-0.5">
               <User className="w-2.5 h-2.5 text-[#00E5FF]" />
               CO-HOST
             </span>
           )}
 
-          <span className="text-[10px] text-[#71717A] font-medium">
+          <span className="text-[9px] sm:text-[10px] text-[#71717A] font-medium">
             {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
           </span>
         </div>
 
-        {/* Message Bubble Container with Quick Hover Reaction Bar */}
-        <div className="relative group/bubble inline-block max-w-full">
-          {/* Floating Hover Reaction Bar */}
+        {/* Message Bubble Container with Quick Hover/Tap Reaction Bar */}
+        <div 
+          onClick={() => setShowMobileReactions(prev => !prev)}
+          className="relative group/bubble inline-block max-w-full cursor-pointer sm:cursor-default"
+        >
+          {/* Floating Hover/Tap Reaction Bar */}
           <div className={cn(
-            "absolute -top-9 z-30 opacity-0 group-hover/bubble:opacity-100 scale-95 group-hover/bubble:scale-100 transition-all duration-200 ease-out pointer-events-none group-hover/bubble:pointer-events-auto flex items-center gap-1 bg-[#0D0D14]/95 backdrop-blur-xl border border-white/15 px-2 py-1 rounded-full shadow-2xl",
-            isOwn ? "right-0" : "left-0"
+            "absolute -top-9 z-30 scale-95 transition-all duration-200 ease-out flex items-center gap-1 bg-[#0D0D14]/95 backdrop-blur-xl border border-white/15 px-2 py-1 rounded-full shadow-2xl",
+            isOwn ? "right-0" : "left-0",
+            showMobileReactions 
+              ? "opacity-100 scale-100 pointer-events-auto" 
+              : "opacity-0 group-hover/bubble:opacity-100 group-hover/bubble:scale-100 pointer-events-none group-hover/bubble:pointer-events-auto"
           )}>
             {QUICK_EMOJIS.map((emoji) => {
               const isSelected = myActiveEmoji === emoji
@@ -157,7 +166,11 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact }: ChatMess
                 <button
                   key={emoji}
                   type="button"
-                  onClick={() => handleReact(emoji)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleReact(emoji)
+                    setShowMobileReactions(false)
+                  }}
                   className={cn(
                     "w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all duration-150 hover:scale-135 active:scale-95",
                     isSelected ? "bg-[#FF5A00]/30 border border-[#FF5A00] shadow-[0_0_8px_rgba(255,90,0,0.5)] scale-110" : "hover:bg-white/10"

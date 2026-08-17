@@ -46,7 +46,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }, [onSend])
 
   return (
-    <div className="p-4 bg-transparent relative shrink-0">
+    <div className="p-3 sm:p-4 bg-transparent relative shrink-0">
       {/* Popovers */}
       {showEmojiPicker && (
         <EmojiPickerPopover
@@ -56,7 +56,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       )}
       
       {showStickerPicker && (
-        <div className="absolute bottom-[80px] left-4 z-50">
+        <div className="absolute bottom-[72px] left-2 right-2 sm:left-4 sm:right-auto z-50 flex justify-center sm:block">
           <StickerPicker
             onSelectSticker={handleSelectSticker}
             onClose={() => setShowStickerPicker(false)}
@@ -64,7 +64,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         </div>
       )}
 
-      <div className="flex items-center gap-2 bg-room-surface/80 backdrop-blur-md border border-white/10 focus-within:border-room-accent focus-within:shadow-[0_0_20px_rgba(255,90,0,0.15)] rounded-full px-4 py-2 h-[52px] transition-all duration-300 shadow-lg">
+      <div className="flex items-center gap-1.5 sm:gap-2 bg-room-surface/90 backdrop-blur-md border border-white/10 focus-within:border-room-accent focus-within:shadow-[0_0_20px_rgba(255,90,0,0.15)] rounded-full px-2.5 sm:px-4 py-1.5 h-[48px] sm:h-[52px] transition-all duration-300 shadow-lg">
         <div className="flex items-center gap-1">
           <button
             type="button"

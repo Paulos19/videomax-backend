@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { MessageCircle, ShieldAlert, LogOut } from 'lucide-react'
+import { MessageCircle, ShieldAlert, LogOut, MessageSquare, Users, Info, Play, Pause, FastForward, Film } from 'lucide-react'
 import { Socket } from 'socket.io-client'
 import { RoomHeader } from './room-header'
 import { VideoPlayer, VideoPlayerHandle } from './video-player'
@@ -16,8 +16,7 @@ import { useWebRTC } from '@/lib/useWebRTC'
 import { Video, ChatMessage, PlayerStateData } from '@/types'
 import { Viewer } from '@/lib/useSocket'
 import { PlayerActionNotice } from '@/lib/useSocket'
-import { Play, Pause, FastForward, Film } from 'lucide-react'
-
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 const DEFAULT_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
@@ -94,6 +93,8 @@ export function WatchRoom({
   const [showChat, setShowChat] = useState(true)
   const [showVideoSelector, setShowVideoSelector] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+
+  const [activeMobileTab, setActiveMobileTab] = useState<'chat' | 'viewers' | 'info'>('chat')
 
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
   const isRemoteUpdateRef = useRef(false)
@@ -380,9 +381,9 @@ export function WatchRoom({
       />
 
       {/* Main Content Grid */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-3 lg:p-4 gap-3 lg:gap-4 overflow-y-auto lg:overflow-hidden pb-16 lg:pb-4">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-2.5 sm:p-3 lg:p-4 gap-2.5 sm:gap-3 lg:gap-4 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-4">
         {/* Left Column: Video, Control Bar, Viewers & Invite, VideoInfo */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-visible lg:overflow-y-auto scrollbar-thin pr-0 lg:pr-1 space-y-3">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-visible lg:overflow-y-auto scrollbar-thin pr-0 lg:pr-1 space-y-2.5 sm:space-y-3">
           {/* 1. Video Player */}
           <VideoPlayer
             ref={videoPlayerRef}
@@ -411,63 +412,172 @@ export function WatchRoom({
             onSyncAll={handleSyncAll}
           />
 
-          {/* 3. Viewers Panel & Invite Card */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-2">
-              <ViewersPanel
-                viewers={viewers}
-                currentUserRole={userRole}
-                onChangeUserRole={onChangeUserRole}
-                onInvite={() => setShowShareModal(true)}
-              />
-            </div>
-            <InviteFriendsCard
-              roomId={roomId}
-              onOpenInviteModal={() => setShowShareModal(true)}
-            />
+          {/* Mobile Segmented Tab Switcher (< lg breakpoint) */}
+          <div className="flex lg:hidden items-center bg-room-surface/80 backdrop-blur-xl border border-white/10 rounded-2xl p-1 gap-1 shadow-lg">
+            <button
+              type="button"
+              onClick={() => setActiveMobileTab('chat')}
+              className={cn(
+                "flex-1 py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all",
+                activeMobileTab === 'chat'
+                  ? "brand-gradient text-white shadow-md brand-glow scale-[1.02]"
+                  : "text-room-text-secondary hover:text-white hover:bg-white/5"
+              )}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Chat</span>
+              {messages.length > 0 && (
+                <span className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
+                  activeMobileTab === 'chat' ? "bg-white/25 text-white" : "bg-room-accent/20 text-room-accent"
+                )}>
+                  {messages.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveMobileTab('viewers')}
+              className={cn(
+                "flex-1 py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all",
+                activeMobileTab === 'viewers'
+                  ? "brand-gradient text-white shadow-md brand-glow scale-[1.02]"
+                  : "text-room-text-secondary hover:text-white hover:bg-white/5"
+              )}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Participantes</span>
+              <span className={cn(
+                "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
+                activeMobileTab === 'viewers' ? "bg-white/25 text-white" : "bg-white/10 text-white/80"
+              )}>
+                {viewers.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveMobileTab('info')}
+              className={cn(
+                "flex-1 py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all",
+                activeMobileTab === 'info'
+                  ? "brand-gradient text-white shadow-md brand-glow scale-[1.02]"
+                  : "text-room-text-secondary hover:text-white hover:bg-white/5"
+              )}
+            >
+              <Info className="w-3.5 h-3.5" />
+              <span>Detalhes</span>
+            </button>
           </div>
 
-          {/* 4. Video Information */}
-          <VideoInfo
-            videoTitle={currentTitle}
-            currentTime={formatTime(currentTime)}
-            duration={formatTime(duration)}
-            queueCount={videos.length || 1}
-            canControl={canControl}
-            onUpdateTitle={handleUpdateTitle}
-            onToggleQueue={() => setShowVideoSelector(true)}
-          />
+          {/* MOBILE CONTENT AREA BASED ON ACTIVE TAB */}
+          <div className="block lg:hidden">
+            {/* Tab: Chat */}
+            {activeMobileTab === 'chat' && (
+              <div className="h-[480px] sm:h-[540px] max-h-[68vh] flex flex-col shrink-0 my-1 rounded-2xl overflow-hidden shadow-2xl border border-white/5">
+                <ChatPanel
+                  messages={messages}
+                  currentUserId={currentUserId}
+                  viewerCount={viewers.length}
+                  viewers={viewers}
+                  selectedColor={selectedColor}
+                  onSelectColor={onSelectColor}
+                  onSend={onSendMessage}
+                  onReact={onReactMessage}
+                />
+              </div>
+            )}
 
-          {/* 5. Live Chat Panel (Mobile Inline Block - renders inline under VideoInfo on mobile) */}
-          {showChat && (
-            <div className="block lg:hidden h-[420px] shrink-0 my-3">
-              <ChatPanel
-                messages={messages}
-                currentUserId={currentUserId}
-                viewerCount={viewers.length}
-                viewers={viewers}
-                selectedColor={selectedColor}
-                onSelectColor={onSelectColor}
-                onSend={onSendMessage}
-                onReact={onReactMessage}
-                onClose={() => setShowChat(false)}
+            {/* Tab: Viewers & Invite */}
+            {activeMobileTab === 'viewers' && (
+              <div className="space-y-3 my-1">
+                <ViewersPanel
+                  viewers={viewers}
+                  currentUserRole={userRole}
+                  onChangeUserRole={onChangeUserRole}
+                  onInvite={() => setShowShareModal(true)}
+                />
+                <InviteFriendsCard
+                  roomId={roomId}
+                  onOpenInviteModal={() => setShowShareModal(true)}
+                />
+              </div>
+            )}
+
+            {/* Tab: Info & Controls */}
+            {activeMobileTab === 'info' && (
+              <div className="space-y-3 my-1">
+                <VideoInfo
+                  videoTitle={currentTitle}
+                  currentTime={formatTime(currentTime)}
+                  duration={formatTime(duration)}
+                  queueCount={videos.length || 1}
+                  canControl={canControl}
+                  onUpdateTitle={handleUpdateTitle}
+                  onToggleQueue={() => setShowVideoSelector(true)}
+                />
+
+                <div className="flex items-center justify-between p-4 bg-room-surface/40 backdrop-blur-xl border border-white/5 rounded-2xl">
+                  <button className="text-xs text-[#8A8A8A] hover:text-[#F5F5F5] flex items-center gap-1.5 font-semibold transition-colors">
+                    <ShieldAlert className="w-4 h-4 text-[#8A8A8A]" />
+                    Regras da sala
+                  </button>
+                  <button
+                    onClick={onBack}
+                    className="text-xs text-[#EF2020] hover:underline flex items-center gap-1.5 font-bold transition-all"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair da sala
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* DESKTOP CONTENT AREA (Always visible on lg+ screens) */}
+          <div className="hidden lg:block space-y-3">
+            {/* 3. Viewers Panel & Invite Card */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2">
+                <ViewersPanel
+                  viewers={viewers}
+                  currentUserRole={userRole}
+                  onChangeUserRole={onChangeUserRole}
+                  onInvite={() => setShowShareModal(true)}
+                />
+              </div>
+              <InviteFriendsCard
+                roomId={roomId}
+                onOpenInviteModal={() => setShowShareModal(true)}
               />
             </div>
-          )}
 
-          {/* 6. Footer Actions */}
-          <div className="flex items-center justify-between pt-4 pb-6 border-t border-[#242424]">
-            <button className="text-xs text-[#8A8A8A] hover:text-[#F5F5F5] flex items-center gap-1.5 font-semibold transition-colors">
-              <ShieldAlert className="w-4 h-4 text-[#8A8A8A]" />
-              Regras da sala
-            </button>
-            <button
-              onClick={onBack}
-              className="text-xs text-[#EF2020] hover:underline flex items-center gap-1.5 font-bold transition-all"
-            >
-              <LogOut className="w-4 h-4" />
-              Sair da sala
-            </button>
+            {/* 4. Video Information */}
+            <VideoInfo
+              videoTitle={currentTitle}
+              currentTime={formatTime(currentTime)}
+              duration={formatTime(duration)}
+              queueCount={videos.length || 1}
+              canControl={canControl}
+              onUpdateTitle={handleUpdateTitle}
+              onToggleQueue={() => setShowVideoSelector(true)}
+            />
+
+            {/* 5. Footer Actions */}
+            <div className="flex items-center justify-between pt-4 pb-6 border-t border-[#242424]">
+              <button className="text-xs text-[#8A8A8A] hover:text-[#F5F5F5] flex items-center gap-1.5 font-semibold transition-colors">
+                <ShieldAlert className="w-4 h-4 text-[#8A8A8A]" />
+                Regras da sala
+              </button>
+              <button
+                onClick={onBack}
+                className="text-xs text-[#EF2020] hover:underline flex items-center gap-1.5 font-bold transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                Sair da sala
+              </button>
+            </div>
           </div>
         </div>
 

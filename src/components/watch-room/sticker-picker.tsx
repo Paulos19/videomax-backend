@@ -135,29 +135,64 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
     }
   }
 
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  // Click outside and Escape key handler
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
+
   return (
-    <div className="w-[320px] h-[400px] bg-[#0B0B0B] border border-[#242424] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div
+      ref={pickerRef}
+      className="w-[calc(100vw-32px)] max-w-[340px] sm:w-[320px] h-[360px] sm:h-[400px] bg-[#0B0B0B] border border-[#242424] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+    >
       {/* Header / Tabs */}
-      <div className="flex p-2 gap-1 border-b border-[#242424] bg-[#050505] shrink-0">
+      <div className="flex items-center justify-between p-2 border-b border-[#242424] bg-[#050505] shrink-0 gap-1.5">
+        <div className="flex gap-1 flex-1">
+          <button
+            onClick={() => setActiveTab('library')}
+            className={cn(
+              "flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5",
+              activeTab === 'library' ? "bg-[#151515] text-[#F5F5F5] border border-white/10" : "text-[#8A8A8A] hover:text-[#F5F5F5] hover:bg-[#111111]"
+            )}
+          >
+            <StickerIcon className="w-3.5 h-3.5" />
+            Minhas
+          </button>
+          <button
+            onClick={() => setActiveTab('create')}
+            className={cn(
+              "flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5",
+              activeTab === 'create' ? "bg-[#151515] text-[#F5F5F5] border border-white/10" : "text-[#8A8A8A] hover:text-[#F5F5F5] hover:bg-[#111111]"
+            )}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Criar
+          </button>
+        </div>
+
         <button
-          onClick={() => setActiveTab('library')}
-          className={cn(
-            "flex-1 py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2",
-            activeTab === 'library' ? "bg-[#151515] text-[#F5F5F5]" : "text-[#8A8A8A] hover:text-[#F5F5F5] hover:bg-[#111111]"
-          )}
+          type="button"
+          onClick={onClose}
+          className="p-1.5 rounded-lg text-[#8A8A8A] hover:text-white hover:bg-white/10 transition-colors shrink-0"
+          title="Fechar"
         >
-          <StickerIcon className="w-4 h-4" />
-          Minhas
-        </button>
-        <button
-          onClick={() => setActiveTab('create')}
-          className={cn(
-            "flex-1 py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2",
-            activeTab === 'create' ? "bg-[#151515] text-[#F5F5F5]" : "text-[#8A8A8A] hover:text-[#F5F5F5] hover:bg-[#111111]"
-          )}
-        >
-          <Plus className="w-4 h-4" />
-          Criar
+          <X className="w-4 h-4" />
         </button>
       </div>
 
@@ -172,7 +207,7 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
             <div className="absolute inset-0 flex flex-col items-center justify-center text-[#8A8A8A] p-4 text-center">
               <StickerIcon className="w-10 h-10 mb-3 opacity-20" />
               <p className="text-sm font-semibold">Nenhuma figurinha salva</p>
-              <p className="text-xs mt-1">Crie a sua primeira figurinha na aba "Criar"</p>
+              <p className="text-xs mt-1 text-[#5F5F5F]">Crie a sua primeira figurinha na aba "Criar"</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -204,17 +239,17 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
         ) : (
           <div className="h-full flex flex-col">
             {!selectedFile ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-[#151515] border border-[#242424] border-dashed flex items-center justify-center">
+              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-2">
+                <div className="w-14 h-14 rounded-2xl bg-[#151515] border border-[#242424] border-dashed flex items-center justify-center">
                   <ImageIcon className="w-6 h-6 text-[#8A8A8A]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#F5F5F5] mb-1">Upload de Imagem ou GIF</h3>
-                  <p className="text-xs text-[#8A8A8A]">A imagem será cortada e com fundo transparente (512x512)</p>
+                  <h3 className="text-xs font-bold text-[#F5F5F5] mb-1">Upload de Imagem ou GIF</h3>
+                  <p className="text-[11px] text-[#8A8A8A]">A imagem será cortada no formato Sticker (512x512)</p>
                 </div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-5 py-2.5 rounded-xl brand-gradient text-white text-sm font-bold brand-glow mt-2 hover:brightness-110 active:scale-95 transition-all"
+                  className="px-4 py-2 rounded-xl brand-gradient text-white text-xs font-bold brand-glow mt-1 hover:brightness-110 active:scale-95 transition-all"
                 >
                   Selecionar Arquivo
                 </button>
@@ -235,15 +270,15 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
             ) : previewUrl ? (
               <div className="flex-1 flex flex-col items-center justify-between py-2">
                 <div className="flex-1 flex items-center justify-center w-full">
-                  <div className="relative w-40 h-40 bg-[#url('/transparent-pattern.png')] bg-[#111111] rounded-2xl border border-[#242424] overflow-hidden flex items-center justify-center p-2 shadow-inner">
+                  <div className="relative w-36 h-36 bg-[#111111] rounded-2xl border border-[#242424] overflow-hidden flex items-center justify-center p-2 shadow-inner">
                     <img src={previewUrl} alt="Preview" className="w-full h-full object-contain drop-shadow-md" />
                   </div>
                 </div>
-                <div className="w-full space-y-2 pt-4">
+                <div className="w-full space-y-2 pt-3">
                   <button
                     onClick={handleSaveSticker}
                     disabled={isUploading}
-                    className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                    className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
                   >
                     {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     {isUploading ? 'Salvando...' : 'Salvar Figurinha'}
@@ -251,7 +286,7 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
                   <button
                     onClick={() => { setSelectedFile(null); setPreviewUrl(null); setProcessedBlob(null) }}
                     disabled={isUploading}
-                    className="w-full py-2.5 rounded-xl bg-[#151515] hover:bg-[#242424] text-[#8A8A8A] hover:text-[#F5F5F5] text-sm font-bold transition-colors"
+                    className="w-full py-2 rounded-xl bg-[#151515] hover:bg-[#242424] text-[#8A8A8A] hover:text-[#F5F5F5] text-xs font-bold transition-colors"
                   >
                     Cancelar
                   </button>

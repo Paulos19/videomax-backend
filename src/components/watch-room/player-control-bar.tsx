@@ -28,26 +28,26 @@ export function PlayerControlBar({
   const canControl = userRole === 'host' || userRole === 'cohost'
 
   return (
-    <div className="bg-room-surface/40 backdrop-blur-xl border border-white/5 rounded-[28px] p-2 sm:p-3 my-3">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-2.5">
+    <div className="bg-room-surface/40 backdrop-blur-xl border border-white/5 rounded-2xl sm:rounded-[28px] p-1.5 sm:p-3 my-2 sm:my-3">
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 sm:gap-2.5">
         {/* 1. Play / Pause */}
         <button
           onClick={canControl ? onTogglePlay : undefined}
           disabled={!canControl}
           className={cn(
-            "bg-room-surface/30 border border-white/5 rounded-2xl p-3 flex items-center justify-between transition-all group",
+            "bg-room-surface/30 border border-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center justify-between transition-all group",
             canControl
               ? "hover:bg-room-surface/50 hover:border-room-accent/30 hover:shadow-[0_0_15px_rgba(255,90,0,0.1)] cursor-pointer hover:scale-[1.02] active:scale-95"
               : "opacity-60 cursor-not-allowed"
           )}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm">
-              {isPlaying ? <Pause className="w-4 h-4 fill-room-accent" /> : <Play className="w-4 h-4 fill-room-accent ml-0.5" />}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm shrink-0">
+              {isPlaying ? <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-room-accent" /> : <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-room-accent ml-0.5" />}
             </div>
             <div className="text-left min-w-0">
-              <p className="text-xs font-bold text-white truncate">{isPlaying ? 'Pausar' : 'Reproduzir'}</p>
-              <p className="text-[10px] text-room-text-secondary truncate">{canControl ? '(Espaço)' : 'Somente Host'}</p>
+              <p className="text-[11px] sm:text-xs font-bold text-white truncate">{isPlaying ? 'Pausar' : 'Play'}</p>
+              <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">{canControl ? '(Espaço)' : 'Host'}</p>
             </div>
           </div>
         </button>
@@ -55,15 +55,15 @@ export function PlayerControlBar({
         {/* 2. Sincronizado / Sincronizar todos */}
         <button
           onClick={onSyncAll}
-          className="bg-room-surface/30 hover:bg-room-surface/50 border border-white/5 hover:border-emerald-500/30 hover:shadow-[0_0_15px_rgba(16,185,129,0.1)] rounded-2xl p-3 flex items-center gap-3 transition-all text-left group cursor-pointer hover:scale-[1.02] active:scale-95"
+          className="bg-room-surface/30 hover:bg-room-surface/50 border border-white/5 hover:border-emerald-500/30 hover:shadow-[0_0_15px_rgba(16,185,129,0.1)] rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all text-left group cursor-pointer hover:scale-[1.02] active:scale-95"
           title="Sincronizar com o player do Host"
         >
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 transition-colors shadow-sm">
-            <Activity className="w-4 h-4 animate-pulse" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 transition-colors shadow-sm shrink-0">
+            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
           </div>
           <div className="text-left min-w-0">
-            <p className="text-xs font-bold text-white truncate">Sincronizar</p>
-            <p className="text-[10px] text-emerald-400 font-semibold truncate">{syncStatus}</p>
+            <p className="text-[11px] sm:text-xs font-bold text-white truncate">Sincronizar</p>
+            <p className="text-[9px] sm:text-[10px] text-emerald-400 font-semibold truncate hidden xs:block">{syncStatus}</p>
           </div>
         </button>
 
@@ -72,18 +72,18 @@ export function PlayerControlBar({
           onClick={canControl ? onNextVideo : undefined}
           disabled={!canControl}
           className={cn(
-            "bg-room-surface/30 border border-white/5 rounded-2xl p-3 flex items-center gap-3 transition-all group",
+            "bg-room-surface/30 border border-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all group",
             canControl
               ? "hover:bg-room-surface/50 hover:border-room-accent/30 hover:shadow-[0_0_15px_rgba(255,90,0,0.1)] cursor-pointer hover:scale-[1.02] active:scale-95"
               : "opacity-60 cursor-not-allowed"
           )}
         >
-          <div className="w-8 h-8 rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-text-secondary group-hover:text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm">
-            <FastForward className="w-4 h-4" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-text-secondary group-hover:text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm shrink-0">
+            <FastForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
           <div className="text-left min-w-0">
-            <p className="text-xs font-bold text-white truncate">Próximo</p>
-            <p className="text-[10px] text-room-text-secondary truncate">{hostName}</p>
+            <p className="text-[11px] sm:text-xs font-bold text-white truncate">Próximo</p>
+            <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">{hostName}</p>
           </div>
         </button>
 
@@ -92,18 +92,18 @@ export function PlayerControlBar({
           onClick={canControl ? onSeekBack : undefined}
           disabled={!canControl}
           className={cn(
-            "bg-room-surface/30 border border-white/5 rounded-2xl p-3 flex items-center gap-3 transition-all group",
+            "bg-room-surface/30 border border-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all group",
             canControl
               ? "hover:bg-room-surface/50 hover:border-room-accent/30 hover:shadow-[0_0_15px_rgba(255,90,0,0.1)] cursor-pointer hover:scale-[1.02] active:scale-95"
               : "opacity-60 cursor-not-allowed"
           )}
         >
-          <div className="w-8 h-8 rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-text-secondary group-hover:text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm">
-            <Rewind className="w-4 h-4" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-text-secondary group-hover:text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm shrink-0">
+            <Rewind className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
           <div className="text-left min-w-0">
-            <p className="text-xs font-bold text-white truncate">- 10s</p>
-            <p className="text-[10px] text-room-text-secondary truncate">Voltar</p>
+            <p className="text-[11px] sm:text-xs font-bold text-white truncate">-10s</p>
+            <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">Voltar</p>
           </div>
         </button>
 
@@ -112,44 +112,44 @@ export function PlayerControlBar({
           onClick={canControl ? onSeekForward : undefined}
           disabled={!canControl}
           className={cn(
-            "bg-room-surface/30 border border-white/5 rounded-2xl p-3 flex items-center gap-3 transition-all group",
+            "bg-room-surface/30 border border-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all group",
             canControl
               ? "hover:bg-room-surface/50 hover:border-room-accent/30 hover:shadow-[0_0_15px_rgba(255,90,0,0.1)] cursor-pointer hover:scale-[1.02] active:scale-95"
               : "opacity-60 cursor-not-allowed"
           )}
         >
-          <div className="w-8 h-8 rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-text-secondary group-hover:text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm">
-            <FastForward className="w-4 h-4" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-text-secondary group-hover:text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm shrink-0">
+            <FastForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
           <div className="text-left min-w-0">
-            <p className="text-xs font-bold text-white truncate">+ 10s</p>
-            <p className="text-[10px] text-room-text-secondary truncate">Avançar</p>
+            <p className="text-[11px] sm:text-xs font-bold text-white truncate">+10s</p>
+            <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">Avançar</p>
           </div>
         </button>
 
         {/* 6. Controle de Permissão */}
         <div className={cn(
-          "border rounded-2xl p-3 flex items-center justify-between gap-2 shadow-sm transition-all",
+          "border rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center justify-between gap-1.5 shadow-sm transition-all",
           canControl
             ? "bg-room-yellow/10 border-room-yellow/20"
             : "bg-room-surface/30 border-white/5"
         )}>
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             {canControl ? (
-              <Crown className="w-4 h-4 text-room-yellow shrink-0 drop-shadow-md" />
+              <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-room-yellow shrink-0 drop-shadow-md" />
             ) : (
-              <Lock className="w-4 h-4 text-room-text-secondary shrink-0" />
+              <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-room-text-secondary shrink-0" />
             )}
             <div className="text-left min-w-0">
-              <p className={cn("text-xs font-bold truncate", canControl ? "text-room-yellow" : "text-white")}>
-                {canControl ? 'Controle total' : 'Restrito'}
+              <p className={cn("text-[11px] sm:text-xs font-bold truncate", canControl ? "text-room-yellow" : "text-white")}>
+                {canControl ? 'Controle' : 'Restrito'}
               </p>
-              <p className="text-[10px] text-room-text-secondary truncate">
-                {userRole === 'host' ? 'Você é o host' : userRole === 'cohost' ? 'Você é co-host' : `Apenas ${hostName}`}
+              <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">
+                {userRole === 'host' ? 'Host' : userRole === 'cohost' ? 'Co-host' : `${hostName}`}
               </p>
             </div>
           </div>
-          <ChevronDown className="w-3.5 h-3.5 text-room-text-secondary shrink-0" />
+          <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-room-text-secondary shrink-0 hidden xs:block" />
         </div>
       </div>
     </div>

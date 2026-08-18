@@ -5,8 +5,11 @@ import { z } from "zod";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
 const RegisterSchema = z.object({
-  name: z.string().max(100, "Nome deve ter no máximo 100 caracteres").optional(),
-  email: z.string().email("Email inválido"),
+  name: z
+    .string()
+    .min(3, "O nickname deve ter no mínimo 3 caracteres")
+    .max(50, "O nickname deve ter no máximo 50 caracteres"),
+  email: z.string().email("E-mail inválido").toLowerCase(),
   password: z
     .string()
     .min(8, "A senha deve ter pelo menos 8 caracteres")
@@ -17,15 +20,15 @@ const RegisterSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  // Rate limit: 3 registros por minuto por IP
+  // Rate limit: 5 registros por minuto por IP
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
     || req.headers.get("x-real-ip")
     || "unknown";
-  const rateResult = checkRateLimit(`register:${ip}`, 3, 60_000);
+  const rateResult = checkRateLimit(`register:${ip}`, 5, 60_000);
 
   if (!rateResult.allowed) {
     return NextResponse.json(
-      { error: "Muitas tentativas. Tente novamente mais tarde." },
+      { error: "Muitas tentativas de cadastro. Aguarde um momento e tente novamente." },
       { status: 429, headers: rateLimitHeaders(rateResult) }
     );
   }
@@ -39,27 +42,81 @@ export async function POST(req: Request) {
     }
 
     const { name, email, password } = result.data;
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    // 1. Check if nickname is already in use (case-insensitive)
+    const existingName = await prisma.user.findFirst({
+      where: {
+        name: {
+          equals: cleanName,
+          mode: "insensitive",
+        },
+      },
     });
 
-    if (existingUser) {
-      return NextResponse.json({ error: "E-mail já está em uso" }, { status: 400 });
+    if (existingName) {
+      return NextResponse.json(
+        { error: "Este nickname já está em uso. Por favor, escolha outro." },
+        { status: 400 }
+      );
+    }
+
+    // 2. Check if email is already in use (case-insensitive)
+    const existingEmail = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: cleanEmail,
+          mode: "insensitive",
+        },
+      },
+    });
+
+    if (existingEmail) {
+      return NextResponse.json(
+        { error: "Este e-mail já está cadastrado no sistema." },
+        { status: 400 }
+      );
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
     await prisma.user.create({
       data: {
-        name,
-        email,
+        name: cleanName,
+        email: cleanEmail,
         password: hashedPassword,
       },
     });
 
     return NextResponse.json({ message: "Usuário criado com sucesso!" }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Erro interno no servidor" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Erro interno no registro de usuário:", error);
+
+    // Handle Prisma P2002 Unique Constraint errors
+    if (error?.code === "P2002") {
+      const target = error.meta?.target;
+      if (Array.isArray(target) && target.includes("name")) {
+        return NextResponse.json(
+          { error: "Este nickname já está em uso. Por favor, escolha outro." },
+          { status: 400 }
+        );
+      }
+      if (Array.isArray(target) && target.includes("email")) {
+        return NextResponse.json(
+          { error: "Este e-mail já está cadastrado no sistema." },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: "Nickname ou e-mail já estão cadastrados." },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Falha ao processar o cadastro no banco de dados. Tente novamente." },
+      { status: 500 }
+    );
   }
 }

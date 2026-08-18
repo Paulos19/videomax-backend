@@ -274,3 +274,100 @@
     opacity: 1;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   AUTH SCENE — Cinematic 2.5D Depth System
+   ═══════════════════════════════════════════════ */
+
+@keyframes auth-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-character-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes auth-artwork-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes auth-brand-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ember-particle-rise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: var(--ember-peak-opacity, 0.5);
+  }
+  100% {
+    transform: translateY(var(--ember-travel, -120px)) scale(0.6);
+    opacity: 0;
+  }
+}
+
+.animate-auth-card-in {
+  animation: auth-card-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.15s;
+}
+
+.animate-auth-character-in {
+  animation: auth-character-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.3s;
+}
+
+.animate-auth-artwork-in {
+  animation: auth-artwork-in 0.8s ease-out both;
+  animation-delay: 0.05s;
+}
+
+.animate-auth-brand-in {
+  animation: auth-brand-in 0.5s ease-out both;
+  animation-delay: 0.4s;
+}
+
+.auth-card-glass {
+  background: rgba(11, 11, 11, 0.86);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 30px 100px rgba(0, 0, 0, 0.65),
+    0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-auth-card-in,
+  .animate-auth-character-in,
+  .animate-auth-artwork-in,
+  .animate-auth-brand-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

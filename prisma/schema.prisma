@@ -107,3 +107,14 @@ model Sticker {
   pack      StickerPack @relation(fields: [packId], references: [id], onDelete: Cascade)
 }
 
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email, code])
+}
+

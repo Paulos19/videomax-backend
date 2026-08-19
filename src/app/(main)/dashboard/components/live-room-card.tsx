@@ -27,12 +27,13 @@ function getThumbnailForVideo(url?: string, title?: string): string | null {
 }
 
 export function LiveRoomCard({ room }: { room: LiveRoomData }) {
-  const router = useRouter()
   const thumbnailUrl = getThumbnailForVideo(room.videoUrl, room.videoTitle)
 
   return (
     <div
-      onClick={() => router.push(`/room/${room.roomId}`)}
+      onClick={() => {
+        window.location.href = `/room/${room.roomId}`
+      }}
       className="group cursor-pointer relative bg-[#09090D] border border-[#222] hover:border-[#FF5A00] transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xl"
     >
       {/* Video Thumbnail Header */}

@@ -62,7 +62,7 @@ export function PendingInvites({ initialInvites = [], user }: PendingInvitesProp
 
   const handleAccept = (invite: PendingInviteData) => {
     setInvites((prev) => prev.filter((i) => i.id !== invite.id))
-    router.push(`/room/${invite.roomCode}`)
+    window.location.href = `/room/${invite.roomCode}`
   }
 
   const handleReject = (inviteId: string) => {

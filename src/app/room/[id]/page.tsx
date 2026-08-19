@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useSocket } from '@/lib/useSocket'
@@ -31,11 +31,46 @@ interface HostUserInfo {
   plan?: string | null
 }
 
-export default function RoomPage() {
+function RoomPageContent() {
   const params = useParams()
   const roomId = params.id as string
   const router = useRouter()
+
+  const [initialVideoUrl, setInitialVideoUrl] = useState<string | null>(null)
+  const [initialVideoTitle, setInitialVideoTitle] = useState<string | null>(null)
+  const initialSyncDispatched = useRef(false)
   const { data: session, status } = useSession()
+
+  // Read initial video from sessionStorage or query params on load & clear retry state
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    // Clear any previous error retry counter on successful load
+    sessionStorage.removeItem('room_retry_attempts')
+
+    const search = new URLSearchParams(window.location.search)
+    let videoUrl = search.get('v')
+    let videoTitle = search.get('t')
+
+    if (!videoUrl) {
+      const stored = sessionStorage.getItem(`pending_room_video_${roomId}`)
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          if (parsed.url) {
+            videoUrl = parsed.url
+            videoTitle = parsed.title || null
+          }
+        } catch {}
+        sessionStorage.removeItem(`pending_room_video_${roomId}`)
+      }
+    }
+
+    if (videoUrl) {
+      setInitialVideoUrl(videoUrl)
+      if (videoTitle) setInitialVideoTitle(videoTitle)
+    }
+  }, [roomId])
 
   const [videos, setVideos] = useState<Video[]>([])
   const [remotePlayerEvent, setRemotePlayerEvent] = useState<{
@@ -81,6 +116,20 @@ export default function RoomPage() {
     changeChatColor,
     reactToMessage,
   } = useSocket(roomId, hostUser?.id)
+
+  // 0. Auto-sync initial video when entering newly created room with YouTube / upload link
+  useEffect(() => {
+    if (!initialVideoUrl || initialSyncDispatched.current || !isConnected) return
+
+    if (userRole === 'host' || !roomInfo?.videoUrl) {
+      initialSyncDispatched.current = true
+      syncPlayerState({
+        type: 'change-video',
+        url: initialVideoUrl,
+        videoTitle: initialVideoTitle || undefined,
+      })
+    }
+  }, [initialVideoUrl, initialVideoTitle, isConnected, userRole, roomInfo?.videoUrl, syncPlayerState])
 
   // 1. Check friendship access with backend once roomInfo.hostUserId is known
   useEffect(() => {
@@ -528,8 +577,8 @@ export default function RoomPage() {
         viewers={viewers}
         currentUserId={currentUserId}
         isConnected={isConnected}
-        currentVideoUrl={currentVideoUrl}
-        videoTitle={roomInfo?.videoTitle}
+        currentVideoUrl={currentVideoUrl || initialVideoUrl}
+        videoTitle={roomInfo?.videoTitle || initialVideoTitle || undefined}
         userRole={userRole}
         hostPlan={roomInfo?.hostPlan || hostUser?.plan || 'FREE'}
         maxViewers={
@@ -556,5 +605,22 @@ export default function RoomPage() {
         senderName={session?.user?.name || session?.user?.email || 'Um amigo'}
       />
     </div>
+  )
+}
+
+export default function RoomPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen bg-[#050508] flex items-center justify-center font-mono">
+          <div className="text-white flex items-center gap-2 text-xs">
+            <Loader2 className="w-4 h-4 animate-spin text-[#FF5A00]" />
+            <span>INICIALIZANDO CONEXÃO QUÂNTICA...</span>
+          </div>
+        </div>
+      }
+    >
+      <RoomPageContent />
+    </Suspense>
   )
 }

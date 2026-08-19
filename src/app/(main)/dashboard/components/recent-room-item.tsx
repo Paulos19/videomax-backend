@@ -29,12 +29,13 @@ function getThumbnailForVideo(url?: string, title?: string): string | null {
 }
 
 export function RecentRoomItem({ room }: { room: RecentRoomData }) {
-  const router = useRouter()
   const thumb = room.thumbnailUrl || getThumbnailForVideo(undefined, room.title)
 
   return (
     <div
-      onClick={() => router.push(`/room/${room.roomId}`)}
+      onClick={() => {
+        window.location.href = `/room/${room.roomId}`
+      }}
       className="group cursor-pointer bg-[#09090D] hover:bg-[#0E0E14] border border-[#222] hover:border-[#FF5A00] p-3 flex items-center justify-between gap-4 transition-all duration-200"
     >
       {/* Left: Thumbnail & Info */}

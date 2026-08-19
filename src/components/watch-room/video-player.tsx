@@ -406,7 +406,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       return (
         <div
           ref={containerRef}
-          className="relative w-full h-full min-h-[380px] bg-[#050508] border border-[#1F1F28]"
+          className="relative w-full h-full min-h-[190px] xs:min-h-[210px] sm:min-h-[250px] lg:min-h-[380px] bg-[#050508] border border-[#1F1F28]"
         >
           <RoomStandby3DView
             isPro={isHostPro}
@@ -426,7 +426,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         ref={containerRef}
         onMouseMove={handleContainerMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
-        className="relative w-full h-full min-h-[380px] bg-black border border-[#1F1F28] overflow-hidden select-none flex items-center justify-center group"
+        className="relative w-full h-full min-h-[190px] xs:min-h-[210px] sm:min-h-[250px] lg:min-h-[380px] bg-black border border-[#1F1F28] overflow-hidden select-none flex items-center justify-center group"
       >
         {/* ── Screen Stream Mode ────────────────────────────────────── */}
         {isStreamingScreen ? (
@@ -550,10 +550,15 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   disablekb: 1,
                   fs: 0,
                   iv_load_policy: 3,
+                  vq: isHostPro ? 'hd1080' : 'hd720',
                 },
               }}
               onReady={(e) => {
                 reactPlayerRef.current = e.target
+                const targetQuality = isHostPro ? 'hd1080' : 'hd720'
+                try {
+                  e.target.setPlaybackQuality?.(targetQuality)
+                } catch {}
                 if (isMuted) e.target.mute()
                 else e.target.unMute()
                 e.target.setVolume(volume * 100)
@@ -567,6 +572,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               }}
               onPlay={(e) => {
                 reactPlayerRef.current = e.target
+                const targetQuality = isHostPro ? 'hd1080' : 'hd720'
+                try {
+                  e.target.setPlaybackQuality?.(targetQuality)
+                } catch {}
                 setIsPlaying(true)
                 onPlay?.()
               }}

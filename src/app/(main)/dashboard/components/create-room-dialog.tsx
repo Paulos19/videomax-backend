@@ -130,22 +130,25 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
       setIsSaving(true)
       await saveVideo(title, url, null)
       const roomCode = generateRoomCode()
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(`pending_room_video_${roomCode}`, JSON.stringify({ url, title }))
+      }
       broadcastInvitesToFriends(roomCode)
       onClose()
-      router.push(`/room/${roomCode}`)
+      window.location.href = `/room/${roomCode}`
     } catch (e: unknown) {
       setErrorMsg(e instanceof Error ? e.message : 'Erro ao criar sala.')
     } finally {
       setIsSaving(false)
     }
-  }, [youtubeUrl, youtubeTitle, onClose, router, invitedFriends])
+  }, [youtubeUrl, youtubeTitle, onClose, invitedFriends])
 
   const handleCreateEmptyRoom = useCallback(() => {
     const roomCode = generateRoomCode()
     broadcastInvitesToFriends(roomCode)
     onClose()
-    router.push(`/room/${roomCode}`)
-  }, [onClose, router, invitedFriends])
+    window.location.href = `/room/${roomCode}`
+  }, [onClose, invitedFriends])
 
   return (
     <div
@@ -291,9 +294,15 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
                     const file = res[0]
                     await saveVideo(file.name, file.url, null)
                     const roomCode = generateRoomCode()
+                    if (typeof window !== 'undefined') {
+                      sessionStorage.setItem(
+                        `pending_room_video_${roomCode}`,
+                        JSON.stringify({ url: file.url, title: file.name })
+                      )
+                    }
                     broadcastInvitesToFriends(roomCode)
                     onClose()
-                    router.push(`/room/${roomCode}`)
+                    window.location.href = `/room/${roomCode}`
                   }
                 }}
                 onUploadError={(error: Error) => {

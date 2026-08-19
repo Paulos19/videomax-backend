@@ -420,30 +420,32 @@ export function WatchRoom({
       />
 
       {/* Main Grid: Player Stage & Sidebar Chat */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-3 lg:p-4 gap-3 lg:gap-4 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-4">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-2 sm:p-3 lg:p-4 gap-2 sm:gap-3 lg:gap-4 overflow-hidden">
         
         {/* Left Column: Video Viewport, Control Bar, Viewers & VideoInfo */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-visible lg:overflow-y-auto pr-0 lg:pr-1 space-y-3">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden lg:overflow-y-auto pr-0 lg:pr-1 space-y-2 lg:space-y-3">
           
-          {/* 1. Video Player with 3D Standby Mode */}
-          <VideoPlayer
-            ref={videoPlayerRef}
-            src={localVideoUrl}
-            canControl={canControl}
-            isHostPro={isHostPro}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onSeek={handleSeek}
-            onCanPlay={handleVideoReady}
-            isStreamingScreen={isStreamingScreen}
-            streamMedia={activeStreamMedia}
-            streamerName={screenStreamerName || 'Host'}
-            isLocalStreamer={isLocalStreamer}
-            onStopStream={stopScreenShare}
-            onSelectVideo={() => setShowVideoSelector(true)}
-            onShareScreen={handleToggleScreenShare}
-            onOpenLibrary={() => setShowVideoSelector(true)}
-          />
+          {/* 1. Video Player with 3D Standby Mode (Fixed aspect-ratio on mobile, full stage on desktop) */}
+          <div className="w-full shrink-0 aspect-video max-h-[220px] xs:max-h-[240px] sm:max-h-[280px] lg:max-h-none lg:h-[480px] xl:h-[540px]">
+            <VideoPlayer
+              ref={videoPlayerRef}
+              src={localVideoUrl}
+              canControl={canControl}
+              isHostPro={isHostPro}
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onSeek={handleSeek}
+              onCanPlay={handleVideoReady}
+              isStreamingScreen={isStreamingScreen}
+              streamMedia={activeStreamMedia}
+              streamerName={screenStreamerName || 'Host'}
+              isLocalStreamer={isLocalStreamer}
+              onStopStream={stopScreenShare}
+              onSelectVideo={() => setShowVideoSelector(true)}
+              onShareScreen={handleToggleScreenShare}
+              onOpenLibrary={() => setShowVideoSelector(true)}
+            />
+          </div>
 
           {/* 2. Player Controls Bar (Desktop only - Mobile uses native player gestures) */}
           <div className="hidden lg:block">
@@ -464,7 +466,7 @@ export function WatchRoom({
           </div>
 
           {/* Mobile Tab Switcher (< lg breakpoint) */}
-          <div className="flex lg:hidden items-center bg-[#08080C] border border-[#1F1F28] p-1 gap-1 font-mono">
+          <div className="flex lg:hidden items-center bg-[#08080C] border border-[#1F1F28] p-1 gap-1 font-mono shrink-0">
             <button
               type="button"
               onClick={() => setActiveMobileTab('chat')}
@@ -513,10 +515,10 @@ export function WatchRoom({
             </button>
           </div>
 
-          {/* Mobile Content View */}
-          <div className="block lg:hidden">
+          {/* Mobile Content View (< lg breakpoint) - Fills exact remaining vertical space */}
+          <div className="flex-1 min-h-0 flex flex-col lg:hidden overflow-hidden">
             {activeMobileTab === 'chat' && (
-              <div className="h-[460px] flex flex-col shrink-0 my-1">
+              <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
                 <ChatPanel
                   messages={messages}
                   currentUserId={currentUserId}
@@ -532,7 +534,7 @@ export function WatchRoom({
             )}
 
             {activeMobileTab === 'viewers' && (
-              <div className="space-y-3 my-1">
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-0.5 scrollbar-thin">
                 <ViewersPanel
                   viewers={viewers}
                   currentUserRole={userRole}
@@ -551,7 +553,7 @@ export function WatchRoom({
             )}
 
             {activeMobileTab === 'info' && (
-              <div className="space-y-3 my-1">
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-0.5 scrollbar-thin">
                 <VideoInfo
                   videoTitle={currentTitle}
                   currentTime={formatTime(currentTime)}

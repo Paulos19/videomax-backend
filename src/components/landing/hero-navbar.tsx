@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion'
 import { useLandingSocket } from '@/lib/useLandingSocket'
-import { useLenis } from '@studio-freight/react-lenis'
+import { useLenis } from 'lenis/react'
 import { useSession, signOut } from 'next-auth/react'
 
 const NAV_LINKS = [

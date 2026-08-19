@@ -365,9 +365,118 @@
   .animate-auth-card-in,
   .animate-auth-character-in,
   .animate-auth-artwork-in,
-  .animate-auth-brand-in {
+  .animate-auth-brand-in,
+  .animate-hero-float,
+  .animate-hero-float-reverse,
+  .animate-hero-float-slow,
+  .animate-hero-glow-pulse,
+  .animate-hero-scroll-indicator,
+  .animate-hero-stagger-in {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
   }
+}
+
+/* ═══════════════════════════════════════════════
+   LANDING PAGE — Hero Cinematic Parallax System
+   ═══════════════════════════════════════════════ */
+
+/* Floating animation for social elements */
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-8px) rotate(0.5deg); }
+  50% { transform: translateY(-14px) rotate(0deg); }
+  75% { transform: translateY(-6px) rotate(-0.5deg); }
+}
+@keyframes hero-float-reverse {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(6px) rotate(-0.5deg); }
+  50% { transform: translateY(12px) rotate(0deg); }
+  75% { transform: translateY(4px) rotate(0.5deg); }
+}
+@keyframes hero-float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-hero-float {
+  animation: hero-float 6s ease-in-out infinite;
+}
+.animate-hero-float-reverse {
+  animation: hero-float-reverse 7s ease-in-out infinite;
+}
+.animate-hero-float-slow {
+  animation: hero-float-slow 10s ease-in-out infinite;
+}
+
+/* Atmospheric glow pulsation */
+@keyframes hero-glow-pulse {
+  0%, 100% { opacity: 0.15; transform: translateX(-3%) scale(1); }
+  50% { opacity: 0.30; transform: translateX(3%) scale(1.02); }
+}
+.animate-hero-glow-pulse {
+  animation: hero-glow-pulse 8s ease-in-out infinite;
+}
+
+/* Scroll indicator bounce */
+@keyframes hero-scroll-indicator {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+.animate-hero-scroll-indicator {
+  animation: hero-scroll-indicator 2.5s ease-in-out infinite;
+}
+
+/* Staggered entrance */
+@keyframes hero-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-hero-stagger-in {
+  animation: hero-stagger-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Hero atmospheric glow layer */
+.hero-atmospheric-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 65% 40%, rgba(239, 32, 32, 0.12), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 55% 55%, rgba(255, 90, 0, 0.08), transparent 65%),
+    radial-gradient(ellipse 40% 40% at 70% 30%, rgba(255, 184, 0, 0.05), transparent 60%);
+  pointer-events: none;
+}
+
+/* Navbar glass effect */
+.hero-navbar-glass {
+  background: rgba(11, 11, 11, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Player mockup glass */
+.hero-player-glass {
+  background: rgba(11, 11, 11, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 40px 100px rgba(0, 0, 0, 0.8),
+    0 0 80px rgba(255, 90, 0, 0.06),
+    0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+/* Social element float glass */
+.hero-social-glass {
+  background: rgba(11, 11, 11, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }

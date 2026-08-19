@@ -12,6 +12,7 @@ interface ViewersPanelProps {
   isHostPro?: boolean
   hostPlan?: string
   onInvite?: () => void
+  onSyncAll?: () => void
   onChangeUserRole?: (targetUserId: string, newRole: 'host' | 'cohost' | 'viewer') => void
   onKickUser?: (targetUserId: string) => void
 }
@@ -22,18 +23,31 @@ export function ViewersPanel({
   isHostPro = true,
   hostPlan = 'MAXPRO',
   onInvite,
+  onSyncAll,
   onChangeUserRole,
   onKickUser,
 }: ViewersPanelProps) {
   return (
-    <div className="bg-[#08080C] border border-[#1F1F28] p-4 flex-1 space-y-2 shadow-sm h-full font-mono select-none">
+    <div className="bg-[#08080C] border border-[#1F1F28] p-4 flex-1 space-y-3 shadow-sm h-full font-mono select-none">
       <div className="flex items-center justify-between border-b border-[#181822] pb-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-ping" />
           <h4 className="text-[11px] font-black text-white uppercase tracking-wider">
-            [ NÓS CONECTADOS NA SALA ({viewers.length}) ]
+            [ NÓS NA SALA ({viewers.length}) ]
           </h4>
         </div>
+
+        {onSyncAll && (
+          <button
+            type="button"
+            onClick={onSyncAll}
+            className="px-2.5 py-1 bg-[#22C55E]/15 hover:bg-[#22C55E] text-[#22C55E] hover:text-black border border-[#22C55E]/40 hover:border-[#22C55E] text-[10px] font-black uppercase transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
+            title="Forçar sincronia do tempo do vídeo de todos com o Host"
+          >
+            <Radio className="w-3 h-3 animate-pulse" />
+            <span>SINCRONIZAR</span>
+          </button>
+        )}
       </div>
 
       {/* Viewers row with generous padding to prevent badge clipping */}
@@ -197,6 +211,20 @@ export function ViewersPanel({
           )
         })}
       </div>
+
+      {/* Sync All Viewers Button */}
+      {onSyncAll && (
+        <div className="pt-2 border-t border-[#181822]">
+          <button
+            type="button"
+            onClick={onSyncAll}
+            className="w-full py-2.5 px-3 bg-[#22C55E]/10 hover:bg-[#22C55E] text-[#22C55E] hover:text-black border border-[#22C55E]/40 hover:border-[#22C55E] text-[11px] font-mono font-black uppercase flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-98"
+          >
+            <Radio className="w-3.5 h-3.5 animate-pulse" />
+            <span>SINCRONIZAR TODOS COM O HOST</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

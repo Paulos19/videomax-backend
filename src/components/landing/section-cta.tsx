@@ -3,11 +3,14 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { ArrowRight } from 'lucide-react'
 import { ThreeNeutron } from './three-neutron'
 
 export function SectionCTA() {
   const sectionRef = useRef<HTMLDivElement>(null)
+  const { status } = useSession()
+  const isAuthenticated = status === 'authenticated'
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -39,9 +42,9 @@ export function SectionCTA() {
         </h2>
 
         {/* Primary CTA */}
-        <Link href="/register" className="pointer-events-auto">
-          <button className="group relative inline-flex items-center gap-4 bg-[#F5F5F5] hover:bg-[#FF5A00] text-[#050505] hover:text-[#F5F5F5] font-mono font-bold text-[14px] uppercase px-12 py-6 transition-colors cursor-pointer">
-            <span>Criar Sala Agora</span>
+        <Link href={isAuthenticated ? '/dashboard' : '/register'} className="pointer-events-auto">
+          <button className="group relative inline-flex items-center gap-4 bg-[#F5F5F5] hover:bg-[#FF5A00] text-[#050505] hover:text-[#050505] font-mono font-bold text-[14px] uppercase px-12 py-6 transition-colors cursor-pointer shadow-lg active:scale-95">
+            <span>{isAuthenticated ? 'Criar Nova Sala 🚀' : 'Criar Conta Grátis'}</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
           </button>
         </Link>

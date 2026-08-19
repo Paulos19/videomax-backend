@@ -445,21 +445,23 @@ export function WatchRoom({
             onOpenLibrary={() => setShowVideoSelector(true)}
           />
 
-          {/* 2. Player Controls Bar */}
-          <PlayerControlBar
-            isPlaying={isPlaying}
-            userRole={userRole}
-            hostName={hostName}
-            onTogglePlay={togglePlay}
-            onSeekBack={() =>
-              handleSeek(Math.max(0, (videoPlayerRef.current?.getCurrentTime() || 0) - 10))
-            }
-            onSeekForward={() =>
-              handleSeek((videoPlayerRef.current?.getCurrentTime() || 0) + 10)
-            }
-            onNextVideo={() => setShowVideoSelector(true)}
-            onSyncAll={handleSyncAll}
-          />
+          {/* 2. Player Controls Bar (Desktop only - Mobile uses native player gestures) */}
+          <div className="hidden lg:block">
+            <PlayerControlBar
+              isPlaying={isPlaying}
+              userRole={userRole}
+              hostName={hostName}
+              onTogglePlay={togglePlay}
+              onSeekBack={() =>
+                handleSeek(Math.max(0, (videoPlayerRef.current?.getCurrentTime() || 0) - 10))
+              }
+              onSeekForward={() =>
+                handleSeek((videoPlayerRef.current?.getCurrentTime() || 0) + 10)
+              }
+              onNextVideo={() => setShowVideoSelector(true)}
+              onSyncAll={handleSyncAll}
+            />
+          </div>
 
           {/* Mobile Tab Switcher (< lg breakpoint) */}
           <div className="flex lg:hidden items-center bg-[#08080C] border border-[#1F1F28] p-1 gap-1 font-mono">
@@ -536,6 +538,7 @@ export function WatchRoom({
                   currentUserRole={userRole}
                   isHostPro={isHostPro}
                   hostPlan={hostPlan}
+                  onSyncAll={handleSyncAll}
                   onChangeUserRole={onChangeUserRole}
                   onKickUser={onKickUser}
                   onInvite={() => setShowShareModal(true)}
@@ -571,6 +574,7 @@ export function WatchRoom({
                   currentUserRole={userRole}
                   isHostPro={isHostPro}
                   hostPlan={hostPlan}
+                  onSyncAll={handleSyncAll}
                   onChangeUserRole={onChangeUserRole}
                   onKickUser={onKickUser}
                   onInvite={() => setShowShareModal(true)}

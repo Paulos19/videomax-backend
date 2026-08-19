@@ -98,6 +98,7 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
   const [userReactions, setUserReactions] = useState<Record<string, string>>(
     message.userReactions || {}
   )
+  const [showMobileActions, setShowMobileActions] = useState(false)
 
   useEffect(() => {
     if (message.userReactions) {
@@ -166,6 +167,14 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
         isOwn && 'flex-row-reverse'
       )}
     >
+      {/* Backdrop for closing mobile actions on click outside */}
+      {showMobileActions && (
+        <div
+          className="fixed inset-0 z-20 bg-transparent"
+          onClick={() => setShowMobileActions(false)}
+        />
+      )}
+
       {/* Avatar with optional PRO Glow */}
       <div className="relative shrink-0">
         <Avatar
@@ -228,14 +237,30 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
               })}
             </span>
           )}
+
+          {/* Quick Mobile Action Trigger (Visible on touch/mobile) */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowMobileActions((prev) => !prev)
+            }}
+            className="md:hidden p-0.5 text-[#777] hover:text-white transition-colors cursor-pointer"
+            title="Reagir / Responder"
+          >
+            <Reply className="w-2.5 h-2.5" />
+          </button>
         </div>
 
-        {/* Action Bar on Hover (Reactions + Reply button) */}
+        {/* Action Bar (Reactions + Reply button) - Accessible on Hover & Mobile Tap */}
         <div className="relative group/bubble w-full">
           <div
             className={cn(
-              'opacity-0 group-hover/bubble:opacity-100 transition-opacity absolute -top-8 z-30 flex items-center gap-1 bg-[#0A0A0F] border border-[#333] px-1.5 py-0.5 shadow-xl',
-              isOwn ? 'right-0' : 'left-0'
+              'transition-all duration-200 absolute -top-8 z-30 flex items-center gap-1 bg-[#0A0A0F] border border-[#FF5A00] px-1.5 py-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.85)]',
+              isOwn ? 'right-0' : 'left-0',
+              showMobileActions
+                ? 'opacity-100 scale-100 pointer-events-auto'
+                : 'opacity-0 scale-95 pointer-events-none md:group-hover/bubble:opacity-100 md:group-hover/bubble:scale-100 md:group-hover/bubble:pointer-events-auto'
             )}
           >
             {/* Quick Reactions */}
@@ -248,6 +273,7 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
                   onClick={(e) => {
                     e.stopPropagation()
                     handleReact(emoji)
+                    setShowMobileActions(false)
                   }}
                   className={cn(
                     'p-0.5 text-xs hover:scale-130 transition-transform cursor-pointer',
@@ -268,6 +294,7 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
                 onClick={(e) => {
                   e.stopPropagation()
                   onReply(message)
+                  setShowMobileActions(false)
                 }}
                 className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold text-white bg-[#181824] hover:bg-[#FF5A00] hover:text-black transition-colors cursor-pointer"
                 title="Responder mensagem"
@@ -280,8 +307,9 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
 
           {/* ── Message Bubble Structure ─────────────────────────── */}
           <div
+            onClick={() => setShowMobileActions((prev) => !prev)}
             className={cn(
-              'relative select-text text-xs leading-relaxed transition-all',
+              'relative select-text text-xs leading-relaxed transition-all cursor-pointer',
               isSticker
                 ? 'p-0 bg-transparent border-0 shadow-none'
                 : isMessagePro

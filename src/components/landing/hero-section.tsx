@@ -4,8 +4,9 @@ import { useRef, useState, useEffect } from 'react'
 import { motion, useScroll, useTransform, MotionValue } from 'framer-motion'
 import { ThreeRings } from './three-rings'
 import { BrushTrail } from './brush-trail'
-import { Play, ArrowDown } from 'lucide-react'
+import { Play, ArrowDown, Sparkles } from 'lucide-react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 
 interface DispersingLetterProps {
   char: string
@@ -71,6 +72,8 @@ const LETTERS_CONFIG = [
 export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+  const { status } = useSession()
+  const isAuthenticated = status === 'authenticated'
 
   // Parallax scroll logic linked to window scroll
   const { scrollYProgress } = useScroll({
@@ -174,11 +177,11 @@ export function HeroSection() {
         {/* Direct CTA Action Button */}
         <motion.div style={{ opacity: ctaOpacity }} className="mt-8 flex items-center gap-4">
           <Link
-            href="/register"
+            href={isAuthenticated ? '/dashboard' : '/register'}
             className="inline-flex items-center gap-2.5 bg-white hover:bg-[#FF5A00] text-black hover:text-black font-mono font-black text-[12px] uppercase px-8 py-4 transition-all duration-200 shadow-[0_0_30px_rgba(255,255,255,0.25)] hover:shadow-[0_0_35px_rgba(255,90,0,0.5)] hover:scale-105 active:scale-95 cursor-pointer"
           >
             <Play className="w-4 h-4 fill-black" />
-            <span>CRIAR SALA AGORA</span>
+            <span>{isAuthenticated ? 'CRIAR NOVA SALA 🚀' : 'CRIAR CONTA GRÁTIS'}</span>
           </Link>
         </motion.div>
       </motion.div>

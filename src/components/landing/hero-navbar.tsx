@@ -536,14 +536,14 @@ export function HeroNavbar() {
                   href="/login"
                   className="hidden md:flex text-[10px] font-mono font-bold text-white hover:text-[#FF5A00] hover:bg-[#111] px-6 lg:px-8 py-6 transition-colors tracking-widest uppercase h-full items-center border-l border-[#222] cursor-pointer"
                 >
-                  Autenticar
+                  Entrar
                 </Link>
 
                 <Link
                   href="/register"
-                  className="hidden md:flex text-[11px] font-mono font-bold bg-[#F5F5F5] hover:bg-[#FF5A00] text-[#050505] hover:text-[#050505] px-8 lg:px-10 py-6 transition-colors tracking-widest uppercase h-full items-center cursor-pointer"
+                  className="hidden md:flex text-[11px] font-mono font-bold bg-[#F5F5F5] hover:bg-[#FF5A00] text-[#050505] hover:text-[#050505] px-8 lg:px-10 py-6 transition-colors tracking-widest uppercase h-full items-center cursor-pointer shadow-md"
                 >
-                  INICIAR SESSÃO
+                  CRIAR CONTA
                 </Link>
               </>
             )}
@@ -675,14 +675,14 @@ export function HeroNavbar() {
                   className="text-center text-[12px] font-mono font-bold text-white hover:text-[#FF5A00] py-4 border-b border-[#222] transition-colors uppercase tracking-widest cursor-pointer"
                   onClick={() => setMobileOpen(false)}
                 >
-                  [ AUTENTICAR ]
+                  [ ENTRAR ]
                 </Link>
                 <Link
                   href="/register"
                   className="text-center text-[12px] font-mono font-bold bg-[#F5F5F5] hover:bg-[#FF5A00] text-[#050505] hover:text-white py-5 transition-colors uppercase tracking-widest cursor-pointer"
                   onClick={() => setMobileOpen(false)}
                 >
-                  INICIAR SESSÃO
+                  CRIAR CONTA GRÁTIS
                 </Link>
               </div>
             )}

@@ -15,6 +15,7 @@ import {
   Crown,
   Monitor,
   Zap,
+  Film,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isYouTubeUrl, getYouTubeVideoId } from '@/lib/youtube'
@@ -89,9 +90,12 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const reactPlayerRef = useRef<any>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null)
+    const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const playPromiseRef = useRef<Promise<void> | null>(null)
+    const isPageVisibilityHiddenRef = useRef<boolean>(false)
 
     const [isPlaying, setIsPlaying] = useState(false)
+    const [actionRipple, setActionRipple] = useState<'play' | 'pause' | 'rewind' | 'forward' | null>(null)
     const [isMuted, setIsMuted] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
@@ -107,6 +111,32 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const cleanSrc = (src || '').trim()
     const hasMedia = cleanSrc !== '' && cleanSrc !== 'EMPTY'
     const isYouTube = hasMedia && isYouTubeUrl(cleanSrc)
+
+    // Handle mobile backgrounding / notification shade pull-down without killing room sync
+    useEffect(() => {
+      const handleVisibilityChange = () => {
+        const isHidden = document.visibilityState === 'hidden'
+        isPageVisibilityHiddenRef.current = isHidden
+
+        if (!isHidden) {
+          // Re-opened Chrome / dismissed notifications: resume playback locally if active
+          if (isPlaying) {
+            if (isYouTube && reactPlayerRef.current) {
+              try {
+                reactPlayerRef.current.playVideo()
+              } catch {}
+            } else if (videoRef.current) {
+              videoRef.current.play().catch(() => {})
+            }
+          }
+        }
+      }
+
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }, [isPlaying, isYouTube])
 
     // Active polling for YouTube playback time and duration
     useEffect(() => {
@@ -161,7 +191,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               .then(() => {
                 videoRef.current?.pause()
               })
-              .catch(() => {})
+              .catch(() => { })
           } else {
             videoRef.current.pause()
           }
@@ -194,41 +224,112 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     useEffect(() => {
       if (streamVideoRef.current && streamMedia) {
         streamVideoRef.current.srcObject = streamMedia
-        streamVideoRef.current.play().catch(() => {})
+        streamVideoRef.current.play().catch(() => { })
       }
     }, [streamMedia, isStreamingScreen, showLocalPreview])
 
-    // Controls timeout
-    const resetControlsTimeout = useCallback(() => {
-      setShowControls(true)
-      if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current)
-      hideControlsTimeout.current = setTimeout(() => {
+    // Controls timeout: auto-hide ONLY when playing, never auto-hide when paused (5s duration)
+    const resetControlsTimeout = useCallback(
+      (ms = 5000) => {
+        setShowControls(true)
+        if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current)
         if (isPlaying) {
-          setShowControls(false)
+          hideControlsTimeout.current = setTimeout(() => {
+            setShowControls(false)
+          }, ms)
         }
-      }, 4000)
-    }, [isPlaying])
+      },
+      [isPlaying]
+    )
 
     const togglePlay = useCallback(() => {
       if (!canControl) return
       if (isPlaying) {
-        if (isYouTube) {
-          reactPlayerRef.current?.pauseVideo?.()
-        } else {
-          videoRef.current?.pause()
+        if (isYouTube && reactPlayerRef.current) {
+          try {
+            reactPlayerRef.current.pauseVideo()
+          } catch {}
+        } else if (videoRef.current) {
+          videoRef.current.pause()
         }
         setIsPlaying(false)
+        setShowControls(true)
+        if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current)
         onPause?.()
       } else {
-        if (isYouTube) {
-          reactPlayerRef.current?.playVideo?.()
-        } else {
-          videoRef.current?.play()?.catch(() => {})
+        if (isYouTube && reactPlayerRef.current) {
+          try {
+            reactPlayerRef.current.playVideo()
+          } catch {}
+        } else if (videoRef.current) {
+          videoRef.current.play()?.catch(() => {})
         }
         setIsPlaying(true)
+        setShowControls(true)
+        if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current)
+        hideControlsTimeout.current = setTimeout(() => setShowControls(false), 5000)
         onPlay?.()
       }
     }, [canControl, isPlaying, isYouTube, onPause, onPlay])
+
+    // Single click toggles player info/controls; Double click performs directional actions
+    const handleVideoSurfaceClick = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        const xPercent = (e.clientX - rect.left) / rect.width
+
+        if (clickTimeoutRef.current) {
+          // Double click / tap detected!
+          clearTimeout(clickTimeoutRef.current)
+          clickTimeoutRef.current = null
+
+          if (!canControl) return
+
+          if (xPercent < 0.35) {
+            // Left Zone: -10s
+            const newTime = Math.max(0, currentTime - 10)
+            if (isYouTube) {
+              reactPlayerRef.current?.seekTo?.(newTime, true)
+            } else if (videoRef.current) {
+              videoRef.current.currentTime = newTime
+            }
+            setCurrentTime(newTime)
+            onSeek?.(newTime)
+            setActionRipple('rewind')
+            resetControlsTimeout(5000)
+            setTimeout(() => setActionRipple(null), 750)
+          } else if (xPercent > 0.65) {
+            // Right Zone: +10s
+            const targetDuration = duration || 9999
+            const newTime = Math.min(targetDuration, currentTime + 10)
+            if (isYouTube) {
+              reactPlayerRef.current?.seekTo?.(newTime, true)
+            } else if (videoRef.current) {
+              videoRef.current.currentTime = newTime
+            }
+            setCurrentTime(newTime)
+            onSeek?.(newTime)
+            setActionRipple('forward')
+            resetControlsTimeout(5000)
+            setTimeout(() => setActionRipple(null), 750)
+          } else {
+            // Center Zone: Play / Pause
+            togglePlay()
+            setActionRipple(isPlaying ? 'pause' : 'play')
+            resetControlsTimeout(5000)
+            setTimeout(() => setActionRipple(null), 750)
+          }
+        } else {
+          // Single click: wait 240ms. On single click, reveal controls and keep visible for full 5 seconds
+          clickTimeoutRef.current = setTimeout(() => {
+            clickTimeoutRef.current = null
+            setShowControls(true)
+            resetControlsTimeout(5000)
+          }, 240)
+        }
+      },
+      [canControl, currentTime, duration, isPlaying, isYouTube, onSeek, resetControlsTimeout, togglePlay]
+    )
 
     const toggleMute = useCallback(() => {
       if (isYouTube) {
@@ -248,9 +349,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const toggleFullscreen = useCallback(() => {
       if (!containerRef.current) return
       if (!document.fullscreenElement) {
-        containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {})
+        containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => { })
       } else {
-        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {})
+        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => { })
       }
       onFullscreen?.()
     }, [onFullscreen])
@@ -296,6 +397,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       [duration, isYouTube]
     )
 
+    const handleContainerMouseMove = useCallback(() => {
+      resetControlsTimeout(5000)
+    }, [resetControlsTimeout])
+
     // Check if room is in standby state (no stream, no video)
     if (!isStreamingScreen && !hasMedia) {
       return (
@@ -319,7 +424,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     return (
       <div
         ref={containerRef}
-        onMouseMove={resetControlsTimeout}
+        onMouseMove={handleContainerMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
         className="relative w-full h-full min-h-[380px] bg-black border border-[#1F1F28] overflow-hidden select-none flex items-center justify-center group"
       >
@@ -460,19 +565,37 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 setIsLoading(false)
                 onCanPlay?.()
               }}
-              onPlay={() => {
+              onPlay={(e) => {
+                reactPlayerRef.current = e.target
                 setIsPlaying(true)
                 onPlay?.()
               }}
-              onPause={() => {
+              onPause={(e) => {
+                reactPlayerRef.current = e.target
+                if (isPageVisibilityHiddenRef.current) {
+                  // Backgrounded or notifications pulled down: do NOT broadcast pause to room
+                  return
+                }
                 setIsPlaying(false)
+                setShowControls(true)
                 onPause?.()
               }}
               onStateChange={(e) => {
-                if (e.data === 1) setIsPlaying(true)
-                else if (e.data === 2) setIsPlaying(false)
-                else if (e.data === 3) setIsLoading(true)
-                else setIsLoading(false)
+                reactPlayerRef.current = e.target
+                if (e.data === 1) {
+                  setIsPlaying(true)
+                  setIsLoading(false)
+                } else if (e.data === 2) {
+                  if (!isPageVisibilityHiddenRef.current) {
+                    setIsPlaying(false)
+                    setShowControls(true)
+                  }
+                  setIsLoading(false)
+                } else if (e.data === 3) {
+                  setIsLoading(true)
+                } else {
+                  setIsLoading(false)
+                }
 
                 try {
                   const dur = e.target.getDuration()
@@ -506,6 +629,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               onPlay?.()
             }}
             onPause={() => {
+              if (isPageVisibilityHiddenRef.current) {
+                // Backgrounded / notifications pulled down: do NOT broadcast pause
+                return
+              }
               setIsPlaying(false)
               onPause?.()
             }}
@@ -513,21 +640,50 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               setIsLoading(false)
               onCanPlay?.()
             }}
-            onClick={togglePlay}
           />
         )}
 
         {/* ── Overlay Controls for Video Playback ───────────────────── */}
         {!isStreamingScreen && hasMedia && (
           <>
-            {/* Click to play/pause hit layer */}
+            {/* Click / Double-click surface */}
             <div
-              onClick={canControl ? togglePlay : undefined}
-              className={cn(
-                'absolute inset-0 z-10',
-                canControl ? 'cursor-pointer' : 'cursor-default'
-              )}
+              onClick={handleVideoSurfaceClick}
+              className="absolute inset-0 z-10 cursor-pointer"
             />
+
+            {/* Gesture Directional Indicators (Rewind -10s / Forward +10s / Play / Pause) */}
+            {actionRipple === 'rewind' && (
+              <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center z-25 pointer-events-none animate-in fade-in zoom-in-75 duration-200">
+                <div className="px-3.5 py-2 rounded-full bg-black/85 border-2 border-[#FF5A00] flex items-center gap-1 text-white shadow-[0_0_30px_rgba(255,90,0,0.7)] backdrop-blur-sm">
+                  <span className="text-xs font-black text-[#FF5A00] animate-pulse">⏪ -10s</span>
+                </div>
+              </div>
+            )}
+
+            {actionRipple === 'forward' && (
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center z-25 pointer-events-none animate-in fade-in zoom-in-75 duration-200">
+                <div className="px-3.5 py-2 rounded-full bg-black/85 border-2 border-[#FF5A00] flex items-center gap-1 text-white shadow-[0_0_30px_rgba(255,90,0,0.7)] backdrop-blur-sm">
+                  <span className="text-xs font-black text-[#FF5A00] animate-pulse">+10s ⏩</span>
+                </div>
+              </div>
+            )}
+
+            {actionRipple === 'play' && (
+              <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none animate-in fade-in zoom-in-75 duration-200">
+                <div className="w-16 h-16 rounded-full bg-black/85 border-2 border-[#FFE600] flex items-center justify-center text-[#FFE600] shadow-[0_0_30px_rgba(255,230,0,0.7)] backdrop-blur-sm">
+                  <Play className="w-8 h-8 fill-[#FFE600] ml-1" />
+                </div>
+              </div>
+            )}
+
+            {actionRipple === 'pause' && (
+              <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none animate-in fade-in zoom-in-75 duration-200">
+                <div className="w-16 h-16 rounded-full bg-black/85 border-2 border-[#FFE600] flex items-center justify-center text-[#FFE600] shadow-[0_0_30px_rgba(255,230,0,0.7)] backdrop-blur-sm">
+                  <Pause className="w-8 h-8 fill-[#FFE600]" />
+                </div>
+              </div>
+            )}
 
             {/* Top Telemetry Overlay */}
             <div
@@ -543,12 +699,28 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#0E0E14] border border-[#222] text-[#888] text-[9px] uppercase">
-                {canControl ? (
-                  <span className="text-[#FFE600] font-bold">CONTROLE LIBERADO</span>
-                ) : (
-                  <span>MODO ESPECTADOR</span>
+              <div className="flex items-center gap-2">
+                {canControl && onSelectVideo && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSelectVideo()
+                    }}
+                    className="px-2.5 py-1 bg-[#121218] hover:bg-[#FF5A00] hover:text-black text-white border border-[#333] hover:border-[#FF5A00] text-[9px] font-black uppercase transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
+                  >
+                    <Film className="w-3 h-3" />
+                    <span>MUDAR VÍDEO</span>
+                  </button>
                 )}
+
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#0E0E14] border border-[#222] text-[#888] text-[9px] uppercase">
+                  {canControl ? (
+                    <span className="text-[#FFE600] font-bold">CONTROLE LIBERADO</span>
+                  ) : (
+                    <span>MODO ESPECTADOR</span>
+                  )}
+                </div>
               </div>
             </div>
 

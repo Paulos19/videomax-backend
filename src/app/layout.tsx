@@ -33,8 +33,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <SessionProvider>{children}</SessionProvider>
-        <Toaster position="top-right" />
+        <SessionProvider>
+          {children}
+          <Toaster position="top-right" />
+        </SessionProvider>
       </body>
     </html>
   );

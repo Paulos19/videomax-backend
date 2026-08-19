@@ -1,6 +1,6 @@
 'use client'
 
-import { Activity, Play, Pause, FastForward, Rewind, Crown, Lock, ChevronDown } from 'lucide-react'
+import { Activity, Play, Pause, FastForward, Rewind, Crown, Lock, ChevronDown, Radio, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface PlayerControlBarProps {
@@ -12,78 +12,90 @@ interface PlayerControlBarProps {
   onSeekBack?: () => void
   onSeekForward?: () => void
   onNextVideo?: () => void
+  onSyncAll?: () => void
 }
 
 export function PlayerControlBar({
   isPlaying,
   userRole = 'viewer',
   hostName = 'Host',
-  syncStatus = 'Todos em sincronia',
+  syncStatus = 'SINCRONIA ATIVA',
   onTogglePlay,
   onSeekBack,
   onSeekForward,
   onNextVideo,
   onSyncAll,
-}: PlayerControlBarProps & { onSyncAll?: () => void }) {
+}: PlayerControlBarProps) {
   const canControl = userRole === 'host' || userRole === 'cohost'
 
   return (
-    <div className="bg-room-surface/40 backdrop-blur-xl border border-white/5 rounded-2xl sm:rounded-[28px] p-1.5 sm:p-3 my-2 sm:my-3">
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 sm:gap-2.5">
+    <div className="bg-[#08080C] border border-[#1F1F28] p-2 font-mono select-none">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+        
         {/* 1. Play / Pause */}
         <button
           onClick={canControl ? onTogglePlay : undefined}
           disabled={!canControl}
           className={cn(
-            "bg-room-surface/30 border border-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center justify-between transition-all group",
+            'p-2.5 border flex items-center gap-2.5 transition-all text-left',
             canControl
-              ? "hover:bg-room-surface/50 hover:border-room-accent/30 hover:shadow-[0_0_15px_rgba(255,90,0,0.1)] cursor-pointer hover:scale-[1.02] active:scale-95"
-              : "opacity-60 cursor-not-allowed"
+              ? 'bg-[#0E0E14] border-[#262633] hover:border-[#FF5A00] hover:bg-[#151520] cursor-pointer'
+              : 'bg-[#0A0A0E] border-[#181820] opacity-50 cursor-not-allowed'
           )}
         >
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm shrink-0">
-              {isPlaying ? <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-room-accent" /> : <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-room-accent ml-0.5" />}
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-[11px] sm:text-xs font-bold text-white truncate">{isPlaying ? 'Pausar' : 'Play'}</p>
-              <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">{canControl ? '(Espaço)' : 'Host'}</p>
-            </div>
+          <div className="w-7 h-7 bg-[#FF5A00] flex items-center justify-center text-black shrink-0">
+            {isPlaying ? <Pause className="w-3.5 h-3.5 fill-black" /> : <Play className="w-3.5 h-3.5 fill-black ml-0.5" />}
+          </div>
+          <div className="min-w-0">
+            <span className="text-[11px] font-black text-white uppercase block truncate">
+              {isPlaying ? 'PAUSAR' : 'REPRODUZIR'}
+            </span>
+            <span className="text-[8px] text-[#777] uppercase block">
+              {canControl ? '[ESPAÇO]' : 'HOST CONTROL'}
+            </span>
           </div>
         </button>
 
-        {/* 2. Sincronizado / Sincronizar todos */}
+        {/* 2. Sincronia / Sync All */}
         <button
           onClick={onSyncAll}
-          className="bg-room-surface/30 hover:bg-room-surface/50 border border-white/5 hover:border-emerald-500/30 hover:shadow-[0_0_15px_rgba(16,185,129,0.1)] rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all text-left group cursor-pointer hover:scale-[1.02] active:scale-95"
-          title="Sincronizar com o player do Host"
+          className="p-2.5 bg-[#0E0E14] border border-[#262633] hover:border-[#22C55E] hover:bg-[#151520] flex items-center gap-2.5 transition-all text-left cursor-pointer"
+          title="Forçar sincronia de todos os participantes com o tempo do Host"
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 transition-colors shadow-sm shrink-0">
-            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
+          <div className="w-7 h-7 bg-[#22C55E] flex items-center justify-center text-black shrink-0">
+            <Activity className="w-3.5 h-3.5 animate-pulse" />
           </div>
-          <div className="text-left min-w-0">
-            <p className="text-[11px] sm:text-xs font-bold text-white truncate">Sincronizar</p>
-            <p className="text-[9px] sm:text-[10px] text-emerald-400 font-semibold truncate hidden xs:block">{syncStatus}</p>
+          <div className="min-w-0">
+            <span className="text-[11px] font-black text-white uppercase block truncate">
+              SINCRONIZAR
+            </span>
+            <span className="text-[8px] text-[#22C55E] font-bold uppercase block truncate">
+              {syncStatus}
+            </span>
           </div>
         </button>
 
-        {/* 3. Próximo */}
+        {/* 3. Próximo Vídeo */}
         <button
           onClick={canControl ? onNextVideo : undefined}
           disabled={!canControl}
           className={cn(
-            "bg-room-surface/30 border border-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all group",
+            'p-2.5 border flex items-center gap-2.5 transition-all text-left',
             canControl
-              ? "hover:bg-room-surface/50 hover:border-room-accent/30 hover:shadow-[0_0_15px_rgba(255,90,0,0.1)] cursor-pointer hover:scale-[1.02] active:scale-95"
-              : "opacity-60 cursor-not-allowed"
+              ? 'bg-[#0E0E14] border-[#262633] hover:border-[#FF5A00] hover:bg-[#151520] cursor-pointer'
+              : 'bg-[#0A0A0E] border-[#181820] opacity-50 cursor-not-allowed'
           )}
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-text-secondary group-hover:text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm shrink-0">
-            <FastForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="w-7 h-7 bg-[#1A1A26] border border-[#333] flex items-center justify-center text-[#FF5A00] shrink-0">
+            <FastForward className="w-3.5 h-3.5" />
           </div>
-          <div className="text-left min-w-0">
-            <p className="text-[11px] sm:text-xs font-bold text-white truncate">Próximo</p>
-            <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">{hostName}</p>
+          <div className="min-w-0">
+            <span className="text-[11px] font-black text-white uppercase block truncate">
+              MUDAR VÍDEO
+            </span>
+            <span className="text-[8px] text-[#777] uppercase block truncate">
+              {hostName}
+            </span>
           </div>
         </button>
 
@@ -92,18 +104,20 @@ export function PlayerControlBar({
           onClick={canControl ? onSeekBack : undefined}
           disabled={!canControl}
           className={cn(
-            "bg-room-surface/30 border border-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all group",
+            'p-2.5 border flex items-center gap-2.5 transition-all text-left',
             canControl
-              ? "hover:bg-room-surface/50 hover:border-room-accent/30 hover:shadow-[0_0_15px_rgba(255,90,0,0.1)] cursor-pointer hover:scale-[1.02] active:scale-95"
-              : "opacity-60 cursor-not-allowed"
+              ? 'bg-[#0E0E14] border-[#262633] hover:border-[#FF5A00] hover:bg-[#151520] cursor-pointer'
+              : 'bg-[#0A0A0E] border-[#181820] opacity-50 cursor-not-allowed'
           )}
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-text-secondary group-hover:text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm shrink-0">
-            <Rewind className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="w-7 h-7 bg-[#1A1A26] border border-[#333] flex items-center justify-center text-[#AAA] shrink-0">
+            <Rewind className="w-3.5 h-3.5" />
           </div>
-          <div className="text-left min-w-0">
-            <p className="text-[11px] sm:text-xs font-bold text-white truncate">-10s</p>
-            <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">Voltar</p>
+          <div className="min-w-0">
+            <span className="text-[11px] font-black text-white uppercase block truncate">
+              -10 SEG
+            </span>
+            <span className="text-[8px] text-[#777] uppercase block">VOLTAR</span>
           </div>
         </button>
 
@@ -112,45 +126,48 @@ export function PlayerControlBar({
           onClick={canControl ? onSeekForward : undefined}
           disabled={!canControl}
           className={cn(
-            "bg-room-surface/30 border border-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all group",
+            'p-2.5 border flex items-center gap-2.5 transition-all text-left',
             canControl
-              ? "hover:bg-room-surface/50 hover:border-room-accent/30 hover:shadow-[0_0_15px_rgba(255,90,0,0.1)] cursor-pointer hover:scale-[1.02] active:scale-95"
-              : "opacity-60 cursor-not-allowed"
+              ? 'bg-[#0E0E14] border-[#262633] hover:border-[#FF5A00] hover:bg-[#151520] cursor-pointer'
+              : 'bg-[#0A0A0E] border-[#181820] opacity-50 cursor-not-allowed'
           )}
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-text-secondary group-hover:text-room-accent group-hover:bg-room-accent/10 transition-colors shadow-sm shrink-0">
-            <FastForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="w-7 h-7 bg-[#1A1A26] border border-[#333] flex items-center justify-center text-[#AAA] shrink-0">
+            <FastForward className="w-3.5 h-3.5" />
           </div>
-          <div className="text-left min-w-0">
-            <p className="text-[11px] sm:text-xs font-bold text-white truncate">+10s</p>
-            <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">Avançar</p>
+          <div className="min-w-0">
+            <span className="text-[11px] font-black text-white uppercase block truncate">
+              +10 SEG
+            </span>
+            <span className="text-[8px] text-[#777] uppercase block">AVANÇAR</span>
           </div>
         </button>
 
-        {/* 6. Controle de Permissão */}
-        <div className={cn(
-          "border rounded-xl sm:rounded-2xl p-2 sm:p-3 flex items-center justify-between gap-1.5 shadow-sm transition-all",
-          canControl
-            ? "bg-room-yellow/10 border-room-yellow/20"
-            : "bg-room-surface/30 border-white/5"
-        )}>
-          <div className="flex items-center gap-2 min-w-0">
-            {canControl ? (
-              <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-room-yellow shrink-0 drop-shadow-md" />
-            ) : (
-              <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-room-text-secondary shrink-0" />
+        {/* 6. Modo de Controle Indicator */}
+        <div className="p-2.5 bg-[#09090D] border border-[#1F1F28] flex items-center gap-2.5">
+          <div
+            className={cn(
+              'w-7 h-7 flex items-center justify-center shrink-0 font-black text-xs',
+              canControl ? 'bg-[#FFE600] text-black' : 'bg-[#222] text-[#888]'
             )}
-            <div className="text-left min-w-0">
-              <p className={cn("text-[11px] sm:text-xs font-bold truncate", canControl ? "text-room-yellow" : "text-white")}>
-                {canControl ? 'Controle' : 'Restrito'}
-              </p>
-              <p className="text-[9px] sm:text-[10px] text-room-text-secondary truncate hidden xs:block">
-                {userRole === 'host' ? 'Host' : userRole === 'cohost' ? 'Co-host' : `${hostName}`}
-              </p>
-            </div>
+          >
+            {canControl ? <Crown className="w-3.5 h-3.5 fill-black" /> : <Lock className="w-3.5 h-3.5" />}
           </div>
-          <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-room-text-secondary shrink-0 hidden xs:block" />
+          <div className="min-w-0">
+            <span
+              className={cn(
+                'text-[10px] font-black uppercase block truncate',
+                canControl ? 'text-[#FFE600]' : 'text-[#888]'
+              )}
+            >
+              {canControl ? 'CONTROLE LIBERADO' : 'ESPECTADOR'}
+            </span>
+            <span className="text-[8px] text-[#666] uppercase block truncate">
+              {userRole === 'host' ? 'HOST SALA' : userRole === 'cohost' ? 'CO-HOST' : 'VIEWER'}
+            </span>
+          </div>
         </div>
+
       </div>
     </div>
   )

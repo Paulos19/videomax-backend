@@ -1,6 +1,6 @@
 'use client'
 
-import { Crown, Shield, UserPlus } from 'lucide-react'
+import { Crown, Shield, UserPlus, Radio, UserMinus, Sparkles } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Viewer } from '@/lib/useSocket'
@@ -9,126 +9,193 @@ import { cn } from '@/lib/utils'
 interface ViewersPanelProps {
   viewers: Viewer[]
   currentUserRole?: 'host' | 'cohost' | 'viewer'
+  isHostPro?: boolean
+  hostPlan?: string
   onInvite?: () => void
   onChangeUserRole?: (targetUserId: string, newRole: 'host' | 'cohost' | 'viewer') => void
+  onKickUser?: (targetUserId: string) => void
 }
 
-export function ViewersPanel({ viewers, currentUserRole, onInvite, onChangeUserRole }: ViewersPanelProps) {
+export function ViewersPanel({
+  viewers,
+  currentUserRole,
+  isHostPro = true,
+  hostPlan = 'MAXPRO',
+  onInvite,
+  onChangeUserRole,
+  onKickUser,
+}: ViewersPanelProps) {
   return (
-    <div className="bg-room-surface/40 backdrop-blur-xl border border-white/5 rounded-[28px] p-5 flex-1 space-y-4 shadow-sm h-full">
-      <div className="flex items-center justify-between">
-        <h4 className="text-[13px] font-extrabold text-white tracking-wide">
-          Assistindo agora ({viewers.length})
-        </h4>
+    <div className="bg-[#08080C] border border-[#1F1F28] p-4 flex-1 space-y-2 shadow-sm h-full font-mono select-none">
+      <div className="flex items-center justify-between border-b border-[#181822] pb-2">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-ping" />
+          <h4 className="text-[11px] font-black text-white uppercase tracking-wider">
+            [ NÓS CONECTADOS NA SALA ({viewers.length}) ]
+          </h4>
+        </div>
       </div>
 
-      <div className="flex items-center gap-5 overflow-x-auto pb-2 scrollbar-none">
+      {/* Viewers row with generous padding to prevent badge clipping */}
+      <div className="flex items-center gap-4 overflow-x-auto pt-3.5 pb-2 px-1.5 scrollbar-none">
         {viewers.map((viewer, idx) => {
           const isHost = viewer.role === 'host'
           const isCoHost = viewer.role === 'cohost'
 
           return (
             <Popover key={`${viewer.id}-${idx}`}>
-              <PopoverTrigger className="flex flex-col items-center gap-2 group outline-none shrink-0">
+              <PopoverTrigger className="flex flex-col items-center gap-1.5 group outline-none shrink-0 cursor-pointer">
                 <div className="relative">
-                  <Avatar
+                  
+                  {/* ── Outer Moldura Container ─────────────────────── */}
+                  <div
                     className={cn(
-                      "w-[60px] h-[60px] border-[3px] transition-all group-hover:scale-[1.05] drop-shadow-lg",
+                      'w-13 h-13 transition-all duration-300 relative group-hover:scale-105',
                       isHost
-                        ? "border-room-yellow shadow-[0_0_20px_rgba(255,184,0,0.2)]"
+                        ? isHostPro
+                          ? 'p-[2px] bg-gradient-to-tr from-[#FF9900] via-[#FFE600] to-[#FFF5A0] shadow-[0_0_20px_rgba(255,230,0,0.5),0_0_35px_rgba(255,153,0,0.25)]'
+                          : 'border-2 border-[#FFE600] shadow-[0_0_15px_rgba(255,230,0,0.35)]'
                         : isCoHost
-                        ? "border-sky-400"
-                        : "border-white/10"
+                        ? 'p-[2px] bg-gradient-to-tr from-[#0099FF] via-[#00F0FF] to-[#A0F5FF] shadow-[0_0_15px_rgba(0,240,255,0.4)]'
+                        : 'border-2 border-[#262633] group-hover:border-[#FF5A00] transition-colors'
                     )}
                   >
-                    <AvatarImage src={viewer.image} />
-                    <AvatarFallback className="bg-room-surface/80 text-room-accent font-bold text-base">
-                      {viewer.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+                    {/* Cyber HUD Corner Accents for MAXPRO Host */}
+                    {isHost && isHostPro && (
+                      <>
+                        <span className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-[#FFE600] z-20 pointer-events-none" />
+                        <span className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 border-[#FFE600] z-20 pointer-events-none" />
+                      </>
+                    )}
 
-                  {/* Status Dot */}
-                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-[3px] border-[#0B0B0B] shadow-sm shadow-emerald-500/50" />
+                    <div className="w-full h-full bg-[#08080C] overflow-hidden relative">
+                      <Avatar className="w-full h-full rounded-none">
+                        <AvatarImage src={viewer.image} className="object-cover w-full h-full" />
+                        <AvatarFallback className="bg-[#121218] text-[#FF5A00] font-black text-xs rounded-none">
+                          {viewer.name?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  </div>
 
-                  {/* Host Crown */}
+                  {/* Online Status LED */}
+                  <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#22C55E] ring-2 ring-[#08080C] shadow-[0_0_8px_#22C55E] z-20" />
+
+                  {/* MAXPRO VIP Crown Badge */}
                   {isHost && (
-                    <div className="absolute -top-1.5 -right-1.5 w-[22px] h-[22px] rounded-full bg-room-yellow text-[#0B0B0B] flex items-center justify-center border-2 border-[#0B0B0B] shadow-md shadow-room-yellow/30">
-                      <Crown className="w-3.5 h-3.5 fill-[#0B0B0B]" />
+                    <div
+                      className={cn(
+                        'absolute -top-3 -right-3 z-30 flex items-center justify-center transition-transform group-hover:scale-110',
+                        isHostPro
+                          ? 'w-6 h-6 bg-gradient-to-tr from-[#D48800] via-[#FFE600] to-[#FFF5A0] text-black shadow-[0_0_15px_rgba(255,230,0,0.7)] border border-black/50'
+                          : 'w-5 h-5 bg-[#FFE600] text-black shadow-md border border-black/40'
+                      )}
+                    >
+                      <Crown className={cn('fill-black', isHostPro ? 'w-3.5 h-3.5' : 'w-3 h-3')} />
+                    </div>
+                  )}
+
+                  {/* Co-Host Shield Badge */}
+                  {isCoHost && (
+                    <div className="absolute -top-2.5 -right-2.5 w-5 h-5 bg-[#00F0FF] text-black flex items-center justify-center z-30 shadow-md border border-black/40">
+                      <Shield className="w-3 h-3 fill-black" />
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5 max-w-[75px] bg-room-surface/50 backdrop-blur-md border border-white/5 px-2.5 py-0.5 rounded-full shadow-sm">
-                  <span className="text-[11px] font-bold text-white truncate group-hover:text-room-accent transition-colors">
+                {/* ── Nameplate Badge ───────────────────────────────── */}
+                <div
+                  className={cn(
+                    'flex items-center justify-center gap-1 max-w-[95px] px-2 py-0.5 mt-0.5 transition-all text-center',
+                    isHost
+                      ? isHostPro
+                        ? 'bg-[#141005] border border-[#FFE600] shadow-[0_0_10px_rgba(255,230,0,0.25)]'
+                        : 'bg-[#0E0E14] border border-[#FFE600]/60'
+                      : isCoHost
+                      ? 'bg-[#051014] border border-[#00F0FF]/60'
+                      : 'bg-[#0E0E14] border border-[#222] group-hover:border-white/40'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'text-[9px] font-black truncate uppercase tracking-wider',
+                      isHost
+                        ? 'text-[#FFE600]'
+                        : isCoHost
+                        ? 'text-[#00F0FF]'
+                        : 'text-white group-hover:text-[#FF5A00]'
+                    )}
+                  >
                     {viewer.name?.split(' ')[0]}
                   </span>
-                  {isHost && <Crown className="w-3 h-3 text-room-yellow fill-room-yellow shrink-0 drop-shadow-sm" />}
+                  {isHost && (
+                    <Crown className="w-2.5 h-2.5 text-[#FFE600] fill-[#FFE600] shrink-0" />
+                  )}
                 </div>
               </PopoverTrigger>
 
-              <PopoverContent align="center" className="w-60 bg-room-surface/90 backdrop-blur-xl border border-white/10 text-white p-4 shadow-2xl rounded-2xl space-y-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-12 h-12 border border-white/10 shadow-sm">
-                    <AvatarImage src={viewer.image} />
-                    <AvatarFallback className="bg-room-surface/80 text-room-accent font-bold text-sm">
-                      {viewer.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+              <PopoverContent
+                align="center"
+                className="w-60 bg-[#0A0A0F] border-2 border-[#FF5A00] text-white p-3 font-mono text-xs rounded-none shadow-2xl space-y-3"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="relative">
+                    <Avatar className="w-10 h-10 border border-[#333] rounded-none">
+                      <AvatarImage src={viewer.image} />
+                      <AvatarFallback className="bg-[#121218] text-[#FF5A00] font-bold text-xs rounded-none">
+                        {viewer.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isHost && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FFE600] text-black flex items-center justify-center text-[9px] font-black">
+                        👑
+                      </span>
+                    )}
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-[13px] font-extrabold text-white truncate">{viewer.name}</p>
-                    <span className="text-[11px] text-emerald-400 font-bold inline-flex items-center gap-1.5 opacity-90 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                      Assistindo agora
+                    <p className="text-xs font-black text-white uppercase truncate">{viewer.name}</p>
+                    <span className="text-[9px] text-[#22C55E] font-bold uppercase block mt-0.5">
+                      ● CONEXÃO MESH ATIVA
                     </span>
                   </div>
                 </div>
 
-                {currentUserRole === 'host' && !viewer.isCurrentUser && onChangeUserRole && (
-                  <div className="pt-3 border-t border-white/5 space-y-2">
-                    {!isCoHost && (
+                {currentUserRole === 'host' && !viewer.isCurrentUser && (
+                  <div className="pt-2 border-t border-[#222] space-y-1.5">
+                    {onChangeUserRole && !isCoHost && (
                       <button
                         onClick={() => onChangeUserRole(viewer.id, 'cohost')}
-                        className="w-full py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 hover:text-sky-300 text-[11px] font-extrabold transition-all text-left px-3 shadow-sm hover:shadow-sky-500/10"
+                        className="w-full py-1.5 bg-[#00F0FF]/10 hover:bg-[#00F0FF] text-[#00F0FF] hover:text-black font-black text-[9px] uppercase transition-colors text-left px-2 border border-[#00F0FF]/30 cursor-pointer flex items-center justify-between"
                       >
-                        Promover Co-host
+                        <span>PROMOVER A CO-HOST</span>
+                        <Shield className="w-3 h-3" />
                       </button>
                     )}
-                    {isCoHost && (
+                    {onChangeUserRole && isCoHost && (
                       <button
                         onClick={() => onChangeUserRole(viewer.id, 'viewer')}
-                        className="w-full py-2 rounded-xl bg-room-surface/50 hover:bg-room-surface/80 border border-white/5 text-room-text-secondary hover:text-white text-[11px] font-extrabold transition-all text-left px-3 shadow-sm"
+                        className="w-full py-1.5 bg-[#121218] hover:bg-[#222] text-[#888] hover:text-white font-bold text-[9px] uppercase transition-colors text-left px-2 border border-[#333] cursor-pointer flex items-center justify-between"
                       >
-                        Remover Co-host
+                        <span>REBAIXAR PARA ESPECTADOR</span>
+                        <Shield className="w-3 h-3 text-[#555]" />
                       </button>
                     )}
-                    <button
-                      onClick={() => onChangeUserRole(viewer.id, 'host')}
-                      className="w-full py-2 rounded-xl bg-room-yellow/10 hover:bg-room-yellow/20 text-room-yellow hover:text-yellow-400 text-[11px] font-extrabold transition-all text-left px-3 shadow-sm hover:shadow-room-yellow/10"
-                    >
-                      Passar Host
-                    </button>
+                    {onKickUser && (
+                      <button
+                        onClick={() => onKickUser(viewer.id)}
+                        className="w-full py-1.5 bg-[#EF2020]/15 hover:bg-[#EF2020] text-[#EF2020] hover:text-white font-black text-[9px] uppercase transition-colors text-left px-2 border border-[#EF2020]/40 cursor-pointer flex items-center justify-between shadow-sm"
+                        title="Remover participante e bloquear acesso desta sala"
+                      >
+                        <span>REMOVER & BLOQUEAR</span>
+                        <UserMinus className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 )}
               </PopoverContent>
             </Popover>
           )
         })}
-
-        {/* Plus / Invite button */}
-        <button
-          onClick={onInvite}
-          className="flex flex-col items-center gap-2 group shrink-0"
-          title="Convidar mais pessoas"
-        >
-          <div className="w-[60px] h-[60px] rounded-full border-2 border-dashed border-white/20 group-hover:border-room-accent flex items-center justify-center transition-all bg-room-surface/30 group-hover:bg-room-accent/10 shadow-sm group-hover:shadow-[0_0_20px_rgba(255,90,0,0.1)] group-hover:scale-[1.05]">
-            <UserPlus className="w-[22px] h-[22px] text-room-text-secondary group-hover:text-room-accent transition-colors" />
-          </div>
-          <div className="bg-room-surface/50 backdrop-blur-md border border-white/5 px-3 py-0.5 rounded-full shadow-sm">
-            <span className="text-[11px] font-bold text-room-text-secondary group-hover:text-room-accent transition-colors">
-              Convidar
-            </span>
-          </div>
-        </button>
       </div>
     </div>
   )

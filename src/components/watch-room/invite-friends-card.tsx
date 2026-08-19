@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Link2, Check, UserPlus } from 'lucide-react'
+import { Link2, Check, UserPlus, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface InviteFriendsCardProps {
@@ -16,38 +16,36 @@ export function InviteFriendsCard({ roomId, onOpenInviteModal }: InviteFriendsCa
     const link = `${window.location.origin}/room/${roomId}`
     navigator.clipboard.writeText(link)
     setCopied(true)
-    toast.success('Link copiado!')
+    toast.success('Link da sala copiado!')
     setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div className="bg-room-surface/40 backdrop-blur-xl border border-white/5 rounded-[28px] p-5 flex flex-col justify-between space-y-4 shrink-0 shadow-sm h-full">
+    <div className="bg-[#08080C] border border-[#1F1F28] p-4 flex flex-col justify-between space-y-3 shrink-0 shadow-sm h-full font-mono select-none">
       <div>
-        <h4 className="text-[13px] font-extrabold text-white tracking-wide">Convidar amigos</h4>
-        <p className="text-[11px] text-room-text-secondary mt-1">Compartilhe o link da sala</p>
+        <h4 className="text-[11px] font-black text-white uppercase tracking-wider">
+          [ CONVOCAR AMIGOS ]
+        </h4>
+        <p className="text-[9px] text-[#777] mt-0.5 uppercase">
+          Compartilhe o link direto ou envie notificação
+        </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <button
           onClick={handleCopy}
-          className="w-full py-2.5 rounded-full brand-gradient text-white text-[13px] font-extrabold brand-glow-strong hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg"
+          className="w-full py-2 bg-[#FF5A00] hover:bg-white text-black text-[10px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(255,90,0,0.25)]"
         >
-          {copied ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
-          {copied ? 'Link copiado!' : 'Copiar link'}
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
+          <span>{copied ? 'LINK COPIADO!' : 'COPIAR LINK DA SALA'}</span>
         </button>
-
-        <div className="flex items-center gap-3 my-2">
-          <div className="flex-1 h-px bg-white/5" />
-          <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider">ou</span>
-          <div className="flex-1 h-px bg-white/5" />
-        </div>
 
         <button
           onClick={onOpenInviteModal}
-          className="w-full py-2.5 rounded-full bg-room-surface/50 hover:bg-room-surface/80 border border-white/10 hover:border-room-accent/30 text-white text-[13px] font-extrabold transition-all flex items-center justify-center gap-2 hover:shadow-[0_0_15px_rgba(255,90,0,0.15)] active:scale-95"
+          className="w-full py-2 bg-[#121218] hover:bg-[#1A1A24] border border-[#333] hover:border-[#FFE600] text-white text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
         >
-          <UserPlus className="w-4 h-4 text-room-accent" />
-          Enviar convite
+          <UserPlus className="w-3.5 h-3.5 text-[#FFE600]" />
+          <span>ENVIAR NOTIFICAÇÃO</span>
         </button>
       </div>
     </div>

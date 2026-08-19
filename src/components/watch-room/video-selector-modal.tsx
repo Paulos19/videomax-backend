@@ -1,226 +1,219 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { X, Play, Check, Film, Link as LinkIcon } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import { X, Play, Film, Link as LinkIcon, Upload, Check, FolderOpen } from 'lucide-react'
 import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { Video } from '@/types'
-import { isYouTubeUrl, getYouTubeThumbnail } from '@/lib/youtube'
+import { isYouTubeUrl, getYouTubeThumbnail, fetchYouTubeMetadata } from '@/lib/youtube'
+import { getVideosWithFolders } from '@/app/(main)/actions'
 import { cn } from '@/lib/utils'
 
 interface VideoSelectorModalProps {
-  videos: Video[]
-  currentUrl: string
-  onSelect: (url: string) => void
+  videos?: Video[]
+  currentVideoUrl?: string
+  onSelectVideo: (video: { url: string; title?: string }) => void
   onClose: () => void
 }
 
-export function VideoSelectorModal({ videos, currentUrl, onSelect, onClose }: VideoSelectorModalProps) {
-  const [selectedUrl, setSelectedUrl] = useState(currentUrl)
-  const [customUrl, setCustomUrl] = useState('')
-  const [customUrlError, setCustomUrlError] = useState('')
+export function VideoSelectorModal({
+  videos = [],
+  currentVideoUrl,
+  onSelectVideo,
+  onClose,
+}: VideoSelectorModalProps) {
+  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [customTitle, setCustomTitle] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
+  const [libraryVideos, setLibraryVideos] = useState<Video[]>(videos)
+  const [loadingLibrary, setLoadingLibrary] = useState(false)
+  const [activeTab, setActiveTab] = useState<'youtube' | 'library'>('youtube')
 
-  const handleSelect = useCallback((url: string) => {
-    setSelectedUrl(url)
+  useEffect(() => {
+    let cancelled = false
+    setLoadingLibrary(true)
+    getVideosWithFolders()
+      .then((data: any) => {
+        if (!cancelled && data?.videos) {
+          setLibraryVideos(data.videos as Video[])
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingLibrary(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const handleConfirm = useCallback(() => {
-    if (selectedUrl && selectedUrl !== currentUrl) {
-      onSelect(selectedUrl)
-    }
-    onClose()
-  }, [selectedUrl, currentUrl, onSelect, onClose])
-
-  const handleConfirmCustomUrl = useCallback(() => {
-    const trimmed = customUrl.trim()
-    if (!trimmed) return
-
-    // Validate URL format — must be HTTP/HTTPS and a valid URL
-    let isValid = false
-    if (isYouTubeUrl(trimmed)) {
-      isValid = true
-    } else {
-      try {
-        const parsed = new URL(trimmed)
-        isValid = ['http:', 'https:'].includes(parsed.protocol)
-      } catch {
-        isValid = false
-      }
-    }
-
-    if (!isValid) {
-      setCustomUrlError('URL inválida. Cole uma URL do YouTube ou vídeo direto (HTTP/HTTPS).')
+  const handleConfirmYoutube = async () => {
+    const trimmed = youtubeUrl.trim()
+    if (!trimmed) {
+      setErrorMsg('Insira uma URL válida.')
       return
     }
-    onSelect(trimmed)
-    onClose()
-  }, [customUrl, onSelect, onClose])
 
-  const handleBackdropClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onClose()
-  }, [onClose])
+    if (!isYouTubeUrl(trimmed)) {
+      setErrorMsg('URL inválida. Ex: https://www.youtube.com/watch?v=...')
+      return
+    }
+
+    const meta = await fetchYouTubeMetadata(trimmed)
+    onSelectVideo({
+      url: trimmed,
+      title: customTitle.trim() || meta?.title || 'YouTube Stream',
+    })
+  }
+
+  const handleBackdropClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) onClose()
+    },
+    [onClose]
+  )
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 select-none font-mono animate-in fade-in duration-150"
       onClick={handleBackdropClick}
     >
-      <div className="bg-room-surface border border-room-border rounded-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col animate-scale-in">
+      <div className="bg-[#0A0A0F] border-2 border-[#FF5A00] w-full max-w-lg shadow-[0_0_40px_rgba(255,90,0,0.3)] flex flex-col relative overflow-hidden">
+        
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-room-border">
+        <div className="flex items-center justify-between p-4 border-b border-[#1F1F28] bg-[#0E0E14]">
           <div className="flex items-center gap-2">
-            <Film className="w-5 h-5 text-room-accent" />
-            <h2 className="text-room-text font-semibold text-base">Mudar vídeo</h2>
+            <div className="w-6 h-6 bg-[#FF5A00] flex items-center justify-center text-black">
+              <Film className="w-3.5 h-3.5" />
+            </div>
+            <h2 className="text-xs font-black text-white uppercase tracking-wider">
+              [ TRANSMITIR NOVO VÍDEO ]
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-room-surface-2 hover:bg-room-surface-3 flex items-center justify-center transition-colors"
-            aria-label="Fechar"
+            className="p-1 border border-[#333] hover:border-white text-[#888] hover:text-white transition-colors cursor-pointer"
           >
-            <X className="w-4 h-4 text-room-text-secondary" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Quick Custom Link Input */}
-        <div className="p-4 border-b border-room-border bg-room-surface-2/40 space-y-2">
-          <label className="text-room-text-secondary text-xs font-semibold uppercase tracking-wider block">
-            Cole um link direto do YouTube
-          </label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <input
-                type="url"
-                value={customUrl}
-                onChange={(e) => { setCustomUrl(e.target.value); setCustomUrlError('') }}
-                placeholder="https://www.youtube.com/watch?v=..."
-                className="w-full bg-room-surface border border-room-border-light text-room-text px-3 py-2 rounded-xl text-xs placeholder:text-room-text-secondary/40 outline-none focus:border-room-accent/50 transition-colors"
-              />
-            </div>
-            <button
-              onClick={handleConfirmCustomUrl}
-              disabled={!customUrl.trim()}
-              className={cn(
-                "px-4 py-2 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 shrink-0",
-                customUrl.trim()
-                  ? "bg-room-accent hover:bg-room-accent/90 text-white shadow-sm"
-                  : "bg-room-surface-3 text-room-text-secondary/40 cursor-not-allowed"
-              )}
-            >
-              <LinkIcon className="w-3.5 h-3.5" />
-              Tocar
-            </button>
-          </div>
-
-          {/* Dynamic YouTube Cover Thumbnail Preview */}
-          {isYouTubeUrl(customUrl) && getYouTubeThumbnail(customUrl) && (
-            <div className="flex items-center gap-3 p-2 bg-[#151515] border border-[#242424] rounded-xl animate-fade-in">
-              <img
-                src={getYouTubeThumbnail(customUrl)!}
-                alt="Capa do vídeo"
-                className="w-20 h-12 object-cover rounded-lg border border-[#242424]"
-              />
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Capa do YouTube Carregada</span>
-                <p className="text-xs text-[#F5F5F5] font-semibold truncate mt-0.5">Pronto para transmitir na sala</p>
-              </div>
-            </div>
-          )}
-
-          {customUrlError && (
-            <p className="text-room-red text-xs">{customUrlError}</p>
-          )}
-        </div>
-
-        {/* Saved Video list */}
-        <div className="px-5 pt-3 pb-1">
-          <p className="text-room-text-secondary text-xs font-semibold uppercase tracking-wider">
-            Ou escolha da sua biblioteca
-          </p>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-2 chat-scroll">
-          {videos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-room-text-secondary/50">
-              <Film className="w-8 h-8 mb-2" />
-              <p className="text-xs">Nenhum vídeo salvo na biblioteca</p>
-            </div>
-          ) : (
-            videos.map((video) => {
-              const isSelected = selectedUrl === video.url
-              const isPlaying = currentUrl === video.url
-              const isYt = isYouTubeUrl(video.url)
-              const ytThumb = isYt ? getYouTubeThumbnail(video.url) : null
-
-              return (
-                <button
-                  key={video.id}
-                  onClick={() => handleSelect(video.url)}
-                  className={cn(
-                    "w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left",
-                    isSelected
-                      ? "bg-room-accent/10 border-room-accent/40"
-                      : "bg-room-surface-2 border-room-border hover:bg-room-surface-3 hover:border-room-border-light"
-                  )}
-                >
-                  {/* Thumbnail container */}
-                  <div className={cn(
-                    "w-16 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative",
-                    isSelected ? "bg-room-accent/20" : "bg-room-surface-3"
-                  )}>
-                    {ytThumb ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={ytThumb} alt={video.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <Play className={cn(
-                        "w-5 h-5",
-                        isSelected ? "text-room-accent" : "text-room-text-secondary/40"
-                      )} />
-                    )}
-                    {isYt && (
-                      <div className="absolute top-0.5 left-0.5 bg-room-red/90 text-white p-0.5 rounded-sm">
-                        <Youtube className="w-2.5 h-2.5" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      "text-sm font-medium truncate",
-                      isSelected ? "text-room-accent" : "text-room-text"
-                    )}>
-                      {video.title}
-                    </p>
-                    {isPlaying && (
-                      <span className="text-[11px] text-room-online font-semibold">Tocando agora</span>
-                    )}
-                  </div>
-
-                  {/* Check */}
-                  {isSelected && (
-                    <div className="w-6 h-6 rounded-full bg-room-accent flex items-center justify-center shrink-0">
-                      <Check className="w-3.5 h-3.5 text-white" />
-                    </div>
-                  )}
-                </button>
-              )
-            })
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-room-border">
+        {/* Tab Switcher */}
+        <div className="flex border-b border-[#1F1F28] bg-[#07070B]">
           <button
-            onClick={handleConfirm}
-            disabled={!selectedUrl || selectedUrl === currentUrl}
+            onClick={() => setActiveTab('youtube')}
             className={cn(
-              "w-full py-2.5 rounded-xl font-medium text-sm transition-all",
-              selectedUrl && selectedUrl !== currentUrl
-                ? "bg-room-accent hover:bg-room-accent/90 text-white active:scale-[0.98]"
-                : "bg-room-surface-3 text-room-text-secondary/40 cursor-not-allowed"
+              'flex-1 py-2.5 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer',
+              activeTab === 'youtube'
+                ? 'bg-[#150F08] text-[#FF5A00] border-b-2 border-[#FF5A00]'
+                : 'text-[#777] hover:text-white'
             )}
           >
-            Confirmar mudança
+            <Youtube className="w-3.5 h-3.5" />
+            <span>YOUTUBE AO VIVO</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('library')}
+            className={cn(
+              'flex-1 py-2.5 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer',
+              activeTab === 'library'
+                ? 'bg-[#150F08] text-[#FF5A00] border-b-2 border-[#FF5A00]'
+                : 'text-[#777] hover:text-white'
+            )}
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+            <span>MINHA BIBLIOTECA ({libraryVideos.length})</span>
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="p-4 max-h-[60vh] overflow-y-auto space-y-4">
+          {activeTab === 'youtube' ? (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-[#888] uppercase block">
+                  URL DO YOUTUBE
+                </label>
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(e) => {
+                    setYoutubeUrl(e.target.value)
+                    setErrorMsg('')
+                  }}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full bg-[#121218] border border-[#333] focus:border-[#FF5A00] text-white px-3 py-2 text-xs font-mono outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-[#888] uppercase block">
+                  TÍTULO PERSONALIZADO (OPCIONAL)
+                </label>
+                <input
+                  type="text"
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  placeholder="Ex: Sessão Especial de Domingo"
+                  className="w-full bg-[#121218] border border-[#333] focus:border-[#FF5A00] text-white px-3 py-2 text-xs font-mono outline-none"
+                />
+              </div>
+
+              {errorMsg && (
+                <p className="text-[10px] font-bold text-[#EF2020] uppercase">{errorMsg}</p>
+              )}
+
+              <button
+                onClick={handleConfirmYoutube}
+                className="w-full py-2.5 bg-[#FF5A00] hover:bg-white text-black font-black text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-[0_0_15px_rgba(255,90,0,0.3)] mt-2"
+              >
+                TRANSMITIR ESTE VÍDEO AGORA
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {loadingLibrary ? (
+                <div className="p-6 text-center text-xs text-[#888]">
+                  CARREGANDO BIBLIOTECA...
+                </div>
+              ) : libraryVideos.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#777]">
+                  Nenhum vídeo cadastrado na sua biblioteca.
+                </div>
+              ) : (
+                libraryVideos.map((vid) => (
+                  <div
+                    key={vid.id}
+                    onClick={() =>
+                      onSelectVideo({
+                        url: vid.url,
+                        title: vid.title,
+                      })
+                    }
+                    className="p-2.5 bg-[#121218] border border-[#222] hover:border-[#FF5A00] hover:bg-[#181824] flex items-center justify-between gap-3 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 bg-[#FF5A00] text-black flex items-center justify-center shrink-0">
+                        <Play className="w-3.5 h-3.5 fill-black ml-0.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-bold text-white uppercase truncate block">
+                          {vid.title}
+                        </span>
+                        <span className="text-[9px] text-[#777] truncate block">
+                          {vid.url}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button className="px-2.5 py-1 bg-[#FF5A00] text-black font-black text-[9px] uppercase shrink-0">
+                      ESCOLHER
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

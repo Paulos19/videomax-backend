@@ -1,7 +1,18 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { MessageCircle, ShieldAlert, LogOut, MessageSquare, Users, Info, Play, Pause, FastForward, Film } from 'lucide-react'
+import {
+  MessageSquare,
+  ShieldAlert,
+  LogOut,
+  Users,
+  Info,
+  Play,
+  Pause,
+  FastForward,
+  Film,
+  Crown,
+} from 'lucide-react'
 import { Socket } from 'socket.io-client'
 import { RoomHeader } from './room-header'
 import { VideoPlayer, VideoPlayerHandle } from './video-player'
@@ -13,13 +24,11 @@ import { ChatPanel } from './chat-panel'
 import { VideoSelectorModal } from './video-selector-modal'
 import { InviteFriendsModal } from './invite-friends-modal'
 import { useWebRTC } from '@/lib/useWebRTC'
-import { Video, ChatMessage, PlayerStateData } from '@/types'
-import { Viewer } from '@/lib/useSocket'
-import { PlayerActionNotice } from '@/lib/useSocket'
+import { Video, ChatMessage, PlayerStateData, ChatReplyInfo } from '@/types'
+import { Viewer, PlayerActionNotice } from '@/lib/useSocket'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-
-const DEFAULT_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+import { useSession } from 'next-auth/react'
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds) || seconds <= 0) return '00:00'
@@ -38,12 +47,17 @@ interface WatchRoomProps {
   currentVideoUrl: string | null
   videoTitle?: string
   userRole?: 'host' | 'cohost' | 'viewer'
-  hostPlan?: 'FREE' | 'PRO' | string
+  hostPlan?: 'FREE' | 'PRO' | 'MAXPRO' | string
   maxViewers?: number
   lastPlayerAction?: PlayerActionNotice | null
   selectedColor?: string
   onSelectColor?: (color: string) => void
-  onSendMessage: (message: string) => void
+  onSendMessage: (
+    message: string,
+    type?: 'text' | 'sticker',
+    stickerUrl?: string,
+    replyTo?: ChatReplyInfo | null
+  ) => void
   onReactMessage?: (messageId: string, emoji: string) => void
   onSyncPlayerState?: (state: PlayerStateData) => void
   onRemotePlayerState?: PlayerStateData | null
@@ -51,6 +65,7 @@ interface WatchRoomProps {
   onRemotePlayerStateConsumed?: () => void
   onVideoChange?: (url: string) => void
   onChangeUserRole?: (targetUserId: string, newRole: 'host' | 'cohost' | 'viewer') => void
+  onKickUser?: (targetUserId: string) => void
   onBack?: () => void
   onCanPlay?: () => void
   socket?: Socket | null
@@ -80,12 +95,13 @@ export function WatchRoom({
   onRemotePlayerStateConsumed,
   onVideoChange,
   onChangeUserRole,
+  onKickUser,
   onBack,
   onCanPlay,
-  socket,
-  senderName
+  socket = null,
+  senderName,
 }: WatchRoomProps) {
-  const [localVideoUrl, setLocalVideoUrl] = useState(socketVideoUrl || DEFAULT_VIDEO)
+  const [localVideoUrl, setLocalVideoUrl] = useState(socketVideoUrl || '')
   const [currentTitle, setCurrentTitle] = useState(propVideoTitle || 'Sessão de Vídeo')
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -100,8 +116,13 @@ export function WatchRoom({
   const isRemoteUpdateRef = useRef(false)
   const pendingRemotePlay = useRef<PlayerStateData | null>(null)
 
-  const hostUser = viewers.find(v => v.role === 'host')
-  const hostName = hostUser?.name || 'Henrique'
+  const { data: session } = useSession()
+  const currentUserPlan = (session?.user as any)?.plan || 'FREE'
+  const isCurrentUserPro = currentUserPlan === 'MAXPRO' || currentUserPlan === 'PRO'
+
+  const isHostPro = hostPlan === 'PRO' || hostPlan === 'MAXPRO'
+  const hostUser = viewers.find((v) => v.role === 'host')
+  const hostName = hostUser?.name || 'Host'
   const canControl = userRole === 'host' || userRole === 'cohost'
 
   const {
@@ -112,12 +133,12 @@ export function WatchRoom({
     streamerName: screenStreamerName,
     isLocalStreamer,
     startScreenShare,
-    stopScreenShare
+    stopScreenShare,
   } = useWebRTC({
     socket: socket ?? null,
     roomId,
     currentUserId,
-    viewers: viewers.map(v => ({ id: v.id, name: v.name }))
+    viewers: viewers.map((v) => ({ id: v.id, name: v.name })),
   })
 
   const activeStreamMedia = isLocalStreamer ? localStream : remoteStream
@@ -141,9 +162,9 @@ export function WatchRoom({
       } else if (res.reason === 'cancelled') {
         toast.info('Seleção de tela cancelada.')
       } else if (res.reason === 'not_supported') {
-        toast.error('Seu navegador não possui suporte para compartilhamento de tela.')
+        toast.error('Seu navegador não possui suporte para captura de tela.')
       } else {
-        toast.error(res.message || 'Não foi possível iniciar a captura da tela.')
+        toast.error(res.message || 'Não foi possível iniciar a captura de tela.')
       }
     }
   }, [canControl, isStreamingScreen, isLocalStreamer, stopScreenShare, startScreenShare])
@@ -155,23 +176,27 @@ export function WatchRoom({
     }
   }, [propVideoTitle])
 
-  // Update duration/time periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (videoPlayerRef.current) {
-        setCurrentTime(videoPlayerRef.current.getCurrentTime() || 0)
-        setDuration(videoPlayerRef.current.getDuration() || 0)
-      }
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
-
   // Sync video URL from socket
   useEffect(() => {
-    if (socketVideoUrl) {
+    if (socketVideoUrl !== undefined && socketVideoUrl !== null) {
       setLocalVideoUrl(socketVideoUrl)
     }
   }, [socketVideoUrl])
+
+  // Periodic sync of player time and duration for HUD & VideoInfo
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (videoPlayerRef.current) {
+        try {
+          const cur = videoPlayerRef.current.getCurrentTime()
+          const dur = videoPlayerRef.current.getDuration()
+          if (typeof cur === 'number' && !isNaN(cur)) setCurrentTime(cur)
+          if (typeof dur === 'number' && !isNaN(dur) && dur > 0) setDuration(dur)
+        } catch {}
+      }
+    }, 500)
+    return () => clearInterval(interval)
+  }, [])
 
   // Handle remote player state changes (play/pause/seek from other users)
   useEffect(() => {
@@ -192,9 +217,12 @@ export function WatchRoom({
         if (onRemotePlayerState.currentTime !== undefined) {
           videoPlayerRef.current.seek(onRemotePlayerState.currentTime)
         }
-        videoPlayerRef.current.play().then(() => setIsPlaying(true)).catch(() => {
-          pendingRemotePlay.current = { ...onRemotePlayerState }
-        })
+        videoPlayerRef.current
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(() => {
+            pendingRemotePlay.current = { ...onRemotePlayerState }
+          })
         break
       case 'pause':
         if (onRemotePlayerState.currentTime !== undefined) {
@@ -216,7 +244,7 @@ export function WatchRoom({
     }, 100)
 
     return () => clearTimeout(timeout)
-  }, [onRemotePlayerState, onRemotePlayerStateVersion, onRemotePlayerStateConsumed])
+  }, [onRemotePlayerState, onRemotePlayerStateVersion, onRemotePlayerStateConsumed, localVideoUrl])
 
   // When video is ready to play, execute any pending remote play/pause/seek
   const handleVideoReady = useCallback(() => {
@@ -244,37 +272,48 @@ export function WatchRoom({
     }
   }, [onCanPlay, onRemotePlayerStateConsumed])
 
-  const handleVideoChange = useCallback((url: string, title?: string) => {
-    if (!canControl) {
-      toast.error('Somente o Host ou Co-host pode alterar o vídeo!')
-      return
-    }
-    setLocalVideoUrl(url)
-    if (title) setCurrentTitle(title)
-    onVideoChange?.(url)
-    pendingRemotePlay.current = null
-    setTimeout(() => {
-      if (videoPlayerRef.current) {
-        isRemoteUpdateRef.current = true
-        videoPlayerRef.current.play()
-        setIsPlaying(true)
-        onSyncPlayerState?.({ type: 'play', currentTime: 0, url, videoTitle: title || currentTitle })
-        setTimeout(() => {
-          isRemoteUpdateRef.current = false
-        }, 200)
+  const handleVideoChange = useCallback(
+    (url: string, title?: string) => {
+      if (!canControl) {
+        toast.error('Somente o Host ou Co-host pode alterar o vídeo!')
+        return
       }
-    }, 500)
-  }, [canControl, onVideoChange, onSyncPlayerState, currentTitle])
+      setLocalVideoUrl(url)
+      if (title) setCurrentTitle(title)
+      onVideoChange?.(url)
+      pendingRemotePlay.current = null
+      setTimeout(() => {
+        if (videoPlayerRef.current) {
+          isRemoteUpdateRef.current = true
+          videoPlayerRef.current.play()
+          setIsPlaying(true)
+          onSyncPlayerState?.({
+            type: 'play',
+            currentTime: 0,
+            url,
+            videoTitle: title || currentTitle,
+          })
+          setTimeout(() => {
+            isRemoteUpdateRef.current = false
+          }, 200)
+        }
+      }, 500)
+    },
+    [canControl, onVideoChange, onSyncPlayerState, currentTitle]
+  )
 
-  const handleUpdateTitle = useCallback((newTitle: string) => {
-    if (!canControl) {
-      toast.error('Somente o Host ou Co-host pode alterar o título!')
-      return
-    }
-    setCurrentTitle(newTitle)
-    onSyncPlayerState?.({ type: 'change-video', url: localVideoUrl, videoTitle: newTitle })
-    toast.success('Título atualizado ao vivo para todos!')
-  }, [canControl, localVideoUrl, onSyncPlayerState])
+  const handleUpdateTitle = useCallback(
+    (newTitle: string) => {
+      if (!canControl) {
+        toast.error('Somente o Host ou Co-host pode alterar o título!')
+        return
+      }
+      setCurrentTitle(newTitle)
+      onSyncPlayerState?.({ type: 'change-video', url: localVideoUrl, videoTitle: newTitle })
+      toast.success('Título atualizado para a sala!')
+    },
+    [canControl, localVideoUrl, onSyncPlayerState]
+  )
 
   const handleSyncAll = useCallback(() => {
     if (!canControl) {
@@ -283,41 +322,42 @@ export function WatchRoom({
     }
     const time = videoPlayerRef.current?.getCurrentTime() || 0
     onSyncPlayerState?.({ type: 'seek', currentTime: time, videoTitle: currentTitle })
-    toast.success('Todos os espectadores foram sincronizados com seu tempo atual!')
+    toast.success('Todos os espectadores foram sincronizados com seu tempo!')
   }, [canControl, currentTitle, onSyncPlayerState])
 
-  // Local user play/pause/seek → sync to other users if Host/Co-host
   const handlePlay = useCallback(() => {
     setIsPlaying(true)
     if (isRemoteUpdateRef.current) return
-    if (!canControl) {
-      toast.error('Apenas o Host ou Co-host pode alterar a reprodução.')
-      return
-    }
-    onSyncPlayerState?.({ type: 'play', currentTime: videoPlayerRef.current?.getCurrentTime(), videoTitle: currentTitle })
+    if (!canControl) return
+    onSyncPlayerState?.({
+      type: 'play',
+      currentTime: videoPlayerRef.current?.getCurrentTime(),
+      videoTitle: currentTitle,
+    })
   }, [canControl, onSyncPlayerState, currentTitle])
 
   const handlePause = useCallback(() => {
     setIsPlaying(false)
     if (isRemoteUpdateRef.current) return
-    if (!canControl) {
-      toast.error('Apenas o Host ou Co-host pode alterar a reprodução.')
-      return
-    }
-    onSyncPlayerState?.({ type: 'pause', currentTime: videoPlayerRef.current?.getCurrentTime(), videoTitle: currentTitle })
+    if (!canControl) return
+    onSyncPlayerState?.({
+      type: 'pause',
+      currentTime: videoPlayerRef.current?.getCurrentTime(),
+      videoTitle: currentTitle,
+    })
   }, [canControl, onSyncPlayerState, currentTitle])
 
-  const handleSeek = useCallback((time: number) => {
-    if (videoPlayerRef.current) {
-      videoPlayerRef.current.seek(time)
-    }
-    if (isRemoteUpdateRef.current) return
-    if (!canControl) {
-      toast.error('Apenas o Host ou Co-host pode alterar o tempo do vídeo.')
-      return
-    }
-    onSyncPlayerState?.({ type: 'seek', currentTime: time, videoTitle: currentTitle })
-  }, [canControl, onSyncPlayerState, currentTitle])
+  const handleSeek = useCallback(
+    (time: number) => {
+      if (videoPlayerRef.current) {
+        videoPlayerRef.current.seek(time)
+      }
+      if (isRemoteUpdateRef.current) return
+      if (!canControl) return
+      onSyncPlayerState?.({ type: 'seek', currentTime: time, videoTitle: currentTitle })
+    },
+    [canControl, onSyncPlayerState, currentTitle]
+  )
 
   const togglePlay = useCallback(() => {
     if (!canControl) {
@@ -334,33 +374,32 @@ export function WatchRoom({
   }, [canControl, isPlaying, handlePause, handlePlay])
 
   return (
-    <div className="h-screen flex flex-col bg-[#050505] text-[#F5F5F5] overflow-y-auto lg:overflow-hidden relative font-sans">
-      {/* Action Toast Overlay (Floating) */}
-      {!isStreamingScreen && lastPlayerAction && (Date.now() - lastPlayerAction.serverTimestamp < 4000) && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/90 backdrop-blur-md border border-[#FF5A00]/40 text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2.5 animate-bounce">
-          {lastPlayerAction.type === 'play' ? (
-            <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" />
-          ) : lastPlayerAction.type === 'pause' ? (
-            <Pause className="w-4 h-4 text-amber-400 fill-amber-400" />
-          ) : lastPlayerAction.type === 'seek' ? (
-            <FastForward className="w-4 h-4 text-sky-400" />
-          ) : (
-            <Film className="w-4 h-4 text-purple-400" />
-          )}
-          <span className="text-xs font-semibold">
-            <strong className="text-[#FF5A00]">{lastPlayerAction.senderName}</strong>{' '}
-            {lastPlayerAction.type === 'play'
-              ? 'iniciou o vídeo'
-              : lastPlayerAction.type === 'pause'
-              ? 'pausou o vídeo'
-              : lastPlayerAction.type === 'seek'
-              ? 'avançou na linha do tempo'
-              : 'alterou o vídeo'}
-          </span>
-        </div>
-      )}
+    <div className="h-screen flex flex-col bg-[#050505] text-white overflow-y-auto lg:overflow-hidden relative font-sans">
+      
+      {/* Action Telemetry Toast (Floating) */}
+      {!isStreamingScreen &&
+        lastPlayerAction &&
+        Date.now() - lastPlayerAction.serverTimestamp < 4000 && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-[#0A0A0F] border-2 border-[#FF5A00] text-white px-4 py-2 font-mono text-xs shadow-2xl flex items-center gap-2.5 animate-bounce">
+            {lastPlayerAction.type === 'play' ? (
+              <Play className="w-4 h-4 text-[#22C55E] fill-[#22C55E]" />
+            ) : lastPlayerAction.type === 'pause' ? (
+              <Pause className="w-4 h-4 text-[#FFE600] fill-[#FFE600]" />
+            ) : (
+              <FastForward className="w-4 h-4 text-[#00F0FF]" />
+            )}
+            <span className="uppercase font-bold">
+              <strong className="text-[#FF5A00]">{lastPlayerAction.senderName}</strong>{' '}
+              {lastPlayerAction.type === 'play'
+                ? 'iniciou a reprodução'
+                : lastPlayerAction.type === 'pause'
+                ? 'pausou o vídeo'
+                : 'avançou na linha do tempo'}
+            </span>
+          </div>
+        )}
 
-      {/* 64px Header */}
+      {/* Room Header Bar */}
       <RoomHeader
         roomName={roomId}
         viewerCount={viewers.length}
@@ -380,15 +419,18 @@ export function WatchRoom({
         onMore={() => setShowShareModal(true)}
       />
 
-      {/* Main Content Grid */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-2.5 sm:p-3 lg:p-4 gap-2.5 sm:gap-3 lg:gap-4 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-4">
-        {/* Left Column: Video, Control Bar, Viewers & Invite, VideoInfo */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-visible lg:overflow-y-auto scrollbar-thin pr-0 lg:pr-1 space-y-2.5 sm:space-y-3">
-          {/* 1. Video Player */}
+      {/* Main Grid: Player Stage & Sidebar Chat */}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-3 lg:p-4 gap-3 lg:gap-4 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-4">
+        
+        {/* Left Column: Video Viewport, Control Bar, Viewers & VideoInfo */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-visible lg:overflow-y-auto pr-0 lg:pr-1 space-y-3">
+          
+          {/* 1. Video Player with 3D Standby Mode */}
           <VideoPlayer
             ref={videoPlayerRef}
             src={localVideoUrl}
             canControl={canControl}
+            isHostPro={isHostPro}
             onPlay={handlePlay}
             onPause={handlePause}
             onSeek={handleSeek}
@@ -398,6 +440,9 @@ export function WatchRoom({
             streamerName={screenStreamerName || 'Host'}
             isLocalStreamer={isLocalStreamer}
             onStopStream={stopScreenShare}
+            onSelectVideo={() => setShowVideoSelector(true)}
+            onShareScreen={handleToggleScreenShare}
+            onOpenLibrary={() => setShowVideoSelector(true)}
           />
 
           {/* 2. Player Controls Bar */}
@@ -406,31 +451,32 @@ export function WatchRoom({
             userRole={userRole}
             hostName={hostName}
             onTogglePlay={togglePlay}
-            onSeekBack={() => handleSeek(Math.max(0, (videoPlayerRef.current?.getCurrentTime() || 0) - 10))}
-            onSeekForward={() => handleSeek((videoPlayerRef.current?.getCurrentTime() || 0) + 10)}
+            onSeekBack={() =>
+              handleSeek(Math.max(0, (videoPlayerRef.current?.getCurrentTime() || 0) - 10))
+            }
+            onSeekForward={() =>
+              handleSeek((videoPlayerRef.current?.getCurrentTime() || 0) + 10)
+            }
             onNextVideo={() => setShowVideoSelector(true)}
             onSyncAll={handleSyncAll}
           />
 
-          {/* Mobile Segmented Tab Switcher (< lg breakpoint) */}
-          <div className="flex lg:hidden items-center bg-room-surface/80 backdrop-blur-xl border border-white/10 rounded-2xl p-1 gap-1 shadow-lg">
+          {/* Mobile Tab Switcher (< lg breakpoint) */}
+          <div className="flex lg:hidden items-center bg-[#08080C] border border-[#1F1F28] p-1 gap-1 font-mono">
             <button
               type="button"
               onClick={() => setActiveMobileTab('chat')}
               className={cn(
-                "flex-1 py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all",
+                'flex-1 py-2 px-3 text-[11px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer',
                 activeMobileTab === 'chat'
-                  ? "brand-gradient text-white shadow-md brand-glow scale-[1.02]"
-                  : "text-room-text-secondary hover:text-white hover:bg-white/5"
+                  ? 'bg-[#FF5A00] text-black shadow-md'
+                  : 'text-[#888] hover:text-white hover:bg-[#111]'
               )}
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              <span>Chat</span>
+              <span>CHAT</span>
               {messages.length > 0 && (
-                <span className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
-                  activeMobileTab === 'chat' ? "bg-white/25 text-white" : "bg-room-accent/20 text-room-accent"
-                )}>
+                <span className="bg-black/30 text-black px-1.5 py-0.2 text-[9px]">
                   {messages.length}
                 </span>
               )}
@@ -440,48 +486,42 @@ export function WatchRoom({
               type="button"
               onClick={() => setActiveMobileTab('viewers')}
               className={cn(
-                "flex-1 py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all",
+                'flex-1 py-2 px-3 text-[11px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer',
                 activeMobileTab === 'viewers'
-                  ? "brand-gradient text-white shadow-md brand-glow scale-[1.02]"
-                  : "text-room-text-secondary hover:text-white hover:bg-white/5"
+                  ? 'bg-[#FF5A00] text-black shadow-md'
+                  : 'text-[#888] hover:text-white hover:bg-[#111]'
               )}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Participantes</span>
-              <span className={cn(
-                "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
-                activeMobileTab === 'viewers' ? "bg-white/25 text-white" : "bg-white/10 text-white/80"
-              )}>
-                {viewers.length}
-              </span>
+              <span>NÓS ({viewers.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveMobileTab('info')}
               className={cn(
-                "flex-1 py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all",
+                'flex-1 py-2 px-3 text-[11px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer',
                 activeMobileTab === 'info'
-                  ? "brand-gradient text-white shadow-md brand-glow scale-[1.02]"
-                  : "text-room-text-secondary hover:text-white hover:bg-white/5"
+                  ? 'bg-[#FF5A00] text-black shadow-md'
+                  : 'text-[#888] hover:text-white hover:bg-[#111]'
               )}
             >
               <Info className="w-3.5 h-3.5" />
-              <span>Detalhes</span>
+              <span>INFO</span>
             </button>
           </div>
 
-          {/* MOBILE CONTENT AREA BASED ON ACTIVE TAB */}
+          {/* Mobile Content View */}
           <div className="block lg:hidden">
-            {/* Tab: Chat */}
             {activeMobileTab === 'chat' && (
-              <div className="h-[480px] sm:h-[540px] max-h-[68vh] flex flex-col shrink-0 my-1 rounded-2xl overflow-hidden shadow-2xl border border-white/5">
+              <div className="h-[460px] flex flex-col shrink-0 my-1">
                 <ChatPanel
                   messages={messages}
                   currentUserId={currentUserId}
                   viewerCount={viewers.length}
                   viewers={viewers}
                   selectedColor={selectedColor}
+                  isPro={isCurrentUserPro}
                   onSelectColor={onSelectColor}
                   onSend={onSendMessage}
                   onReact={onReactMessage}
@@ -489,13 +529,15 @@ export function WatchRoom({
               </div>
             )}
 
-            {/* Tab: Viewers & Invite */}
             {activeMobileTab === 'viewers' && (
               <div className="space-y-3 my-1">
                 <ViewersPanel
                   viewers={viewers}
                   currentUserRole={userRole}
+                  isHostPro={isHostPro}
+                  hostPlan={hostPlan}
                   onChangeUserRole={onChangeUserRole}
+                  onKickUser={onKickUser}
                   onInvite={() => setShowShareModal(true)}
                 />
                 <InviteFriendsCard
@@ -505,7 +547,6 @@ export function WatchRoom({
               </div>
             )}
 
-            {/* Tab: Info & Controls */}
             {activeMobileTab === 'info' && (
               <div className="space-y-3 my-1">
                 <VideoInfo
@@ -517,33 +558,21 @@ export function WatchRoom({
                   onUpdateTitle={handleUpdateTitle}
                   onToggleQueue={() => setShowVideoSelector(true)}
                 />
-
-                <div className="flex items-center justify-between p-4 bg-room-surface/40 backdrop-blur-xl border border-white/5 rounded-2xl">
-                  <button className="text-xs text-[#8A8A8A] hover:text-[#F5F5F5] flex items-center gap-1.5 font-semibold transition-colors">
-                    <ShieldAlert className="w-4 h-4 text-[#8A8A8A]" />
-                    Regras da sala
-                  </button>
-                  <button
-                    onClick={onBack}
-                    className="text-xs text-[#EF2020] hover:underline flex items-center gap-1.5 font-bold transition-all"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Sair da sala
-                  </button>
-                </div>
               </div>
             )}
           </div>
 
-          {/* DESKTOP CONTENT AREA (Always visible on lg+ screens) */}
+          {/* Desktop Content Row (Viewers + Invite + Info) */}
           <div className="hidden lg:block space-y-3">
-            {/* 3. Viewers Panel & Invite Card */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
                 <ViewersPanel
                   viewers={viewers}
                   currentUserRole={userRole}
+                  isHostPro={isHostPro}
+                  hostPlan={hostPlan}
                   onChangeUserRole={onChangeUserRole}
+                  onKickUser={onKickUser}
                   onInvite={() => setShowShareModal(true)}
                 />
               </div>
@@ -553,7 +582,6 @@ export function WatchRoom({
               />
             </div>
 
-            {/* 4. Video Information */}
             <VideoInfo
               videoTitle={currentTitle}
               currentTime={formatTime(currentTime)}
@@ -563,33 +591,19 @@ export function WatchRoom({
               onUpdateTitle={handleUpdateTitle}
               onToggleQueue={() => setShowVideoSelector(true)}
             />
-
-            {/* 5. Footer Actions */}
-            <div className="flex items-center justify-between pt-4 pb-6 border-t border-[#242424]">
-              <button className="text-xs text-[#8A8A8A] hover:text-[#F5F5F5] flex items-center gap-1.5 font-semibold transition-colors">
-                <ShieldAlert className="w-4 h-4 text-[#8A8A8A]" />
-                Regras da sala
-              </button>
-              <button
-                onClick={onBack}
-                className="text-xs text-[#EF2020] hover:underline flex items-center gap-1.5 font-bold transition-all"
-              >
-                <LogOut className="w-4 h-4" />
-                Sair da sala
-              </button>
-            </div>
           </div>
         </div>
 
-        {/* Right Column: Live Chat Panel (Desktop 2-Column Sidebar) */}
+        {/* Right Column: Desktop Chat Panel */}
         {showChat && (
-          <div className="hidden lg:flex flex-col min-h-0 h-full lg:w-[380px] xl:w-[420px] shrink-0">
+          <div className="hidden lg:flex w-80 xl:w-96 flex-col shrink-0 h-full">
             <ChatPanel
               messages={messages}
               currentUserId={currentUserId}
               viewerCount={viewers.length}
               viewers={viewers}
               selectedColor={selectedColor}
+              isPro={isCurrentUserPro}
               onSelectColor={onSelectColor}
               onSend={onSendMessage}
               onReact={onReactMessage}
@@ -599,36 +613,27 @@ export function WatchRoom({
         )}
       </div>
 
-      {/* Floating reopen chat button when chat is closed */}
-      {!showChat && (
-        <button
-          onClick={() => setShowChat(true)}
-          className="fixed bottom-6 right-6 px-4 py-3 brand-gradient text-white rounded-full flex items-center gap-2 shadow-2xl brand-glow-strong hover:scale-105 active:scale-95 transition-all z-50 font-bold text-xs"
-          aria-label="Abrir chat ao vivo"
-          title="Abrir chat ao vivo"
-        >
-          <MessageCircle className="w-4 h-4 fill-white" />
-          <span>Abrir Chat ({viewers.length})</span>
-        </button>
-      )}
-
-      {/* Modals */}
+      {/* Video Selector Modal */}
       {showVideoSelector && (
         <VideoSelectorModal
           videos={videos}
-          currentUrl={localVideoUrl}
-          onSelect={handleVideoChange}
+          currentVideoUrl={localVideoUrl}
+          onSelectVideo={(video) => {
+            handleVideoChange(video.url, video.title)
+            setShowVideoSelector(false)
+          }}
           onClose={() => setShowVideoSelector(false)}
         />
       )}
 
+      {/* Share / Invite Friends Modal */}
       {showShareModal && (
         <InviteFriendsModal
           roomId={roomId}
           viewerCount={viewers.length}
           viewers={viewers}
           socket={socket ?? null}
-          senderName={senderName || 'Um amigo'}
+          senderName={senderName || 'Host'}
           onClose={() => setShowShareModal(false)}
         />
       )}

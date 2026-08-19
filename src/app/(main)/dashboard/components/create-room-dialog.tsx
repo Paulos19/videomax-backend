@@ -2,12 +2,17 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Play, Upload, Check, Loader2, Sparkles, Plus } from 'lucide-react'
+import { X, Play, Upload, Check, Loader2, Sparkles, Plus, Users } from 'lucide-react'
 import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { UploadDropzone } from '@/lib/uploadthing'
-import { saveVideo } from '@/app/(main)/actions'
+import { saveVideo, createRoomInviteNotification } from '@/app/(main)/actions'
 import { cn } from '@/lib/utils'
 import { isYouTubeUrl, getYouTubeThumbnail, fetchYouTubeMetadata } from '@/lib/youtube'
+import { toast } from 'sonner'
+import io from 'socket.io-client'
+import { useSession } from 'next-auth/react'
+
+const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'https://services-videomax-websocket.khdya3.easypanel.host/'
 
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -18,24 +23,32 @@ function generateRoomCode(): string {
   return code
 }
 
-interface CreateRoomDialogProps {
-  onClose: () => void
+export interface InvitedFriendPayload {
+  id: string
+  name?: string | null
+  email: string
 }
 
-export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
+interface CreateRoomDialogProps {
+  onClose: () => void
+  initialVideoUrl?: string
+  invitedFriends?: InvitedFriendPayload[]
+}
+
+export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = [] }: CreateRoomDialogProps) {
   const router = useRouter()
+  const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState<'youtube' | 'upload' | 'empty'>('youtube')
 
   // YouTube state
-  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [youtubeUrl, setYoutubeUrl] = useState(initialVideoUrl || '')
   const [youtubeTitle, setYoutubeTitle] = useState('')
-  const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const [coverPreview, setCoverPreview] = useState<string | null>(
+    initialVideoUrl && isYouTubeUrl(initialVideoUrl) ? getYouTubeThumbnail(initialVideoUrl) : null
+  )
   const [isLoadingMeta, setIsLoadingMeta] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-
-  // Upload state
-  const [uploadTitle, setUploadTitle] = useState('')
 
   const handleUrlChange = async (url: string) => {
     setYoutubeUrl(url)
@@ -55,6 +68,42 @@ export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
     } else {
       setCoverPreview(null)
     }
+  }
+
+  const broadcastInvitesToFriends = async (roomCode: string) => {
+    if (!invitedFriends || invitedFriends.length === 0) return
+
+    try {
+      let wsToken: string | undefined
+      try {
+        const tokenRes = await fetch('/api/auth/token')
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json()
+          wsToken = tokenData.token
+        }
+      } catch {}
+
+      const socket = io(SOCKET_SERVER_URL, {
+        auth: wsToken ? { token: wsToken } : undefined,
+        transports: ['websocket', 'polling'],
+      })
+      const senderName = session?.user?.name || session?.user?.email || 'Um amigo'
+
+      invitedFriends.forEach(async (friend) => {
+        await createRoomInviteNotification(friend.id, roomCode, senderName).catch(() => {})
+        socket.emit('invite-to-room', {
+          targetUserId: friend.id,
+          roomCode,
+          senderName,
+        })
+      })
+
+      setTimeout(() => {
+        socket.disconnect()
+      }, 3000)
+
+      toast.success(`Convite de sala enviado para ${invitedFriends.length} amigo(s)!`)
+    } catch {}
   }
 
   const handleCreateYoutubeRoom = useCallback(async () => {
@@ -81,6 +130,7 @@ export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
       setIsSaving(true)
       await saveVideo(title, url, null)
       const roomCode = generateRoomCode()
+      broadcastInvitesToFriends(roomCode)
       onClose()
       router.push(`/room/${roomCode}`)
     } catch (e: unknown) {
@@ -88,199 +138,184 @@ export function CreateRoomDialog({ onClose }: CreateRoomDialogProps) {
     } finally {
       setIsSaving(false)
     }
-  }, [youtubeUrl, youtubeTitle, onClose, router])
+  }, [youtubeUrl, youtubeTitle, onClose, router, invitedFriends])
 
   const handleCreateEmptyRoom = useCallback(() => {
     const roomCode = generateRoomCode()
+    broadcastInvitesToFriends(roomCode)
     onClose()
     router.push(`/room/${roomCode}`)
-  }, [onClose, router])
+  }, [onClose, router, invitedFriends])
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
-      <div className="bg-[#0B0B0B] border border-[#242424] rounded-2xl w-full max-w-lg mx-4 animate-scale-in relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 left-0 right-0 h-[2px] brand-gradient" />
-
+      <div className="bg-[#09090D] border border-[#222] rounded-none w-full max-w-lg mx-4 animate-scale-in relative overflow-hidden shadow-2xl">
+        
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#242424]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#222]">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#FF5A00]" />
-            <h2 className="text-[#F5F5F5] font-bold text-lg">Criar nova sala</h2>
+            <h2 className="text-white font-mono font-bold text-base uppercase">
+              [ CRIAR NOVA SALA ]
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-[#151515] hover:bg-[#242424] flex items-center justify-center text-[#8A8A8A] hover:text-[#F5F5F5] transition-colors"
+            className="w-8 h-8 bg-[#121218] border border-[#333] hover:border-[#FF5A00] flex items-center justify-center text-[#888] hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Content */}
-        <div className="p-6 space-y-5">
-          {/* Tabs */}
-          <div className="flex bg-[#151515] p-1 rounded-xl border border-[#242424]">
-            <button
-              onClick={() => { setActiveTab('empty'); setErrorMsg('') }}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
-                activeTab === 'empty'
-                  ? "brand-gradient text-white shadow-md"
-                  : "text-[#8A8A8A] hover:text-[#F5F5F5]"
-              )}
-            >
-              <Plus className="w-4 h-4" />
-              Em Branco
-            </button>
-            <button
-              onClick={() => { setActiveTab('youtube'); setErrorMsg('') }}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
-                activeTab === 'youtube'
-                  ? "brand-gradient text-white shadow-md"
-                  : "text-[#8A8A8A] hover:text-[#F5F5F5]"
-              )}
-            >
-              <Youtube className="w-4 h-4" />
-              YouTube
-            </button>
-            <button
-              onClick={() => { setActiveTab('upload'); setErrorMsg('') }}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
-                activeTab === 'upload'
-                  ? "brand-gradient text-white shadow-md"
-                  : "text-[#8A8A8A] hover:text-[#F5F5F5]"
-              )}
-            >
-              <Upload className="w-4 h-4" />
-              Upload
-            </button>
-          </div>
-
-          {activeTab === 'empty' ? (
-            <div className="space-y-4 text-center py-4">
-              <div className="w-16 h-16 rounded-full bg-[#151515] border border-[#242424] flex items-center justify-center mx-auto mb-4">
-                <Play className="w-6 h-6 text-[#FF5A00] ml-1" />
-              </div>
-              <h3 className="text-[#F5F5F5] font-bold text-lg">Comece uma sala em branco</h3>
-              <p className="text-[#8A8A8A] text-sm max-w-sm mx-auto">
-                Crie a sala agora, convide seus amigos e escolha o vídeo depois, diretamente de dentro da sala.
-              </p>
-
-              <div className="pt-2">
-                <button
-                  onClick={handleCreateEmptyRoom}
-                  className="w-full py-3.5 rounded-xl font-bold text-sm text-white brand-gradient brand-glow-strong hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Criar sala em branco
-                </button>
-              </div>
+        {/* Invited Friends Badge Banner */}
+        {invitedFriends.length > 0 && (
+          <div className="px-6 py-2.5 bg-[#1A1208] border-b border-[#FF5A00]/40 flex items-center justify-between text-[11px] font-mono">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-[#FF5A00]" />
+              <span className="text-white font-bold">
+                {invitedFriends.length} amigo(s) selecionado(s) para convite automático.
+              </span>
             </div>
-          ) : activeTab === 'youtube' ? (
+            <span className="text-[9px] text-[#FFE600] font-bold uppercase">
+              WEBRTC MESH
+            </span>
+          </div>
+        )}
+
+        {/* Tabs Selection */}
+        <div className="flex border-b border-[#222]">
+          <button
+            onClick={() => setActiveTab('youtube')}
+            className={cn(
+              'flex-1 py-3 text-[11px] font-mono uppercase font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2',
+              activeTab === 'youtube'
+                ? 'border-[#FF5A00] text-[#FF5A00] bg-[#FF5A00]/5'
+                : 'border-transparent text-[#777] hover:text-white'
+            )}
+          >
+            <Youtube className="w-4 h-4 text-[#EF2020]" />
+            <span>YOUTUBE</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('upload')}
+            className={cn(
+              'flex-1 py-3 text-[11px] font-mono uppercase font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2',
+              activeTab === 'upload'
+                ? 'border-[#FF5A00] text-[#FF5A00] bg-[#FF5A00]/5'
+                : 'border-transparent text-[#777] hover:text-white'
+            )}
+          >
+            <Upload className="w-4 h-4 text-[#3B82F6]" />
+            <span>NUVEM MP4</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('empty')}
+            className={cn(
+              'flex-1 py-3 text-[11px] font-mono uppercase font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2',
+              activeTab === 'empty'
+                ? 'border-[#FF5A00] text-[#FF5A00] bg-[#FF5A00]/5'
+                : 'border-transparent text-[#777] hover:text-white'
+            )}
+          >
+            <Play className="w-4 h-4 text-[#22C55E]" />
+            <span>SALA VAZIA</span>
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-6 space-y-4">
+          {errorMsg && (
+            <div className="p-3 bg-[#1A0A0A] border border-[#EF2020]/40 text-[#EF2020] text-[11px] font-mono">
+              {errorMsg}
+            </div>
+          )}
+
+          {activeTab === 'youtube' && (
             <div className="space-y-4">
-              <div>
-                <label className="text-[#8A8A8A] text-xs font-semibold mb-1.5 block uppercase tracking-wider">
-                  Link do Vídeo (YouTube) *
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono text-[#888] uppercase block">
+                  LINK DO VÍDEO DO YOUTUBE
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={youtubeUrl}
                   onChange={(e) => handleUrlChange(e.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full bg-[#151515] border border-[#242424] text-[#F5F5F5] px-4 py-3 rounded-xl text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
+                  className="w-full h-11 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00]"
                 />
               </div>
 
-              {/* Cover Preview Card */}
-              {coverPreview && (
-                <div className="bg-[#151515] border border-[#242424] rounded-xl p-3 flex items-center gap-3 animate-fade-in">
-                  <img src={coverPreview} alt="Capa do vídeo" className="w-24 h-14 object-cover rounded-lg border border-[#242424]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Capa Carregada</p>
-                    <p className="text-xs text-[#F5F5F5] font-semibold truncate mt-0.5">
-                      {youtubeTitle || 'Título detectado automaticamente'}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="text-[#8A8A8A] text-xs font-semibold mb-1.5 block uppercase tracking-wider">
-                  Título da Sala *
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono text-[#888] uppercase block">
+                  TÍTULO DA SALA
                 </label>
                 <input
                   type="text"
                   value={youtubeTitle}
                   onChange={(e) => setYoutubeTitle(e.target.value)}
-                  placeholder="Ex: Filmes da Noite — Arcane Ep 3"
-                  className="w-full bg-[#151515] border border-[#242424] text-[#F5F5F5] px-4 py-3 rounded-xl text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
+                  placeholder="Ex: Sessão de Cinema com a Galera"
+                  className="w-full h-11 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00]"
                 />
               </div>
 
-              {errorMsg && (
-                <p className="text-[#EF2020] text-xs font-medium">{errorMsg}</p>
+              {coverPreview && (
+                <div className="relative aspect-video w-full bg-black overflow-hidden border border-[#333]">
+                  <img src={coverPreview} alt="Preview" className="w-full h-full object-cover" />
+                </div>
               )}
 
               <button
                 onClick={handleCreateYoutubeRoom}
-                disabled={isSaving || !youtubeUrl.trim() || !youtubeTitle.trim()}
-                className={cn(
-                  "w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
-                  !isSaving && youtubeUrl.trim() && youtubeTitle.trim()
-                    ? "brand-gradient text-white brand-glow-strong hover:brightness-110 active:scale-[0.98]"
-                    : "bg-[#151515] text-[#5F5F5F] cursor-not-allowed"
-                )}
+                disabled={isSaving}
+                className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Play className="w-4 h-4 fill-white" />
-                )}
-                {isSaving ? 'Criando sala...' : 'Criar sala e transmitir'}
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-black" />}
+                <span>[ INICIAR SALA COM VÍDEO ]</span>
               </button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="text-[#8A8A8A] text-xs font-semibold mb-1.5 block uppercase tracking-wider">
-                  Título da Sala (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder="Ex: Vídeo de Férias 2026"
-                  className="w-full bg-[#151515] border border-[#242424] text-[#F5F5F5] px-4 py-3 rounded-xl text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
-                />
-              </div>
+          )}
 
+          {activeTab === 'upload' && (
+            <div className="space-y-4">
               <UploadDropzone
                 endpoint="videoUploader"
                 onClientUploadComplete={async (res) => {
-                  if (res?.[0]) {
-                    const url = res[0].url
-                    const title = uploadTitle.trim() || res[0].name
-                    await saveVideo(title, url, null)
+                  if (res && res[0]) {
+                    const file = res[0]
+                    await saveVideo(file.name, file.url, null)
                     const roomCode = generateRoomCode()
+                    broadcastInvitesToFriends(roomCode)
                     onClose()
                     router.push(`/room/${roomCode}`)
                   }
                 }}
                 onUploadError={(error: Error) => {
-                  alert(`Erro no upload: ${error.message}`)
+                  toast.error(`Erro no upload: ${error.message}`)
                 }}
-                appearance={{
-                  container: "border-dashed border-[#242424] bg-[#151515] rounded-xl p-6 hover:border-[#FF5A00]/40 transition-colors",
-                  uploadIcon: "text-[#FF5A00]/40",
-                  label: "text-[#8A8A8A] hover:text-[#FF5A00] text-sm font-medium",
-                  allowedContent: "text-[#5F5F5F] text-xs",
-                  button: "brand-gradient px-5 py-2 rounded-lg text-white text-sm font-bold mt-3"
-                }}
+                className="ut-label:text-[#FF5A00] ut-button:bg-[#FF5A00] border-2 border-dashed border-[#333] bg-[#050508] p-6"
               />
+            </div>
+          )}
+
+          {activeTab === 'empty' && (
+            <div className="space-y-4 text-center py-4">
+              <p className="text-[11px] font-mono text-[#888] leading-relaxed max-w-sm mx-auto">
+                Crie uma sala vazia pronta para compartilhar sua tela ou adicionar vídeos depois pelo chat.
+              </p>
+              <button
+                onClick={handleCreateEmptyRoom}
+                className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Play className="w-4 h-4 fill-black" />
+                <span>[ INICIAR SALA LIVRE AGORA ]</span>
+              </button>
             </div>
           )}
         </div>

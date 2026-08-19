@@ -1,13 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ShoppingBag, Crown, Sparkles, Palette, Smile, Zap,
-  Check, ShieldCheck, Grid, ArrowRight, Loader2
+  ShoppingBag,
+  Crown,
+  Sparkles,
+  Palette,
+  Smile,
+  Zap,
+  Check,
+  ShieldCheck,
+  Grid,
+  ArrowRight,
+  Loader2,
+  Lock,
+  Star,
+  Flame,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { ShopVault3DView } from '@/components/dashboard/shop-vault-3d'
+import { useSession } from 'next-auth/react'
 
 interface ShopItem {
   id: string
@@ -16,73 +30,98 @@ interface ShopItem {
   price: string
   description: string
   badge?: string
-  gradient: string
+  borderColor: string
   icon: any
 }
 
 const shopItems: ShopItem[] = [
   {
     id: 'pro-plan',
-    title: 'Assinatura Plano PRO ⭐',
+    title: 'ASSINATURA PLANO PRO ⭐',
     category: 'plan',
     price: 'R$ 19,90 /mês',
-    description: 'Salas para até 6 pessoas, transmissão HD, selo de Host PRO e salas ilimitadas.',
-    badge: 'MAIS VENDIDO',
-    gradient: 'from-amber-500/20 via-orange-500/20 to-amber-500/10',
-    icon: Crown
+    description: 'Salas para até 6 pessoas simultâneas, transmissão 1080p sem anúncios, selo de Host VIP e salas ilimitadas.',
+    badge: 'MAIS POPULAR',
+    borderColor: 'border-[#FFE600]/60',
+    icon: Crown,
   },
   {
     id: 'gold-border',
-    title: 'Moldura Dourada VIP',
+    title: 'MOLDURA DOURADA VIP',
     category: 'border',
     price: 'R$ 4,90',
-    description: 'Destaque seu avatar nas salas com uma borda dourada reluzente animada.',
+    description: 'Destaque seu avatar nas salas com uma moldura cibernética dourada reluzente animada.',
     badge: 'NOVO',
-    gradient: 'from-[#FF5A00]/20 to-amber-500/10',
-    icon: Sparkles
+    borderColor: 'border-[#FFE600]/40',
+    icon: Sparkles,
   },
   {
     id: 'cyber-border',
-    title: 'Moldura Cyberpunk Neon',
+    title: 'MOLDURA CYBERPUNK NEON',
     category: 'border',
     price: 'R$ 4,90',
-    description: 'Borda com efeito neon ciano e roxo dinâmico para perfis futuristas.',
-    gradient: 'from-cyan-500/20 to-purple-500/10',
-    icon: Sparkles
+    description: 'Borda com efeito neon ciano e roxo pulsante dinâmico para perfis futuristas.',
+    borderColor: 'border-[#00F0FF]/40',
+    icon: Sparkles,
   },
   {
     id: 'neon-chat-pack',
-    title: 'Pacote Cores Neon Chat',
+    title: 'PACOTE CORES NEON CHAT',
     category: 'theme',
     price: 'R$ 3,50',
-    description: 'Desbloqueie 8 novas cores neon exclusivas para destacar suas mensagens no chat.',
-    gradient: 'from-purple-500/20 to-pink-500/10',
-    icon: Palette
+    description: 'Desbloqueie 8 novas cores neon exclusivas para destacar suas mensagens no chat da sala.',
+    badge: 'DESTAQUE',
+    borderColor: 'border-[#A855F7]/40',
+    icon: Palette,
   },
   {
     id: 'anime-emotes',
-    title: 'Pacote Emotes de Anime',
+    title: 'PACOTE EMOTES ANIMADOS',
     category: 'emote',
     price: 'R$ 2,90',
-    description: 'Coleção com 12 figurinhas e reações animadas de animes populares.',
-    gradient: 'from-emerald-500/20 to-teal-500/10',
-    icon: Smile
+    description: 'Coleção com 12 figurinhas e reações animadas exclusivas para interagir durante as transmissões.',
+    borderColor: 'border-[#22C55E]/40',
+    icon: Smile,
   },
   {
     id: 'legend-badge',
-    title: 'Selo Host Lendário',
+    title: 'SELO HOST LENDÁRIO',
     category: 'border',
     price: 'R$ 5,90',
-    description: 'Selo exclusivo ao lado do seu nome em todas as salas que você apresentar.',
-    gradient: 'from-red-500/20 to-orange-500/10',
-    icon: ShieldCheck
-  }
+    description: 'Selo holográfico permanente ao lado do seu nome em todas as salas que você criar ou participar.',
+    badge: 'EXCLUSIVO',
+    borderColor: 'border-[#FF5A00]/40',
+    icon: ShieldCheck,
+  },
+]
+
+const categories = [
+  { id: 'all', label: 'TODOS OS ITENS' },
+  { id: 'plan', label: 'PLANOS & ASSINATURAS' },
+  { id: 'border', label: 'MOLDURAS DE AVATAR' },
+  { id: 'theme', label: 'CORES DE CHAT' },
+  { id: 'emote', label: 'EMOTES & REAÇÕES' },
 ]
 
 export default function LojaPage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [activeCategory, setActiveCategory] = useState<'all' | 'plan' | 'theme' | 'border' | 'emote'>('all')
   const [loadingCheckout, setLoadingCheckout] = useState(false)
+  const [liveUser, setLiveUser] = useState<any>(null)
+
+  useEffect(() => {
+    fetch('/api/user/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user) setLiveUser(data.user)
+      })
+      .catch(() => {})
+  }, [])
+
+  const user = liveUser || session?.user
+  const userPlan = (user?.plan || 'FREE').toUpperCase()
+  const isPro = userPlan === 'PRO' || userPlan === 'MAXPRO'
 
   const handleCheckoutPro = async () => {
     setLoadingCheckout(true)
@@ -107,8 +146,8 @@ export default function LojaPage() {
       return
     }
 
-    toast.info(`Em breve! O item "${item.title}" estará disponível no lançamento oficial da loja.`, {
-      description: 'Estamos preparando o sistema de inventário para os próximos dias.'
+    toast.info(`O item "${item.title}" estará disponível no lançamento oficial da loja.`, {
+      description: 'Inventário e personalização de itens em desenvolvimento.',
     })
   }
 
@@ -117,217 +156,244 @@ export default function LojaPage() {
   )
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-[#0B0B0B] border border-[#242424] relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#FF5A00]/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="space-y-8">
+      
+      {/* ── HEADER COMMAND BANNER ─────────────────────────────────── */}
+      <div className="relative overflow-hidden bg-[#09090D] border border-[#222] p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl">
+        <div
+          className={cn(
+            'absolute top-0 right-0 w-80 h-full blur-3xl pointer-events-none opacity-20 transition-colors',
+            isPro ? 'bg-[#FFE600]' : 'bg-[#FF5A00]'
+          )}
+        />
 
-        <div className="space-y-2 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl brand-gradient flex items-center justify-center text-white brand-glow-strong shrink-0">
-              <ShoppingBag className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F5F5F5] tracking-tight">
-                  Loja VideoMax
-                </h1>
-                <span className="flex items-center gap-1 bg-[#FF5A00]/10 border border-[#FF5A00]/30 px-2.5 py-0.5 rounded-full text-[#FF5A00] text-[10px] font-extrabold uppercase tracking-wider">
-                  <Zap className="w-3 h-3 fill-[#FF5A00]" /> OFICIAL
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-[#8A8A8A]">
-                Personalize seu perfil, adquira molduras exclusivas e assine o Plano PRO para transmissões ilimitadas.
-              </p>
-            </div>
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-12 h-12 bg-[#FF5A00] flex items-center justify-center font-black shrink-0 text-black shadow-[0_0_20px_rgba(255,90,0,0.3)]">
+            <ShoppingBag className="w-6 h-6 stroke-[2.5]" />
           </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-mono text-[#FF5A00] uppercase font-bold tracking-widest bg-[#14141E] px-2 py-0.5 border border-[#222]">
+                [ LOJA OFICIAL // UPGRADES ]
+              </span>
+              <span className="text-[9px] font-mono text-[#22C55E] uppercase font-bold bg-[#061508] border border-[#16381C] px-2 py-0.5">
+                ● STRIPE SECURE
+              </span>
+            </div>
+
+            <h1 className="text-xl sm:text-2xl font-black font-mono text-white uppercase tracking-tight">
+              LOJA VIDEOMAX & PLANOS VIP
+            </h1>
+            <p className="text-[11px] font-mono text-[#888]">
+              Personalize seu perfil com molduras holográficas, cores exclusivas e assine o Plano MAXPRO.
+            </p>
+          </div>
+        </div>
+
+        {/* 3D Diamond Gem */}
+        <div className="hidden sm:flex items-center justify-center relative z-10">
+          <ShopVault3DView className="w-24 h-24 relative" />
         </div>
       </div>
 
-      {/* Hero Featured Plan Card (Plano PRO ⭐) */}
-      <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#0B0B0B] via-[#111118] to-[#0B0B0B] border border-amber-500/40 relative overflow-hidden shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-6">
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500" />
-        <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="space-y-4 max-w-xl">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-extrabold uppercase tracking-wider">
-            <Crown className="w-3.5 h-3.5 fill-amber-400" />
-            <span>Plano Recomendado</span>
+      {/* ── HERO VIP PLAN BLOCK (HIGH VOLTAGE) ────────────────────── */}
+      <div
+        className={cn(
+          'relative overflow-hidden p-6 sm:p-8 border transition-all duration-300 shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-8',
+          isPro
+            ? 'bg-gradient-to-r from-[#1A1308] via-[#0E0C0A] to-[#070605] border-[#FFE600]/60 shadow-[0_0_35px_rgba(255,230,0,0.15)]'
+            : 'bg-gradient-to-r from-[#160E08] via-[#0E0C0A] to-[#070605] border-[#FF5A00]/50 shadow-[0_0_35px_rgba(255,90,0,0.15)]'
+        )}
+      >
+        <div className="space-y-4 flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1 font-mono font-black text-[10px] uppercase tracking-widest shadow-md',
+                isPro
+                  ? 'bg-[#FFE600] text-black shadow-[0_0_12px_rgba(255,230,0,0.4)]'
+                  : 'bg-[#FF5A00] text-black shadow-[0_0_12px_rgba(255,90,0,0.4)]'
+              )}
+            >
+              <Crown className="w-3.5 h-3.5 fill-black" />
+              <span>{isPro ? '👑 SEU PLANO VIP ATIVO ATUALMENTE' : '★ PLANO RECOMENDADO'}</span>
+            </span>
           </div>
 
           <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-              Assinatura Plano PRO ⭐
+            <h2 className="text-2xl sm:text-3xl font-black font-mono text-white uppercase tracking-tight flex items-center gap-2">
+              ASSINATURA PLANO MAXPRO <span className="text-[#FFE600]">⭐</span>
             </h2>
-            <p className="text-xs sm:text-sm text-[#A0A0B0] mt-1 leading-relaxed">
-              Suba de nível e ofereça a melhor experiência para os seus amigos. Salas maiores, transmissões em alta qualidade e selo exclusivo de criador!
+            <p className="text-[11px] font-mono text-[#AAA] max-w-xl mt-1 leading-relaxed">
+              Suba de nível e ofereça a melhor experiência para seus amigos com infraestrutura Mesh 6X em alta resolução e baixa latência.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-            <div className="flex items-center gap-2 text-xs text-white/90 font-medium">
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Salas para até 6 participantes</span>
+          {/* Telemetry Bullets Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+            <div className="flex items-center gap-2 text-[#E5E5E5]">
+              <span className="text-[#FFE600] font-bold">✓</span>
+              <span>Salas para até 6 participantes simultâneos</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-white/90 font-medium">
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Transmissão HD sem travamentos</span>
+            <div className="flex items-center gap-2 text-[#E5E5E5]">
+              <span className="text-[#FFE600] font-bold">✓</span>
+              <span>Transmissão HD 1080p sem travamentos</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-white/90 font-medium">
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Selo exclusivo Host PRO ⭐</span>
+            <div className="flex items-center gap-2 text-[#E5E5E5]">
+              <span className="text-[#FFE600] font-bold">✓</span>
+              <span>Selo exclusivo de Host VIP nas salas</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-white/90 font-medium">
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Suporte prioritário e salas ilimitadas</span>
+            <div className="flex items-center gap-2 text-[#E5E5E5]">
+              <span className="text-[#FFE600] font-bold">✓</span>
+              <span>Salas privadas ilimitadas e suporte prioritário</span>
             </div>
           </div>
         </div>
 
-        {/* Pricing & Checkout Action */}
-        <div className="p-6 rounded-2xl bg-[#0F0F17] border border-amber-500/30 text-center space-y-4 w-full lg:w-80 shrink-0 shadow-xl">
-          <div>
-            <span className="text-xs text-[#8A8A8A] font-semibold uppercase tracking-wider block">Por apenas</span>
-            <span className="text-3xl font-extrabold text-white font-mono">R$ 19,90</span>
-            <span className="text-xs text-[#8A8A8A] font-medium"> / mês</span>
+        {/* Pricing Box & Checkout Action */}
+        <div className="w-full lg:w-72 bg-[#050507] border border-[#2A2A35] p-6 flex flex-col items-center text-center space-y-4 shrink-0 shadow-xl">
+          <span className="text-[10px] font-mono text-[#888] uppercase tracking-widest">
+            {isPro ? 'VALOR DA ASSINATURA' : 'POR APENAS'}
+          </span>
+
+          <div className="flex items-baseline gap-1 font-mono">
+            <span className="text-sm font-bold text-[#FF5A00]">R$</span>
+            <span className="text-3xl font-black text-white">19,90</span>
+            <span className="text-[11px] text-[#777]">/mês</span>
           </div>
 
-          <button
-            onClick={handleCheckoutPro}
-            disabled={loadingCheckout}
-            className="w-full py-3.5 px-4 rounded-xl brand-gradient text-white font-extrabold text-xs sm:text-sm shadow-xl brand-glow-strong hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border border-amber-400/40"
-          >
-            {loadingCheckout ? (
-              <Loader2 className="w-4 h-4 animate-spin text-white" />
-            ) : (
-              <>
-                <Crown className="w-4 h-4 fill-white" />
-                <span>Assinar Plano PRO Agora</span>
-              </>
-            )}
-          </button>
+          {isPro ? (
+            <button
+              onClick={() => router.push('/profile')}
+              className="w-full py-3.5 bg-[#FFE600] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,230,0,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+            >
+              <Crown className="w-4 h-4 fill-black" />
+              <span>[ GERENCIAR PLANO VIP ]</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleCheckoutPro}
+              disabled={loadingCheckout}
+              className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_25px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+            >
+              {loadingCheckout ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Crown className="w-4 h-4 fill-black" />
+              )}
+              <span>[ ASSINAR PLANO PRO ]</span>
+            </button>
+          )}
 
-          <p className="text-[10px] text-[#8A8A8A]">
+          <span className="text-[9px] font-mono text-[#666]">
             Pagamento 100% seguro via Stripe. Cancele a qualquer momento.
-          </p>
+          </span>
         </div>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#242424] pb-3 overflow-x-auto">
-        <button
-          onClick={() => setActiveCategory('all')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
-            activeCategory === 'all'
-              ? "brand-gradient text-white shadow-md"
-              : "bg-[#0B0B0B] text-[#8A8A8A] hover:text-[#F5F5F5] border border-[#242424]"
-          )}
-        >
-          <Grid className="w-3.5 h-3.5" />
-          <span>Todos os Itens</span>
-        </button>
+      {/* ── CATEGORY FILTER TABS ───────────────────────────────────── */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none border-b border-[#222]">
+        {categories.map((cat) => {
+          const active = activeCategory === cat.id
+          const count =
+            cat.id === 'all'
+              ? shopItems.length
+              : shopItems.filter((i) => i.category === cat.id).length
 
-        <button
-          onClick={() => setActiveCategory('plan')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
-            activeCategory === 'plan'
-              ? "brand-gradient text-white shadow-md"
-              : "bg-[#0B0B0B] text-[#8A8A8A] hover:text-[#F5F5F5] border border-[#242424]"
-          )}
-        >
-          <Crown className="w-3.5 h-3.5 text-amber-400" />
-          <span>Planos & Assinaturas</span>
-        </button>
-
-        <button
-          onClick={() => setActiveCategory('border')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
-            activeCategory === 'border'
-              ? "brand-gradient text-white shadow-md"
-              : "bg-[#0B0B0B] text-[#8A8A8A] hover:text-[#F5F5F5] border border-[#242424]"
-          )}
-        >
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Molduras de Avatar</span>
-        </button>
-
-        <button
-          onClick={() => setActiveCategory('theme')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
-            activeCategory === 'theme'
-              ? "brand-gradient text-white shadow-md"
-              : "bg-[#0B0B0B] text-[#8A8A8A] hover:text-[#F5F5F5] border border-[#242424]"
-          )}
-        >
-          <Palette className="w-3.5 h-3.5 text-purple-400" />
-          <span>Cores de Chat</span>
-        </button>
-
-        <button
-          onClick={() => setActiveCategory('emote')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
-            activeCategory === 'emote'
-              ? "brand-gradient text-white shadow-md"
-              : "bg-[#0B0B0B] text-[#8A8A8A] hover:text-[#F5F5F5] border border-[#242424]"
-          )}
-        >
-          <Smile className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Emotes & Reações</span>
-        </button>
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id as any)}
+              className={cn(
+                'px-3.5 py-2 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap',
+                active
+                  ? 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
+                  : 'bg-[#09090D] text-[#777] border-[#222] hover:text-white hover:border-[#333]'
+              )}
+            >
+              <span>[ {cat.label} ]</span>
+              <span
+                className={cn(
+                  'text-[9px] px-1 py-0.2 rounded-xs font-mono font-bold',
+                  active ? 'bg-black text-[#FF5A00]' : 'bg-[#151520] text-[#888]'
+                )}
+              >
+                {count}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* Grid of Marketplace Items */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* ── ITEMS CATALOG GRID ─────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredItems.map((item) => {
           const IconComp = item.icon
+          const isItemProPlan = item.id === 'pro-plan'
 
           return (
             <div
               key={item.id}
-              className="bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00]/50 rounded-2xl p-6 flex flex-col justify-between space-y-4 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl group relative overflow-hidden"
+              className={cn(
+                'group relative bg-[#09090D] border p-5 flex flex-col justify-between space-y-4 transition-all duration-200 hover:scale-[1.01]',
+                item.borderColor,
+                'hover:border-white/60 shadow-xl'
+              )}
             >
-              {/* Item Header / Preview */}
               <div className="space-y-3">
+                
+                {/* Header: Icon & Badge */}
                 <div className="flex items-center justify-between">
-                  <div className={cn("w-12 h-12 rounded-xl bg-gradient-to-br border border-white/10 flex items-center justify-center text-white shadow-lg", item.gradient)}>
-                    <IconComp className="w-6 h-6 text-white" />
+                  <div className="w-10 h-10 bg-[#121218] border border-[#222] flex items-center justify-center text-[#FFE600] group-hover:text-white transition-colors">
+                    <IconComp className="w-5 h-5" />
                   </div>
 
                   {item.badge && (
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#FF5A00]/10 border border-[#FF5A00]/30 text-[#FF5A00] text-[10px] font-extrabold uppercase tracking-wider">
+                    <span className="text-[8px] font-mono font-bold bg-[#FF5A00] text-black px-2 py-0.5 uppercase tracking-wider">
                       {item.badge}
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-[#FF5A00] transition-colors">
+                  <h3 className="text-[13px] font-mono font-bold text-white uppercase group-hover:text-[#FF5A00] transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-[#8A8A8A] mt-1 leading-relaxed">
+                  <p className="text-[10px] font-mono text-[#888] mt-1.5 leading-relaxed">
                     {item.description}
                   </p>
                 </div>
               </div>
 
-              {/* Price & Buy Button */}
-              <div className="pt-4 border-t border-[#242424] flex items-center justify-between gap-3">
+              {/* Footer: Price & Buy Action */}
+              <div className="pt-3 border-t border-[#1C1C24] flex items-center justify-between gap-3">
                 <div>
-                  <span className="text-[10px] text-[#8A8A8A] block font-semibold uppercase tracking-wider">Preço</span>
-                  <span className="text-sm font-extrabold text-white font-mono">{item.price}</span>
+                  <span className="text-[9px] font-mono text-[#666] block">PREÇO</span>
+                  <span className="text-sm font-mono font-black text-white">
+                    {item.price}
+                  </span>
                 </div>
 
                 <button
                   onClick={() => handleBuyItem(item)}
-                  className="px-4 py-2 rounded-xl brand-gradient text-white text-xs font-bold flex items-center gap-1.5 brand-glow-strong hover:scale-105 active:scale-95 transition-all"
+                  className={cn(
+                    'px-4 py-2 text-[10px] font-mono font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer',
+                    isItemProPlan
+                      ? isPro
+                        ? 'bg-[#222] text-[#FFE600] border border-[#FFE600]/40'
+                        : 'bg-[#FFE600] hover:bg-white text-black font-black shadow-[0_0_12px_rgba(255,230,0,0.3)]'
+                      : 'bg-[#151520] hover:bg-[#FF5A00] text-white hover:text-black border border-[#333] hover:border-[#FF5A00]'
+                  )}
                 >
-                  <span>{item.id === 'pro-plan' ? 'Assinar' : 'Adquirir'}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  {isItemProPlan && isPro ? (
+                    <>
+                      <Check className="w-3 h-3 stroke-[3]" />
+                      <span>ATIVO</span>
+                    </>
+                  ) : (
+                    <span>[ ADQUIRIR ]</span>
+                  )}
                 </button>
               </div>
             </div>

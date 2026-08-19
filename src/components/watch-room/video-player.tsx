@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react'
-import dynamic from 'next/dynamic'
 import {
   Play,
   Pause,
@@ -9,19 +8,18 @@ import {
   VolumeX,
   Maximize,
   Minimize,
-  Settings,
-  Subtitles,
-  Loader2,
-  Monitor,
-  Square,
   Radio,
   Eye,
-  EyeOff
+  EyeOff,
+  Square,
+  Crown,
+  Monitor,
+  Zap,
 } from 'lucide-react'
-import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { cn } from '@/lib/utils'
 import { isYouTubeUrl, getYouTubeVideoId } from '@/lib/youtube'
 import YouTube from 'react-youtube'
+import { RoomStandby3DView } from './room-standby-3d'
 
 export interface VideoPlayerHandle {
   play: () => Promise<void>
@@ -32,9 +30,10 @@ export interface VideoPlayerHandle {
 }
 
 interface VideoPlayerProps {
-  src: string
+  src?: string | null
   poster?: string
   canControl?: boolean
+  isHostPro?: boolean
   onPlay?: () => void
   onPause?: () => void
   onSeek?: (time: number) => void
@@ -47,6 +46,16 @@ interface VideoPlayerProps {
   streamerName?: string
   isLocalStreamer?: boolean
   onStopStream?: () => void
+  onSelectVideo?: () => void
+  onShareScreen?: () => void
+  onOpenLibrary?: () => void
+}
+
+function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds <= 0) return '00:00'
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
@@ -55,6 +64,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       src,
       poster,
       canControl = true,
+      isHostPro = false,
       onPlay,
       onPause,
       onSeek,
@@ -66,7 +76,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       streamMedia = null,
       streamerName,
       isLocalStreamer = false,
-      onStopStream
+      onStopStream,
+      onSelectVideo,
+      onShareScreen,
+      onOpenLibrary,
     },
     ref
   ) {
@@ -85,11 +98,39 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const [buffered, setBuffered] = useState(0)
     const [showControls, setShowControls] = useState(true)
     const [isFullscreen, setIsFullscreen] = useState(false)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
     const [volume, setVolume] = useState(1)
     const [showLocalPreview, setShowLocalPreview] = useState(false)
+    const [isHoveringProgress, setIsHoveringProgress] = useState(false)
+    const [hoverTime, setHoverTime] = useState(0)
 
-    const isYouTube = isYouTubeUrl(src)
+    const cleanSrc = (src || '').trim()
+    const hasMedia = cleanSrc !== '' && cleanSrc !== 'EMPTY'
+    const isYouTube = hasMedia && isYouTubeUrl(cleanSrc)
+
+    // Active polling for YouTube playback time and duration
+    useEffect(() => {
+      if (!isYouTube) return
+
+      const interval = setInterval(() => {
+        if (reactPlayerRef.current) {
+          try {
+            const cur = reactPlayerRef.current.getCurrentTime?.()
+            const dur = reactPlayerRef.current.getDuration?.()
+            if (typeof cur === 'number' && !isNaN(cur) && cur >= 0) {
+              setCurrentTime(cur)
+            }
+            if (typeof dur === 'number' && !isNaN(dur) && dur > 0) {
+              setDuration(dur)
+            }
+          } catch (err) {
+            // Player not ready
+          }
+        }
+      }, 250)
+
+      return () => clearInterval(interval)
+    }, [isYouTube])
 
     // Expose imperative methods for remote socket control (Play, Pause, Seek, Time)
     useImperativeHandle(ref, () => ({
@@ -104,314 +145,224 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             playPromiseRef.current = videoRef.current.play()
             await playPromiseRef.current
           } catch (e) {
-            // Ignore AbortError: The play() request was interrupted by a call to pause()
+            // Interrupted play request
           } finally {
             playPromiseRef.current = null
           }
         }
       },
-      pause: async () => {
+      pause: () => {
         if (isYouTube) {
           setIsPlaying(false)
           reactPlayerRef.current?.pauseVideo?.()
         } else if (videoRef.current) {
           if (playPromiseRef.current) {
-            try {
-              await playPromiseRef.current
-            } catch (e) {
-              // Ignore
-            }
+            playPromiseRef.current
+              .then(() => {
+                videoRef.current?.pause()
+              })
+              .catch(() => {})
+          } else {
+            videoRef.current.pause()
           }
-          videoRef.current.pause()
         }
       },
       seek: (time: number) => {
-        setCurrentTime(time)
         if (isYouTube) {
-          if (typeof reactPlayerRef.current?.seekTo === 'function') {
-            reactPlayerRef.current.seekTo(time, true)
-          }
+          reactPlayerRef.current?.seekTo?.(time, true)
+          setCurrentTime(time)
         } else if (videoRef.current) {
           videoRef.current.currentTime = time
+          setCurrentTime(time)
         }
       },
       getCurrentTime: () => {
-        if (isYouTube && reactPlayerRef.current) {
-          if (typeof reactPlayerRef.current.getCurrentTime === 'function') {
-            return reactPlayerRef.current.getCurrentTime()
-          }
-          return reactPlayerRef.current.currentTime ?? currentTime
+        if (isYouTube) {
+          return reactPlayerRef.current?.getCurrentTime?.() || currentTime
         }
-        return videoRef.current?.currentTime ?? 0
+        return videoRef.current?.currentTime || currentTime
       },
       getDuration: () => {
-        if (isYouTube && reactPlayerRef.current) {
-          if (typeof reactPlayerRef.current.getDuration === 'function') {
-            return reactPlayerRef.current.getDuration()
-          }
-          return reactPlayerRef.current.duration ?? duration
+        if (isYouTube) {
+          return reactPlayerRef.current?.getDuration?.() || duration
         }
-        return videoRef.current?.duration ?? duration
-      }
+        return videoRef.current?.duration || duration
+      },
     }))
 
-    // Format time mm:ss
-    const formatTime = (seconds: number) => {
-      if (!seconds || isNaN(seconds)) return '0:00'
-      const mins = Math.floor(seconds / 60)
-      const secs = Math.floor(seconds % 60)
-      return `${mins}:${secs.toString().padStart(2, '0')}`
-    }
-
-    // Handle remote updates
+    // WebRTC Screen Stream media binding
     useEffect(() => {
-      if (isRemoteUpdate) {
-        onRemoteUpdateDone?.()
+      if (streamVideoRef.current && streamMedia) {
+        streamVideoRef.current.srcObject = streamMedia
+        streamVideoRef.current.play().catch(() => {})
       }
-    }, [isRemoteUpdate, onRemoteUpdateDone])
+    }, [streamMedia, isStreamingScreen, showLocalPreview])
 
-    // YouTube time polling
-    useEffect(() => {
-      if (!isYouTube || !isPlaying) return;
-      const interval = setInterval(() => {
-        if (reactPlayerRef.current?.getCurrentTime) {
-          const time = reactPlayerRef.current.getCurrentTime();
-          if (typeof time === 'number') {
-             setCurrentTime(time);
-          }
-          const loaded = reactPlayerRef.current.getVideoLoadedFraction?.();
-          if (typeof loaded === 'number' && duration > 0) {
-             setBuffered(loaded * duration);
-          }
-        }
-      }, 500);
-      return () => clearInterval(interval);
-    }, [isYouTube, isPlaying, duration]);
-
-    // YouTube play/pause sync
-    useEffect(() => {
-      if (isYouTube && reactPlayerRef.current) {
-        const state = reactPlayerRef.current.getPlayerState?.()
-        if (isPlaying && state !== 1 && state !== 3) {
-          reactPlayerRef.current.playVideo?.()
-        } else if (!isPlaying && state === 1) {
-          reactPlayerRef.current.pauseVideo?.()
-        }
-      }
-    }, [isPlaying, isYouTube])
-
-    // --- HTML5 Video Event Handlers ---
-    const handleTimeUpdate = useCallback(() => {
-      if (!isYouTube && videoRef.current) {
-        setCurrentTime(videoRef.current.currentTime)
-      }
-    }, [isYouTube])
-
-    const handleLoadedMetadata = useCallback(() => {
-      if (!isYouTube && videoRef.current) {
-        setDuration(videoRef.current.duration)
-        setIsLoading(false)
-      }
-    }, [isYouTube])
-
-    const handleProgress = useCallback(() => {
-      if (!isYouTube && videoRef.current && videoRef.current.buffered.length > 0) {
-        setBuffered(videoRef.current.buffered.end(videoRef.current.buffered.length - 1))
-      }
-    }, [isYouTube])
-
-    // --- Common Play/Pause Callbacks ---
-    const handlePlay = useCallback(() => {
-      setIsPlaying(true)
-      onPlay?.()
-      startHideControlsTimer()
-    }, [onPlay])
-
-    const handlePause = useCallback(() => {
-      setIsPlaying(false)
-      onPause?.()
-    }, [onPause])
-
-    const handleWaiting = useCallback(() => setIsLoading(true), [])
-    const handleCanPlay = useCallback(() => {
-      setIsLoading(false)
-      onCanPlay?.()
-    }, [onCanPlay])
-
-    // Controls visibility timer (auto-hide controls & top tags after 5s)
-    const startHideControlsTimer = useCallback(() => {
-      if (hideControlsTimeout.current) {
-        clearTimeout(hideControlsTimeout.current)
-      }
+    // Controls timeout
+    const resetControlsTimeout = useCallback(() => {
       setShowControls(true)
-      if (isPlaying) {
-        hideControlsTimeout.current = setTimeout(() => setShowControls(false), 5000)
-      }
+      if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current)
+      hideControlsTimeout.current = setTimeout(() => {
+        if (isPlaying) {
+          setShowControls(false)
+        }
+      }, 4000)
     }, [isPlaying])
 
-    const handleMouseMove = useCallback(() => {
-      startHideControlsTimer()
-    }, [startHideControlsTimer])
-
-    // Toggle Play/Pause safely avoiding AbortError
-    const togglePlay = useCallback(async () => {
-      if (isYouTube) {
-        if (isPlaying) {
-          setIsPlaying(false)
+    const togglePlay = useCallback(() => {
+      if (!canControl) return
+      if (isPlaying) {
+        if (isYouTube) {
           reactPlayerRef.current?.pauseVideo?.()
-          handlePause()
         } else {
-          setIsPlaying(true)
+          videoRef.current?.pause()
+        }
+        setIsPlaying(false)
+        onPause?.()
+      } else {
+        if (isYouTube) {
           reactPlayerRef.current?.playVideo?.()
-          handlePlay()
+        } else {
+          videoRef.current?.play()?.catch(() => {})
+        }
+        setIsPlaying(true)
+        onPlay?.()
+      }
+    }, [canControl, isPlaying, isYouTube, onPause, onPlay])
+
+    const toggleMute = useCallback(() => {
+      if (isYouTube) {
+        if (isMuted) {
+          reactPlayerRef.current?.unMute?.()
+          setIsMuted(false)
+        } else {
+          reactPlayerRef.current?.mute?.()
+          setIsMuted(true)
         }
       } else if (videoRef.current) {
-        if (videoRef.current.paused) {
-          try {
-            playPromiseRef.current = videoRef.current.play()
-            await playPromiseRef.current
-          } catch (e) {
-            // Ignore play interruption
-          } finally {
-            playPromiseRef.current = null
-          }
-        } else {
-          if (playPromiseRef.current) {
-            try {
-              await playPromiseRef.current
-            } catch (e) {
-              // Ignore
-            }
-          }
-          videoRef.current.pause()
-        }
-      }
-    }, [isYouTube, isPlaying, handlePlay, handlePause])
-
-    // Toggle Mute
-    const toggleMute = useCallback(() => {
-      const newMuted = !isMuted
-      setIsMuted(newMuted)
-      if (isYouTube && reactPlayerRef.current) {
-        if (newMuted) reactPlayerRef.current.mute?.()
-        else reactPlayerRef.current.unMute?.()
-      } else if (!isYouTube && videoRef.current) {
-        videoRef.current.muted = newMuted
+        videoRef.current.muted = !isMuted
+        setIsMuted(!isMuted)
       }
     }, [isMuted, isYouTube])
 
-    // Seek handler
-    const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-      const time = parseFloat(e.target.value)
-      setCurrentTime(time)
-      if (isYouTube) {
-        if (typeof reactPlayerRef.current?.seekTo === 'function') {
-          reactPlayerRef.current.seekTo(time, true)
-        }
-      } else if (videoRef.current) {
-        videoRef.current.currentTime = time
-      }
-      onSeek?.(time)
-    }, [isYouTube, onSeek])
-
-    // Fullscreen handler
     const toggleFullscreen = useCallback(() => {
       if (!containerRef.current) return
-
       if (!document.fullscreenElement) {
-        containerRef.current.requestFullscreen()
-        setIsFullscreen(true)
+        containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {})
       } else {
-        document.exitFullscreen()
-        setIsFullscreen(false)
+        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {})
       }
       onFullscreen?.()
     }, [onFullscreen])
 
-    useEffect(() => {
-      const handleFullscreenChange = () => {
-        setIsFullscreen(!!document.fullscreenElement)
-      }
-      document.addEventListener('fullscreenchange', handleFullscreenChange)
-      return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
-    }, [])
+    const handleSeek = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!canControl) return
 
-    useEffect(() => {
-      if (!isStreamingScreen) {
-        setShowLocalPreview(false)
-      }
-    }, [isStreamingScreen])
+        let totalDuration = duration
+        if (totalDuration <= 0) {
+          if (isYouTube) {
+            totalDuration = reactPlayerRef.current?.getDuration?.() || 0
+          } else if (videoRef.current) {
+            totalDuration = videoRef.current.duration || 0
+          }
+        }
 
-    useEffect(() => {
-      if (isStreamingScreen && streamVideoRef.current && streamMedia) {
-        streamVideoRef.current.srcObject = streamMedia
-        streamVideoRef.current.play().catch(() => {})
-      }
-    }, [isStreamingScreen, streamMedia, showLocalPreview])
+        if (totalDuration <= 0) return
 
-    // Progress percentage
-    const progress = duration > 0 ? (currentTime / duration) * 100 : 0
-    const bufferedProgress = duration > 0 ? (buffered / duration) * 100 : 0
+        const rect = e.currentTarget.getBoundingClientRect()
+        const clickPos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+        const targetTime = clickPos * totalDuration
+
+        if (isYouTube) {
+          reactPlayerRef.current?.seekTo?.(targetTime, true)
+        } else if (videoRef.current) {
+          videoRef.current.currentTime = targetTime
+        }
+        setCurrentTime(targetTime)
+        onSeek?.(targetTime)
+      },
+      [canControl, duration, isYouTube, onSeek]
+    )
+
+    const handleProgressMouseMove = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        const totalDuration = duration || (isYouTube ? reactPlayerRef.current?.getDuration?.() || 0 : 0)
+        if (totalDuration <= 0) return
+        const rect = e.currentTarget.getBoundingClientRect()
+        const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+        setHoverTime(pos * totalDuration)
+      },
+      [duration, isYouTube]
+    )
+
+    // Check if room is in standby state (no stream, no video)
+    if (!isStreamingScreen && !hasMedia) {
+      return (
+        <div
+          ref={containerRef}
+          className="relative w-full h-full min-h-[380px] bg-[#050508] border border-[#1F1F28]"
+        >
+          <RoomStandby3DView
+            isPro={isHostPro}
+            canControl={canControl}
+            onSelectVideo={onSelectVideo}
+            onShareScreen={onShareScreen}
+            onOpenLibrary={onOpenLibrary}
+          />
+        </div>
+      )
+    }
+
+    const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0
 
     return (
       <div
         ref={containerRef}
-        className="relative w-full aspect-video bg-[#050507] rounded-2xl overflow-hidden border border-[#242424] group flex items-center justify-center shrink-0"
-        style={{ touchAction: 'manipulation' }}
-        onMouseMove={handleMouseMove}
+        onMouseMove={resetControlsTimeout}
         onMouseLeave={() => isPlaying && setShowControls(false)}
+        className="relative w-full h-full min-h-[380px] bg-black border border-[#1F1F28] overflow-hidden select-none flex items-center justify-center group"
       >
-        {/* Render Live WebRTC Screen Stream when active */}
+        {/* ── Screen Stream Mode ────────────────────────────────────── */}
         {isStreamingScreen ? (
           isLocalStreamer && !showLocalPreview ? (
-            /* Host Presenter Dashboard (Prevents infinite mirror loop) */
-            <div className="relative w-full h-full bg-[#07070a] flex flex-col items-center justify-center p-6 text-center select-none border border-red-500/20">
-              <div className="relative mb-3">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-600/10 border-2 border-red-500/60 flex items-center justify-center animate-pulse">
-                  <Monitor className="w-8 h-8 sm:w-10 sm:h-10 text-red-500" />
-                </div>
-                <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
-                </span>
+            /* Local Streamer Infographic (Mirror Prevention) */
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#09090D] p-6 text-center space-y-4 font-mono">
+              <div className="w-12 h-12 bg-[#EF2020] text-white flex items-center justify-center animate-pulse shadow-[0_0_25px_rgba(239,32,32,0.5)]">
+                <Monitor className="w-6 h-6" />
               </div>
 
-              <div className="inline-flex items-center gap-2 bg-red-600/90 text-white text-[11px] sm:text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider mb-2 shadow-lg shadow-red-600/30">
-                <Radio className="w-3.5 h-3.5 animate-pulse" />
-                Transmitindo Sua Tela Ao Vivo
+              <div className="space-y-1">
+                <h3 className="text-lg font-black text-white uppercase tracking-wider">
+                  SUA TELA ESTÁ SENDO TRANSMITIDA
+                </h3>
+                <p className="text-xs text-[#888] max-w-md mx-auto">
+                  A prévia local foi pausada nesta janela para evitar o efeito túnel/espelho infinito. Todos os outros participantes estão assistindo com áudio em sincronia.
+                </p>
               </div>
 
-              <h3 className="text-base sm:text-lg font-extrabold text-white mb-1">
-                Sua Transmissão está Ativa para a Sala
-              </h3>
-
-              <p className="text-xs text-[#8A8A8A] max-w-md mb-5 leading-relaxed hidden xs:block">
-                Mude para o aplicativo, jogo ou aba que deseja apresentar. Todos os participantes estão assistindo sua tela com áudio do sistema em tempo real.
-              </p>
-
-              <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <div className="flex items-center gap-3 pt-2">
                 {onStopStream && (
                   <button
                     onClick={onStopStream}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xl transition-all hover:scale-105 active:scale-95 border border-red-400/40"
+                    className="px-4 py-2 bg-[#EF2020] hover:bg-white text-white hover:text-black font-black text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2"
                   >
-                    <Square className="w-3.5 h-3.5 fill-white" />
-                    <span>Parar Transmissão</span>
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    <span>PARAR TRANSMISSÃO</span>
                   </button>
                 )}
 
                 <button
                   onClick={() => setShowLocalPreview(true)}
-                  className="flex items-center gap-1.5 bg-[#151515] hover:bg-[#202020] text-[#F5F5F5] text-xs font-semibold px-3.5 py-2 rounded-xl border border-white/10 transition-all hover:border-white/30"
-                  title="Ver imagem do próprio vídeo"
+                  className="px-4 py-2 border border-[#333] hover:border-white text-[#AAA] hover:text-white font-bold text-xs uppercase transition-colors cursor-pointer flex items-center gap-2"
                 >
-                  <Eye className="w-4 h-4 text-emerald-400" />
-                  <span>Ver Prévia</span>
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>VER PRÉVIA</span>
                 </button>
               </div>
             </div>
           ) : (
-            /* Stream Video Player (Viewers & Host Preview Mode) */
+            /* Stream Video Viewport */
             <div className="relative w-full h-full bg-black flex items-center justify-center">
               <video
                 ref={streamVideoRef}
@@ -421,65 +372,66 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 className="w-full h-full object-contain"
               />
 
-              {/* Top Stream Status Overlay */}
-              <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-30 pointer-events-auto">
-                <div className="flex items-center gap-2 bg-red-600/90 backdrop-blur-md text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-lg border border-red-500/30">
-                  <Radio className="w-4 h-4 animate-pulse text-white" />
-                  <span>TELA AO VIVO — {isLocalStreamer ? 'Sua Tela' : streamerName || 'Host'}</span>
+              {/* Stream Top HUD */}
+              <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-30 pointer-events-auto">
+                <div className="flex items-center gap-2 bg-[#EF2020] text-white text-[10px] font-mono font-black px-3 py-1 uppercase shadow-lg">
+                  <Radio className="w-3.5 h-3.5 animate-pulse" />
+                  <span>
+                    TELA AO VIVO // {isLocalStreamer ? 'SUA TELA' : streamerName || 'HOST'}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {isLocalStreamer && (
                     <button
                       onClick={() => setShowLocalPreview(false)}
-                      className="flex items-center gap-1.5 bg-black/70 hover:bg-black/90 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md border border-white/20 transition-all"
-                      title="Ocultar prévia para evitar espelhamento"
+                      className="px-2.5 py-1 bg-[#121218] border border-[#333] text-white font-mono text-[9px] uppercase hover:border-white"
                     >
-                      <EyeOff className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="hidden sm:inline">Ocultar Prévia</span>
+                      <EyeOff className="w-3 h-3 inline mr-1 text-[#FFE600]" />
+                      OCULTAR PRÉVIA
                     </button>
                   )}
 
                   {isLocalStreamer && onStopStream && (
                     <button
                       onClick={onStopStream}
-                      className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-xl transition-all hover:scale-105 active:scale-95 border border-red-400/40"
+                      className="px-3 py-1 bg-[#EF2020] hover:bg-white text-white hover:text-black font-mono font-black text-[9px] uppercase transition-colors"
                     >
-                      <Square className="w-3.5 h-3.5 fill-white" />
-                      <span className="hidden sm:inline">Parar Transmissão</span>
+                      PARAR TELA
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Stream View Controls (Mute/Unmute & Fullscreen for viewers) */}
-              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-30 bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleMute}
-                    className="text-white/80 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold"
-                  >
-                    {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-emerald-400" />}
-                    <span>{isMuted ? 'Áudio Mudo' : 'Áudio do Sistema Ativo'}</span>
-                  </button>
-                </div>
+              {/* Stream Bottom Audio/Fullscreen Controls */}
+              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-30 bg-[#09090D]/85 border border-[#222] px-4 py-2 font-mono">
+                <button
+                  onClick={toggleMute}
+                  className="text-white hover:text-[#FF5A00] transition-colors flex items-center gap-2 text-[11px] font-bold uppercase cursor-pointer"
+                >
+                  {isMuted ? (
+                    <VolumeX className="w-4 h-4 text-[#EF2020]" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-[#22C55E]" />
+                  )}
+                  <span>{isMuted ? 'ÁUDIO MUDO' : 'ÁUDIO DO SISTEMA ATIVO'}</span>
+                </button>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleFullscreen}
-                    className="text-white/80 hover:text-white transition-colors p-1"
-                    aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
-                  >
-                    {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-                  </button>
-                </div>
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-[#888] hover:text-white transition-colors p-1 cursor-pointer"
+                  title="Tela cheia"
+                >
+                  {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                </button>
               </div>
             </div>
           )
-        ) : isYouTube && src ? (
+        ) : isYouTube ? (
+          /* YouTube Player */
           <div className="w-full h-full relative pointer-events-auto overflow-hidden">
             <YouTube
-              videoId={getYouTubeVideoId(src) || ''}
+              videoId={getYouTubeVideoId(cleanSrc) || ''}
               className="w-full h-full pointer-events-none"
               iframeClassName="w-full h-full scale-[1.2]"
               opts={{
@@ -492,210 +444,199 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   rel: 0,
                   disablekb: 1,
                   fs: 0,
-                  iv_load_policy: 3
-                }
+                  iv_load_policy: 3,
+                },
               }}
               onReady={(e) => {
-                console.log('YouTube onReady fired')
                 reactPlayerRef.current = e.target
                 if (isMuted) e.target.mute()
                 else e.target.unMute()
                 e.target.setVolume(volume * 100)
-                
-                if (isPlaying) {
-                  e.target.playVideo()
-                }
-                
+                if (isPlaying) e.target.playVideo()
                 const dur = e.target.getDuration()
                 if (dur > 0) setDuration(dur)
-                
+                const cur = e.target.getCurrentTime()
+                if (cur > 0) setCurrentTime(cur)
                 setIsLoading(false)
                 onCanPlay?.()
               }}
               onPlay={() => {
-                console.log('YouTube onPlay fired')
-                handlePlay()
+                setIsPlaying(true)
+                onPlay?.()
               }}
               onPause={() => {
-                console.log('YouTube onPause fired')
-                handlePause()
-              }}
-              onError={(e) => {
-                console.warn('YouTube Error:', e?.data || e)
-                setIsLoading(false)
+                setIsPlaying(false)
+                onPause?.()
               }}
               onStateChange={(e) => {
-                // 1=playing, 2=paused, 3=buffering
-                if (e.data === 1 && !isPlaying) handlePlay()
-                if (e.data === 2 && isPlaying) handlePause()
-                if (e.data === 3) setIsLoading(true)
+                if (e.data === 1) setIsPlaying(true)
+                else if (e.data === 2) setIsPlaying(false)
+                else if (e.data === 3) setIsLoading(true)
                 else setIsLoading(false)
+
+                try {
+                  const dur = e.target.getDuration()
+                  if (dur > 0) setDuration(dur)
+                  const cur = e.target.getCurrentTime()
+                  if (cur > 0) setCurrentTime(cur)
+                } catch (err) {}
               }}
             />
           </div>
         ) : (
+          /* HTML5 Video Player */
           <video
             ref={videoRef}
-            src={src}
+            src={cleanSrc}
             poster={poster}
             className="w-full h-full object-contain"
-            style={{ touchAction: 'manipulation' }}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onProgress={handleProgress}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onWaiting={handleWaiting}
-            onCanPlay={handleCanPlay}
+            onTimeUpdate={() => {
+              if (videoRef.current) {
+                setCurrentTime(videoRef.current.currentTime)
+              }
+            }}
+            onLoadedMetadata={() => {
+              if (videoRef.current) {
+                setDuration(videoRef.current.duration)
+                setIsLoading(false)
+              }
+            }}
+            onPlay={() => {
+              setIsPlaying(true)
+              onPlay?.()
+            }}
+            onPause={() => {
+              setIsPlaying(false)
+              onPause?.()
+            }}
+            onCanPlay={() => {
+              setIsLoading(false)
+              onCanPlay?.()
+            }}
             onClick={togglePlay}
           />
         )}
 
-        {/* Render VOD Overlays & Controls only when NOT streaming screen */}
-        {!isStreamingScreen && (
+        {/* ── Overlay Controls for Video Playback ───────────────────── */}
+        {!isStreamingScreen && hasMedia && (
           <>
-            {/* Click layer to toggle play/pause */}
+            {/* Click to play/pause hit layer */}
             <div
-              className={cn("absolute inset-0 z-10", canControl ? "cursor-pointer" : "cursor-default")}
-              style={{ touchAction: 'manipulation' }}
               onClick={canControl ? togglePlay : undefined}
+              className={cn(
+                'absolute inset-0 z-10',
+                canControl ? 'cursor-pointer' : 'cursor-default'
+              )}
             />
 
-            {/* Top Overlay Bar: AO VIVO + Sincronizado + Host Pill (Auto-hides after 5s) */}
+            {/* Top Telemetry Overlay */}
             <div
               className={cn(
-                "absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-20 transition-opacity duration-300 pointer-events-auto",
-                showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+                'absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-20 transition-opacity duration-300 font-mono pointer-events-auto',
+                showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
               )}
             >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <div className="flex items-center gap-1.5 bg-[#EF2020] text-white text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wider shadow-lg shadow-[#EF2020]/30 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#EF2020] text-white text-[9px] font-black uppercase shadow-lg">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                  AO VIVO
-                </div>
-
-                <div
-                  className="flex items-center gap-1 bg-black/70 backdrop-blur-md border border-white/10 text-white text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg truncate"
-                  title="Seu vídeo é sincronizado automaticamente com o host desta sala."
-                >
-                  <span className="text-[#FFB800]">⚡</span>
-                  <span className="truncate">Sincronizado <span className="hidden sm:inline">com Host</span></span>
-                  <span className="text-[10px] text-[#8A8A8A] font-mono cursor-help hidden xs:inline">ⓘ</span>
+                  <span>TRANSMISSÃO SINCRONIZADA</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-white/10 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg text-[11px] sm:text-xs font-bold text-[#F5F5F5] shrink-0">
-                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#FF5A00] flex items-center justify-center text-[9px] sm:text-[10px] text-white font-extrabold">
-                  H
-                </div>
-                <span className="hidden xs:inline">Henrique</span>
-                <span className="text-[#FFB800]">👑</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#0E0E14] border border-[#222] text-[#888] text-[9px] uppercase">
+                {canControl ? (
+                  <span className="text-[#FFE600] font-bold">CONTROLE LIBERADO</span>
+                ) : (
+                  <span>MODO ESPECTADOR</span>
+                )}
               </div>
             </div>
 
-            {/* Loading indicator */}
-            {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 pointer-events-none">
-                <Loader2 className="w-10 h-10 text-[#FF5A00] animate-spin" />
-              </div>
-            )}
-
-            {/* Controls overlay */}
+            {/* Bottom Cyberpunk Control Bar */}
             <div
               className={cn(
-                "absolute bottom-0 left-0 right-0 video-gradient transition-opacity duration-300 z-20",
-                showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+                'absolute bottom-0 left-0 right-0 z-30 p-3 bg-gradient-to-t from-black/95 via-black/80 to-transparent border-t border-[#1F1F28] transition-opacity duration-300 pointer-events-auto font-mono',
+                showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
               )}
             >
-              <div className="px-4 pb-4 pt-16">
-                {/* Progress bar */}
-                <div className="relative h-1.5 mb-3 group/progress">
-                  {/* Buffered */}
+              {/* Progress Timeline Hit Area */}
+              <div
+                onClick={handleSeek}
+                onMouseEnter={() => setIsHoveringProgress(true)}
+                onMouseLeave={() => setIsHoveringProgress(false)}
+                onMouseMove={handleProgressMouseMove}
+                className={cn(
+                  'w-full py-2 -my-2 relative flex items-center group/progress transition-all',
+                  canControl ? 'cursor-pointer' : 'cursor-default'
+                )}
+              >
+                {/* Visual Progress Track */}
+                <div className="w-full h-2 bg-[#1C1C24] relative overflow-hidden transition-all group-hover/progress:h-3">
                   <div
-                    className="absolute inset-0 bg-white/20 rounded-full"
-                    style={{ width: `${bufferedProgress}%` }}
-                  />
-
-                  {/* Progress */}
-                  <div
-                    className="absolute top-0 left-0 h-full brand-gradient rounded-full"
-                    style={{ width: `${progress}%` }}
-                  />
-
-                  {/* Input range */}
-                  <input
-                    type="range"
-                    min="0"
-                    max={duration || 100}
-                    step="0.1"
-                    value={currentTime}
-                    onChange={canControl ? handleSeek : undefined}
-                    disabled={!canControl}
-                    className={cn("absolute inset-0 w-full h-full opacity-0", canControl ? "cursor-pointer" : "cursor-not-allowed")}
-                  />
-
-                  {/* Thumb */}
-                  <div
-                    className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg opacity-0 group-hover/progress:opacity-100 transition-opacity pointer-events-none"
-                    style={{ left: `calc(${progress}% - 7px)` }}
-                  />
+                    className="h-full bg-[#FF5A00] transition-all relative"
+                    style={{
+                      width: `${progressPercent}%`,
+                    }}
+                  >
+                    <span className="absolute right-0 top-0 bottom-0 w-1.5 bg-white shadow-[0_0_10px_#FFF]" />
+                  </div>
                 </div>
 
-                {/* Controls row */}
-                <div className="flex items-center justify-between">
-                  {/* Left controls */}
-                  <div className="flex items-center gap-3">
+                {/* Hover Time Tooltip */}
+                {isHoveringProgress && canControl && duration > 0 && (
+                  <div
+                    className="absolute -top-7 -translate-x-1/2 bg-[#0A0A0F] border border-[#FF5A00] px-2 py-0.5 text-[9px] font-mono font-bold text-white shadow-lg pointer-events-none z-40"
+                    style={{
+                      left: `${(hoverTime / duration) * 100}%`,
+                    }}
+                  >
+                    {formatTime(hoverTime)}
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Buttons Row */}
+              <div className="flex items-center justify-between pt-3">
+                <div className="flex items-center gap-3">
+                  {canControl && (
                     <button
                       onClick={togglePlay}
-                      disabled={!canControl}
-                      className={cn(
-                        "transition-colors",
-                        canControl
-                          ? "text-white hover:text-room-accent hover:scale-105 active:scale-95"
-                          : "text-white/40 cursor-not-allowed"
+                      className="p-2 bg-[#FF5A00] hover:bg-white text-black transition-colors cursor-pointer"
+                      title={isPlaying ? 'Pausar' : 'Reproduzir'}
+                    >
+                      {isPlaying ? (
+                        <Pause className="w-4 h-4 fill-black" />
+                      ) : (
+                        <Play className="w-4 h-4 fill-black ml-0.5" />
                       )}
-                      aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
-                    >
-                      {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                     </button>
+                  )}
 
-                    <button
-                      onClick={toggleMute}
-                      className="text-white/80 hover:text-white transition-colors"
-                      aria-label={isMuted ? 'Ativar som' : 'Desativar som'}
-                    >
-                      {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                    </button>
+                  <button
+                    onClick={toggleMute}
+                    className="p-2 border border-[#333] hover:border-white text-[#AAA] hover:text-white transition-colors cursor-pointer"
+                    title={isMuted ? 'Ativar som' : 'Desativar som'}
+                  >
+                    {isMuted ? (
+                      <VolumeX className="w-4 h-4 text-[#EF2020]" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </button>
 
-                    <span className="text-white/70 text-xs font-medium">
-                      {formatTime(currentTime)} / {formatTime(duration)}
-                    </span>
-                  </div>
+                  <span className="text-xs text-[#AAA] font-mono tracking-wider">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
+                </div>
 
-                  {/* Right controls */}
-                  <div className="flex items-center gap-3">
-                    <button
-                      className="text-white/60 hover:text-white transition-colors"
-                      aria-label="Legendas"
-                    >
-                      <Subtitles className="w-4.5 h-4.5" />
-                    </button>
-
-                    <button
-                      className="text-white/60 hover:text-white transition-colors"
-                      aria-label="Configurações"
-                    >
-                      <Settings className="w-4.5 h-4.5" />
-                    </button>
-
-                    <button
-                      onClick={toggleFullscreen}
-                      className="text-white/60 hover:text-white transition-colors"
-                      aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
-                    >
-                      {isFullscreen ? <Minimize className="w-4.5 h-4.5" /> : <Maximize className="w-4.5 h-4.5" />}
-                    </button>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleFullscreen}
+                    className="p-2 border border-[#333] hover:border-white text-[#AAA] hover:text-white transition-colors cursor-pointer"
+                    title="Tela cheia"
+                  >
+                    {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             </div>

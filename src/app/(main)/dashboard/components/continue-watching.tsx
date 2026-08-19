@@ -1,6 +1,6 @@
 'use client'
 
-import { Bookmark } from 'lucide-react'
+import { Film } from 'lucide-react'
 import { ContinueWatchingCard, ContinueWatchingData } from './continue-watching-card'
 
 interface ContinueWatchingProps {
@@ -8,19 +8,19 @@ interface ContinueWatchingProps {
 }
 
 export function ContinueWatching({ items }: ContinueWatchingProps) {
-  if (items.length === 0) {
-    return null
-  }
+  if (items.length === 0) return null
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Bookmark className="w-5 h-5 text-[#FF5A00]" />
-        <h2 className="text-[#F5F5F5] font-bold text-xl">Continue assistindo</h2>
+    <section className="space-y-3">
+      <div className="flex items-center gap-2 border-b border-[#222] pb-2">
+        <Film className="w-4 h-4 text-[#FF5A00]" />
+        <span className="text-[10px] font-mono text-[#FF5A00] tracking-widest uppercase bg-[#111] px-2 py-0.5 border border-[#222]">
+          [03 — CONTINUE ASSISTINDO]
+        </span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {items.slice(0, 3).map((item) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {items.slice(0, 2).map((item) => (
           <ContinueWatchingCard key={item.videoId} item={item} />
         ))}
       </div>

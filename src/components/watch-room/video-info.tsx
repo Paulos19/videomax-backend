@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Music, ChevronDown, ListVideo, Edit2, Check } from 'lucide-react'
+import { Film, ListVideo, Edit2, Check } from 'lucide-react'
 
 interface VideoInfoProps {
   videoTitle?: string
@@ -33,13 +33,13 @@ export function VideoInfo({
   }
 
   return (
-    <div className="bg-room-surface/40 backdrop-blur-xl border border-white/5 rounded-[28px] p-5 flex flex-wrap items-center justify-between gap-4 mt-3 shadow-sm">
-      {/* Left: Music/Video Icon & Editable Title */}
-      <div className="flex items-center gap-4 min-w-0 flex-1">
-        <div className="w-[42px] h-[42px] rounded-2xl bg-room-surface/50 border border-white/10 flex items-center justify-center text-room-accent shrink-0 shadow-sm">
-          <Music className="w-5 h-5 animate-pulse drop-shadow-md" />
+    <div className="bg-[#08080C] border border-[#1F1F28] p-4 flex flex-wrap items-center justify-between gap-3 font-mono select-none">
+      {/* Left: Video Icon & Editable Title */}
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="w-9 h-9 bg-[#FF5A00] text-black flex items-center justify-center shrink-0">
+          <Film className="w-4 h-4" />
         </div>
-        
+
         <div className="min-w-0 flex-1">
           {isEditing ? (
             <div className="flex items-center gap-2">
@@ -48,48 +48,53 @@ export function VideoInfo({
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
-                className="bg-room-surface/50 border border-room-accent/50 text-white text-[13px] font-extrabold px-3 py-1.5 rounded-full outline-none w-full shadow-sm"
+                className="bg-[#121218] border border-[#FF5A00] text-white text-xs font-mono font-bold px-2 py-1 outline-none w-full"
                 autoFocus
               />
               <button
                 onClick={handleSaveTitle}
-                className="p-1.5 rounded-full brand-gradient text-white shadow-md hover:scale-105 active:scale-95 transition-transform"
+                className="p-1.5 bg-[#FF5A00] text-black hover:bg-white transition-colors cursor-pointer"
                 title="Salvar título"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2 group">
-              <h3 className="text-[13px] font-extrabold text-white truncate tracking-wide">{videoTitle}</h3>
+              <h3 className="text-xs font-black text-white uppercase truncate tracking-wider">
+                {videoTitle}
+              </h3>
               {canControl && (
                 <button
-                  onClick={() => { setEditTitle(videoTitle); setIsEditing(true) }}
-                  className="opacity-0 group-hover:opacity-100 text-room-text-secondary hover:text-room-accent transition-all"
+                  onClick={() => {
+                    setEditTitle(videoTitle)
+                    setIsEditing(true)
+                  }}
+                  className="opacity-0 group-hover:opacity-100 text-[#777] hover:text-[#FF5A00] transition-opacity cursor-pointer"
                   title="Editar título"
                 >
-                  <Edit2 className="w-3.5 h-3.5" />
+                  <Edit2 className="w-3 h-3" />
                 </button>
               )}
             </div>
           )}
 
-          <p className="text-[11px] text-room-text-secondary mt-0.5 truncate font-semibold">
+          <p className="text-[10px] text-[#777] mt-0.5 font-mono">
             {currentTime} / {duration}
           </p>
         </div>
       </div>
 
       {/* Right: Playback Queue button */}
-      <button
-        onClick={onToggleQueue}
-        className="flex items-center gap-2 text-[12px] font-extrabold text-room-text-secondary hover:text-white bg-room-surface/50 hover:bg-room-surface/80 px-4 py-2.5 rounded-full border border-white/10 hover:border-room-accent/30 transition-all shrink-0 hover:shadow-[0_0_15px_rgba(255,90,0,0.15)] active:scale-95"
-      >
-        <ListVideo className="w-4 h-4 text-room-accent" />
-        <span>Fila de reprodução</span>
-        <span className="text-[10px] text-room-text-secondary font-bold">({queueCount})</span>
-        <ChevronDown className="w-4 h-4 opacity-70" />
-      </button>
+      {onToggleQueue && (
+        <button
+          onClick={onToggleQueue}
+          className="flex items-center gap-2 text-[10px] font-black uppercase text-white bg-[#121218] hover:bg-[#1A1A24] border border-[#333] hover:border-[#FF5A00] px-3 py-2 transition-colors shrink-0 cursor-pointer"
+        >
+          <ListVideo className="w-3.5 h-3.5 text-[#FF5A00]" />
+          <span>SELETOR DE VÍDEO</span>
+        </button>
+      )}
     </div>
   )
 }

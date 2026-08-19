@@ -33,10 +33,8 @@ export async function GET() {
       where: { id: userId },
       select: { plan: true, stripeCurrentPeriodEnd: true },
     })
-    if (user?.plan === 'PRO' && user?.stripeCurrentPeriodEnd && user.stripeCurrentPeriodEnd.getTime() + 86_400_000 > Date.now()) {
-      userPlan = 'PRO'
-    } else if (user?.plan === 'PRO') {
-      userPlan = 'PRO'
+    if (user?.plan === 'MAXPRO' || user?.plan === 'PRO') {
+      userPlan = user.plan
     }
   }
 
@@ -52,5 +50,5 @@ export async function GET() {
     .setExpirationTime('1h')
     .sign(secretBytes)
 
-  return NextResponse.json({ token })
+  return NextResponse.json({ token, plan: userPlan })
 }

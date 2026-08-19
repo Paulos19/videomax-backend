@@ -1,40 +1,53 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Smile, Search } from 'lucide-react'
+import { Smile, Search, X, Crown, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PREMIUM_EMOJIS, PremiumAnimatedEmoji } from './premium-emojis'
+import { useSession } from 'next-auth/react'
+import { toast } from 'sonner'
 
 const EMOJI_CATEGORIES = [
   {
+    id: 'maxpro',
+    name: '👑 MAXPRO VIP',
+    isProOnly: true,
+  },
+  {
     id: 'popular',
-    name: 'Frequentes',
-    emojis: ['🔥', '❤️', '😂', '😱', '👍', '👏', '🍿', '🚀', '🎉', '😍', '🥳', '💯', '💩', '🤡', '👑', '⚡', '🎬', '📽️', '🎧', '🎮', '✨', '😭', '🤯', '💀']
+    name: 'FREQUENTES',
+    emojis: ['🔥', '❤️', '😂', '😱', '👍', '👏', '🍿', '🚀', '🎉', '😍', '🥳', '💯', '💩', '🤡', '👑', '⚡', '🎬', '📽️', '🎧', '🎮', '✨', '😭', '🤯', '💀'],
   },
   {
     id: 'faces',
-    name: 'Expressões',
-    emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕']
+    name: 'EXPRESSÕES',
+    emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕'],
   },
   {
     id: 'cinema',
-    name: 'Cinema & Midia',
-    emojis: ['🍿', '🎬', '📽️', '📺', '📻', '🎙️', '🎛️', '🎧', '🎮', '🕹️', '🎯', '🎲', '🎨', '🎸', '🎺', '🎹', '🎟️', '🎫', '🎭', '📷', '📹', '📼', '📱', '💻']
+    name: 'CINEMA',
+    emojis: ['🍿', '🎬', '📽️', '📺', '📻', '🎙️', '🎛️', '🎧', '🎮', '🕹️', '🎯', '🎲', '🎨', '🎸', '🎺', '🎹', '🎟️', '🎫', '🎭', '📷', '📹', '📼', '📱', '💻'],
   },
   {
     id: 'symbols',
-    name: 'Símbolos',
-    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '🔥', '⚡', '✨', '⭐', '🌟', '💥', '💢', '💨', '💦', '💬', '🗨️', '🗯️', '💭', '💯', '🔔', '🔕', '🟢', '🔴', '🟡', '🟠', '🔵', '🟣', '⚫', '⚪', '🟩', '🟥']
-  }
+    name: 'SÍMBOLOS',
+    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '🔥', '⚡', '✨', '⭐', '🌟', '💥', '💢', '💨', '💦', '💬', '🗨️', '🗯️', '💭', '💯', '🔔', '🔕', '🟢', '🔴', '🟡', '🟠', '🔵', '🟣', '⚫', '⚪', '🟩', '🟥'],
+  },
 ]
 
 interface EmojiPickerPopoverProps {
   onSelectEmoji: (emoji: string) => void
   onClose: () => void
+  isPro?: boolean
 }
 
-export function EmojiPickerPopover({ onSelectEmoji, onClose }: EmojiPickerPopoverProps) {
+export function EmojiPickerPopover({ onSelectEmoji, onClose, isPro = false }: EmojiPickerPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null)
-  const [activeTab, setActiveTab] = useState('popular')
+  const { data: session } = useSession()
+
+  const userPlan = (session?.user as any)?.plan || 'FREE'
+  const hasVipAccess = Boolean(isPro || userPlan === 'MAXPRO' || userPlan === 'PRO')
+  const [activeTab, setActiveTab] = useState(hasVipAccess ? 'maxpro' : 'popular')
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -55,41 +68,53 @@ export function EmojiPickerPopover({ onSelectEmoji, onClose }: EmojiPickerPopove
     }
   }, [onClose])
 
-  const currentCategory = EMOJI_CATEGORIES.find(c => c.id === activeTab) || EMOJI_CATEGORIES[0]
+  const handleSelectPremium = (code: string) => {
+    if (!hasVipAccess) {
+      toast.error('Emojis animados são exclusivos para membros MAXPRO VIP! Faça upgrade para liberar.')
+      return
+    }
+    onSelectEmoji(` ${code} `)
+  }
 
-  const filteredEmojis = search.trim()
-    ? EMOJI_CATEGORIES.flatMap(c => c.emojis).filter(e => e.includes(search.trim()))
-    : currentCategory.emojis
+  const currentCategory = EMOJI_CATEGORIES.find((c) => c.id === activeTab) || EMOJI_CATEGORIES[0]
+
+  const filteredStandardEmojis = search.trim()
+    ? EMOJI_CATEGORIES.filter((c) => !c.isProOnly).flatMap((c) => c.emojis || []).filter((e) => e.includes(search.trim()))
+    : currentCategory.emojis || []
+
+  const filteredPremiumEmojis = search.trim()
+    ? PREMIUM_EMOJIS.filter((e) => e.name.toLowerCase().includes(search.toLowerCase()) || e.code.includes(search.toLowerCase()))
+    : PREMIUM_EMOJIS
 
   return (
     <div
       ref={popoverRef}
-      className="absolute bottom-full left-0 mb-3 z-50 w-[calc(100vw-32px)] max-w-[320px] sm:w-[320px] rounded-2xl border border-[#242424] bg-[#0B0B0B] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 origin-bottom-left p-3 space-y-3"
+      className="absolute bottom-full left-0 mb-2 z-50 w-[calc(100vw-32px)] max-w-[340px] sm:w-[340px] bg-[#0A0A0F] border-2 border-[#FF5A00] shadow-[0_0_35px_rgba(255,90,0,0.35)] overflow-hidden font-mono select-none animate-in fade-in zoom-in-95 origin-bottom-left p-3 space-y-2.5"
     >
       {/* Header & Search */}
-      <div className="space-y-2 border-b border-[#242424] pb-2">
+      <div className="space-y-2 border-b border-[#1F1F28] pb-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[#F5F5F5] flex items-center gap-1.5">
-            <Smile className="w-4 h-4 text-[#FF5A00]" />
-            Seletor de Emojis
-          </span>
+          <div className="flex items-center gap-1.5 text-xs font-black text-white uppercase tracking-wider">
+            <Smile className="w-3.5 h-3.5 text-[#FF5A00]" />
+            <span>[ EMOJIS ]</span>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[11px] font-semibold text-[#8A8A8A] hover:text-[#F5F5F5]"
+            className="p-0.5 border border-[#333] hover:border-white text-[#888] hover:text-white transition-colors cursor-pointer"
           >
-            Fechar ✕
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
         <div className="relative">
-          <Search className="w-3.5 h-3.5 text-[#5F5F5F] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-[#555] absolute left-2.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar emoji..."
-            className="w-full bg-[#151515] border border-[#242424] text-[#F5F5F5] text-xs pl-8 pr-3 py-1.5 rounded-xl placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00]"
+            placeholder="BUSCAR EMOJI OU VIP..."
+            className="w-full bg-[#121218] border border-[#262633] focus:border-[#FF5A00] text-white text-[10px] pl-7 pr-2 py-1 font-mono placeholder:text-[#555] outline-none"
           />
         </div>
       </div>
@@ -100,13 +125,16 @@ export function EmojiPickerPopover({ onSelectEmoji, onClose }: EmojiPickerPopove
           {EMOJI_CATEGORIES.map((cat) => (
             <button
               key={cat.id}
-              type="button"
               onClick={() => setActiveTab(cat.id)}
               className={cn(
-                "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all shrink-0",
+                'px-2 py-1 text-[9px] font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer flex items-center gap-1',
                 activeTab === cat.id
-                  ? "bg-[#FF5A00] text-white"
-                  : "bg-[#151515] text-[#8A8A8A] hover:text-[#F5F5F5]"
+                  ? cat.isProOnly
+                    ? 'bg-[#FFE600] text-black shadow-[0_0_10px_rgba(255,230,0,0.5)]'
+                    : 'bg-[#FF5A00] text-black shadow-sm'
+                  : cat.isProOnly
+                  ? 'bg-[#1F1A08] text-[#FFE600] border border-[#FFE600]/40 hover:bg-[#FFE600]/20'
+                  : 'bg-[#121218] text-[#888] hover:text-white hover:bg-[#1A1A24]'
               )}
             >
               {cat.name}
@@ -115,19 +143,66 @@ export function EmojiPickerPopover({ onSelectEmoji, onClose }: EmojiPickerPopove
         </div>
       )}
 
-      {/* Emoji Grid */}
-      <div className="grid grid-cols-6 gap-1 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
-        {filteredEmojis.map((emoji, idx) => (
-          <button
-            key={`${emoji}-${idx}`}
-            type="button"
-            onClick={() => onSelectEmoji(emoji)}
-            className="w-9 h-9 rounded-xl bg-[#151515] hover:bg-[#FF5A00]/20 hover:scale-115 active:scale-90 transition-all text-lg flex items-center justify-center"
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
+      {/* ── MAXPRO VIP ANIMATED EMOJIS GRID ─────────────────────── */}
+      {(activeTab === 'maxpro' || search.trim()) && filteredPremiumEmojis.length > 0 && (
+        <div className="space-y-2">
+          {!hasVipAccess && (
+            <div className="p-2 bg-[#1A1408] border border-[#FFE600] text-center space-y-1">
+              <div className="flex items-center justify-center gap-1 text-[#FFE600] text-[9px] font-black uppercase">
+                <Crown className="w-3 h-3 fill-[#FFE600]" />
+                <span>EXCLUSIVO MAXPRO VIP</span>
+              </div>
+              <p className="text-[8px] text-[#AAA] leading-tight">
+                Assine o plano MAXPRO para usar os 15 emojis animados no chat.
+              </p>
+            </div>
+          )}
+
+          <div className="max-h-48 overflow-y-auto grid grid-cols-5 gap-2 p-1 bg-[#07070B] border border-[#1F1F28]">
+            {filteredPremiumEmojis.map((emoji) => (
+              <button
+                key={emoji.id}
+                type="button"
+                onClick={() => handleSelectPremium(emoji.code)}
+                title={`${emoji.name} (${emoji.code})`}
+                className={cn(
+                  'p-2 rounded-none transition-all flex flex-col items-center justify-center gap-1 group relative cursor-pointer',
+                  hasVipAccess
+                    ? 'hover:bg-[#1C1808] hover:scale-110 border border-transparent hover:border-[#FFE600]'
+                    : 'opacity-70 hover:opacity-100 hover:bg-[#181208]'
+                )}
+              >
+                <PremiumAnimatedEmoji id={emoji.id} size={28} />
+                <span className="text-[7px] text-[#888] group-hover:text-white truncate max-w-full font-mono uppercase">
+                  {emoji.name.split(' ')[0]}
+                </span>
+
+                {!hasVipAccess && (
+                  <div className="absolute top-1 right-1 bg-black/80 text-[#FFE600] p-0.5 rounded-none">
+                    <Lock className="w-2.5 h-2.5" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── STANDARD UNICODE EMOJIS GRID ───────────────────────── */}
+      {activeTab !== 'maxpro' && (
+        <div className="max-h-48 overflow-y-auto grid grid-cols-7 gap-1 p-1">
+          {filteredStandardEmojis.map((emoji, idx) => (
+            <button
+              key={`${emoji}-${idx}`}
+              type="button"
+              onClick={() => onSelectEmoji(emoji)}
+              className="p-1.5 text-base hover:bg-[#1C1C24] hover:scale-125 transition-transform flex items-center justify-center rounded-none cursor-pointer"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

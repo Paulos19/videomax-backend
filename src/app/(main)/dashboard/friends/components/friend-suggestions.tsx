@@ -1,17 +1,8 @@
 'use client'
 
-export interface SuggestedUser {
-  id: string
-  name: string
-  username: string
-  image?: string
-  mutualCount: number
-}
-
 import { useState, useEffect } from 'react'
-import { UserPlus, Loader2, Check } from 'lucide-react'
+import { UserPlus, Loader2, Check, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { getFriendSuggestions, sendFriendRequest } from '@/app/(main)/actions'
 
@@ -53,7 +44,7 @@ export function FriendSuggestions({ onRequestSent }: FriendSuggestionsProps) {
     try {
       await sendFriendRequest(user.email)
       toast.success(`Pedido enviado para ${user.name}!`)
-      setAddedIds(prev => new Set(prev).add(user.id))
+      setAddedIds((prev) => new Set(prev).add(user.id))
       onRequestSent?.()
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao enviar pedido')
@@ -63,34 +54,59 @@ export function FriendSuggestions({ onRequestSent }: FriendSuggestionsProps) {
   }
 
   return (
-    <div className="bg-[#0B0B0B] border border-[#242424] rounded-2xl p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[#F5F5F5] font-bold text-sm">Sugestões para você</h3>
+    <div className="bg-[#09090D] border border-[#222] p-4 space-y-3.5 shadow-xl">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-[#FF5A00]" />
+          <h3 className="text-white font-mono font-bold text-[10px] uppercase tracking-wider">
+            [ SUGESTÕES DA REDE ]
+          </h3>
+        </div>
+        <span className="text-[9px] font-mono text-[#777]">
+          {suggestions.length} NÓS
+        </span>
       </div>
 
       {loading ? (
-        <div className="py-6 text-center text-xs text-[#8A8A8A]">Carregando sugestões...</div>
+        <div className="py-6 text-center font-mono text-[10px] text-[#777]">
+          BUSCANDO SUGESTÕES...
+        </div>
       ) : suggestions.length === 0 ? (
-        <div className="py-4 text-center text-xs text-[#8A8A8A]">Nenhuma sugestão no momento.</div>
+        <div className="py-4 text-center font-mono text-[10px] text-[#777]">
+          NENHUMA SUGESTÃO NO MOMENTO.
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {suggestions.map((user) => {
             const isAdded = addedIds.has(user.id)
             const isAdding = addingId === user.id
 
             return (
-              <div key={user.id} className="flex items-center justify-between gap-3 p-1">
+              <div
+                key={user.id}
+                className="flex items-center justify-between gap-3 p-2 bg-[#050508] border border-[#1C1C24] hover:border-[#333] transition-colors"
+              >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Avatar className="w-9 h-9 border border-[#242424] shrink-0">
-                    <AvatarImage src={user.image} />
-                    <AvatarFallback className="bg-[#151515] text-[#FF5A00] text-xs font-bold">
+                  {user.image ? (
+                    <img
+                      src={user.image}
+                      alt={user.name}
+                      className="w-8 h-8 rounded border border-[#333] object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-[#151520] border border-[#333] flex items-center justify-center font-mono font-bold text-[10px] text-[#FF5A00] shrink-0">
                       {user.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                    </div>
+                  )}
 
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-[#F5F5F5] truncate">{user.name}</p>
-                    <p className="text-[11px] text-[#8A8A8A] truncate">{user.username}</p>
+                    <p className="text-[11px] font-mono font-bold text-white uppercase truncate">
+                      {user.name}
+                    </p>
+                    <p className="text-[9px] font-mono text-[#777] truncate">
+                      {user.username}
+                    </p>
                   </div>
                 </div>
 
@@ -98,21 +114,21 @@ export function FriendSuggestions({ onRequestSent }: FriendSuggestionsProps) {
                   onClick={() => handleAdd(user)}
                   disabled={isAdded || isAdding}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1",
+                    'px-3 py-1 text-[9px] font-mono font-bold uppercase transition-all shrink-0 flex items-center gap-1 cursor-pointer disabled:opacity-60',
                     isAdded
-                      ? "bg-[#151515] text-emerald-400 border border-emerald-500/30"
-                      : "border border-[#FF5A00]/40 text-[#FF5A00] hover:bg-[#FF5A00] hover:text-white"
+                      ? 'bg-[#151520] text-[#22C55E] border border-[#22C55E]/40'
+                      : 'bg-[#151520] hover:bg-[#FF5A00] text-white hover:text-black border border-[#333] hover:border-[#FF5A00]'
                   )}
                 >
                   {isAdding ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-3 h-3 animate-spin" />
                   ) : isAdded ? (
                     <>
-                      <Check className="w-3.5 h-3.5" />
-                      Enviado
+                      <Check className="w-3 h-3 stroke-[3]" />
+                      <span>ENVIADO</span>
                     </>
                   ) : (
-                    'Adicionar'
+                    <span>[ + ADICIONAR ]</span>
                   )}
                 </button>
               </div>

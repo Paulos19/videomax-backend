@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageSquare, X, Settings } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { MessageSquare, X, Settings, Users, Radio, Palette } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChatHeaderProps {
@@ -14,19 +13,19 @@ interface ChatHeaderProps {
 }
 
 const CHAT_COLORS = [
-  '#F5F5F5', // White
-  '#FFB800', // Yellow
-  '#EF2020', // Red
-  '#A855F7', // Purple
-  '#3B82F6', // Blue
-  '#06B6D4', // Cyan
-  '#22C55E', // Green
+  '#FF5A00', // Neon Orange
+  '#FFE600', // Cyber Yellow
+  '#22C55E', // Matrix Green
+  '#00F0FF', // Cyber Cyan
+  '#A855F7', // Neon Purple
+  '#EF2020', // Laser Red
+  '#FFFFFF', // Pure White
 ]
 
 export function ChatHeader({
   viewerCount,
   viewers = [],
-  selectedColor = '#F5F5F5',
+  selectedColor = '#FF5A00',
   onSelectColor,
   onClose,
 }: ChatHeaderProps) {
@@ -39,88 +38,80 @@ export function ChatHeader({
         setShowSettings(false)
       }
     }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   return (
-    <div className="border-b border-white/5 bg-room-surface/30 backdrop-blur-md p-3 space-y-3 shrink-0">
+    <div className="border-b border-[#1F1F28] bg-[#09090D] p-3 space-y-2.5 shrink-0 font-mono select-none">
       {/* Top Title & Viewers Badges */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-[#FF5A00]" />
-          <h3 className="text-sm font-bold text-white drop-shadow-md">Chat ao vivo</h3>
+          <div className="w-6 h-6 bg-[#FF5A00] flex items-center justify-center text-black">
+            <MessageSquare className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-xs font-black text-white uppercase tracking-wider">
+            CHAT AO VIVO
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-room-surface/50 backdrop-blur-sm border border-white/5 px-2.5 py-1 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-room-online animate-pulse-online" />
-            <span className="text-[11px] font-semibold text-room-text-secondary">
-              {viewerCount} online
-            </span>
+          <div className="flex items-center gap-1.5 bg-[#121218] border border-[#222] px-2 py-0.5 text-[9px] text-[#22C55E]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-ping" />
+            <span className="font-bold">{viewerCount} ONLINE</span>
           </div>
 
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1 rounded-lg text-room-text-secondary hover:text-white hover:bg-white/10 transition-colors"
-              title="Fechar chat"
+              className="p-1 border border-[#222] hover:border-white text-[#888] hover:text-white transition-colors cursor-pointer"
+              title="Ocultar chat"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Subtext & Overlapping Avatars + Settings */}
-      <div className="flex items-center justify-between pt-1 border-t border-white/5 relative">
-        {/* Avatars */}
-        <div className="flex items-center gap-2">
-          <div className="flex -space-x-2 overflow-hidden">
-            {viewers.slice(0, 3).map((v, i) => (
-              <Avatar key={i} className="w-5 h-5 border-2 border-[#090909]">
-                <AvatarImage src={v.image || undefined} />
-                <AvatarFallback className="bg-[#151515] text-[#FF5A00] text-[8px] font-bold">
-                  {v.name?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-          </div>
-          <span className="text-[11px] text-room-text-secondary">{viewerCount} pessoas aqui</span>
+      {/* Subtext, Color picker trigger & settings */}
+      <div className="flex items-center justify-between pt-1.5 border-t border-[#181822]">
+        <div className="flex items-center gap-2 text-[10px] text-[#777]">
+          <span>COR NO TERMINAL:</span>
+          <div
+            className="w-3 h-3 border border-white/20"
+            style={{ backgroundColor: selectedColor }}
+          />
         </div>
 
-        {/* Settings Gear */}
+        {/* Color Switcher Dropdown */}
         <div className="relative" ref={settingsRef}>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className={cn(
-              "p-1.5 rounded-lg transition-colors",
-              showSettings ? "bg-white/10 text-white" : "text-room-text-secondary hover:text-white hover:bg-white/5"
-            )}
-            title="Configurações do Chat"
+            className="p-1 border border-[#222] hover:border-[#FF5A00] text-[#888] hover:text-white transition-colors cursor-pointer flex items-center gap-1 text-[9px]"
+            title="Mudar cor do nome"
           >
-            <Settings className="w-3.5 h-3.5" />
+            <Palette className="w-3 h-3 text-[#FF5A00]" />
+            <span>COR</span>
           </button>
 
-          {/* Settings Popover */}
           {showSettings && (
-            <div className="absolute top-8 right-0 w-48 bg-room-surface/90 backdrop-blur-2xl border border-white/10 p-3 rounded-xl shadow-2xl z-50 animate-scale-in origin-top-right">
-              <span className="text-xs font-semibold text-room-text-secondary mb-2 block">Cor da Mensagem</span>
-              <div className="flex flex-wrap gap-2">
-                {CHAT_COLORS.map((color) => (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-[#0C0C12] border-2 border-[#FF5A00] p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95">
+              <span className="text-[9px] font-bold text-[#888] uppercase block mb-2">
+                [ ESCOLHA SUA COR ]
+              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {CHAT_COLORS.map((c) => (
                   <button
-                    key={color}
-                    type="button"
+                    key={c}
                     onClick={() => {
-                      onSelectColor?.(color)
+                      onSelectColor?.(c)
                       setShowSettings(false)
                     }}
                     className={cn(
-                      "w-5 h-5 rounded-full transition-transform hover:scale-125 shadow-sm",
-                      selectedColor === color ? "ring-2 ring-white scale-110" : "opacity-80 hover:opacity-100"
+                      'w-6 h-6 border-2 transition-transform hover:scale-110 cursor-pointer',
+                      selectedColor === c ? 'border-white scale-110' : 'border-black/50'
                     )}
-                    style={{ backgroundColor: color }}
-                    title={`Cor (${color})`}
+                    style={{ backgroundColor: c }}
                   />
                 ))}
               </div>

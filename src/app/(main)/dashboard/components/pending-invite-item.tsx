@@ -1,8 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { Check, X } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Check, X, Play, Mail } from 'lucide-react'
 
 export interface PendingInviteData {
   id: string
@@ -21,44 +19,56 @@ interface PendingInviteItemProps {
 
 export function PendingInviteItem({ invite, onAccept, onReject }: PendingInviteItemProps) {
   return (
-    <div className="bg-[#0B0B0B] border border-[#242424] hover:border-[#FF5A00]/30 rounded-xl p-3 flex items-center justify-between gap-3 transition-all">
-      {/* Left: Avatar & Info */}
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <Avatar className="w-9 h-9 border border-[#242424] shrink-0">
-          <AvatarImage src={invite.senderImage} />
-          <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
-            {invite.senderName.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-[#F5F5F5] truncate">
-            {invite.senderName}
-          </p>
-          <p className="text-[11px] text-[#8A8A8A] truncate">
-            te convidou para <strong className="text-[#FF5A00] font-medium">{invite.videoTitle || `#${invite.roomCode}`}</strong>
-          </p>
+    <div className="p-3 bg-[#09090D] border border-[#1C1C24] hover:border-[#FF5A00] space-y-2.5 transition-all">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {invite.senderImage ? (
+            <img
+              src={invite.senderImage}
+              alt={invite.senderName}
+              className="w-7 h-7 rounded border border-[#333] object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded bg-[#222] border border-[#333] flex items-center justify-center font-mono font-bold text-[9px] text-[#FF5A00] shrink-0">
+              {invite.senderName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-[11px] font-mono font-bold text-white uppercase truncate">
+              {invite.senderName}
+            </p>
+            <p className="text-[9px] font-mono text-[#777] truncate">
+              CONVIDOU P/ #{invite.roomCode}
+            </p>
+          </div>
         </div>
+
+        <span className="text-[8px] font-mono text-[#FF5A00] bg-[#FF5A00]/10 px-1.5 py-0.5 uppercase">
+          AO VIVO
+        </span>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      {invite.videoTitle && (
+        <p className="text-[10px] font-mono text-[#AAA] truncate bg-[#060608] px-2 py-1 border border-[#151520]">
+          ► {invite.videoTitle}
+        </p>
+      )}
+
+      <div className="flex items-center gap-2 pt-1">
         <button
           onClick={() => onAccept(invite)}
-          className="w-7 h-7 rounded-lg brand-gradient text-white flex items-center justify-center hover:brightness-110 active:scale-95 transition-all shadow-sm"
-          title="Aceitar convite"
-          aria-label="Aceitar convite"
+          className="flex-1 py-1.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[9px] uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer"
         >
-          <Check className="w-3.5 h-3.5 stroke-[3]" />
+          <Check className="w-3 h-3 stroke-[3]" />
+          <span>ACEITAR</span>
         </button>
 
         <button
           onClick={() => onReject(invite.id)}
-          className="w-7 h-7 rounded-lg bg-[#151515] hover:bg-[#EF2020]/20 text-[#8A8A8A] hover:text-[#EF2020] flex items-center justify-center transition-all"
-          title="Recusar convite"
-          aria-label="Recusar convite"
+          className="p-1.5 border border-[#333] hover:border-[#EF4444] text-[#777] hover:text-[#EF4444] transition-colors cursor-pointer"
+          title="Recusar"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-3 h-3" />
         </button>
       </div>
     </div>

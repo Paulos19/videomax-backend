@@ -5,6 +5,14 @@ export interface Video {
   createdAt?: string
 }
 
+export interface ChatReplyInfo {
+  messageId: string
+  userName: string
+  text: string
+  color?: string
+  isPro?: boolean
+}
+
 export interface ChatMessage {
   id: string
   userId: string
@@ -18,6 +26,8 @@ export interface ChatMessage {
   timestamp?: string
   reactions?: Array<{ emoji: string; count: number }>
   userReactions?: Record<string, string>
+  replyTo?: ChatReplyInfo | null
+  isPro?: boolean
 }
 
 export interface ChatPayload {
@@ -26,6 +36,8 @@ export interface ChatPayload {
   image: string
   type?: 'text' | 'sticker'
   stickerUrl?: string
+  replyTo?: ChatReplyInfo | null
+  isPro?: boolean
 }
 
 export interface UserProfile {

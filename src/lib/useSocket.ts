@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import io, { Socket } from 'socket.io-client'
-import { ChatMessage, PlayerStateData, RoomInfo } from '@/types'
+import { ChatMessage, PlayerStateData, RoomInfo, ChatReplyInfo, ChatPayload } from '@/types'
 import { toast } from 'sonner'
 
 const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'https://services-videomax-websocket.khdya3.easypanel.host/'
@@ -55,6 +55,9 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
   const [pendingAccessRequests, setPendingAccessRequests] = useState<HostAccessRequest[]>([])
   const [accessApproved, setAccessApproved] = useState(false)
   const [accessRejectedReason, setAccessRejectedReason] = useState<string | null>(null)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [blockedReason, setBlockedReason] = useState<string | null>(null)
+  const [blockedHostUserId, setBlockedHostUserId] = useState<string | null>(null)
   const userProfileRef = useRef<SocketUserProfile>({ chatColor: '#4f46e5', image: '' })
   const seenMessageIds = useRef(new Set<string>())
   const viewersRef = useRef<Viewer[]>([])
@@ -214,10 +217,23 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
         if (cancelled) return
         if (seenMessageIds.current.has(data.id)) return
         seenMessageIds.current.add(data.id)
-        // Add timestamp if not present
-        const msgWithTime = {
+
+        let parsedReplyTo = data.replyTo || null
+        let parsedIsPro = data.isPro || false
+
+        if (typeof data.message === 'string' && data.message.startsWith('{')) {
+          try {
+            const p = JSON.parse(data.message)
+            if (p.replyTo) parsedReplyTo = p.replyTo
+            if (p.isPro) parsedIsPro = true
+          } catch {}
+        }
+
+        const msgWithTime: ChatMessage = {
           ...data,
-          timestamp: data.timestamp || new Date().toISOString()
+          replyTo: parsedReplyTo,
+          isPro: parsedIsPro,
+          timestamp: data.timestamp || new Date().toISOString(),
         }
         setMessages((prev) => [...prev, msgWithTime])
       })
@@ -235,7 +251,7 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
             }
             return {
               ...msg,
-              userReactions: currentReactions
+              userReactions: currentReactions,
             }
           })
         )
@@ -333,6 +349,29 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
         }
       })
 
+      newSocket.on('user-kicked', (data: { roomId: string; hostUserId?: string; message: string }) => {
+        if (cancelled) return
+        setIsBlocked(true)
+        setBlockedReason(data.message)
+        if (data.hostUserId) setBlockedHostUserId(data.hostUserId)
+        toast.error(data.message || 'Você foi removido da sala pelo Host.')
+      })
+
+      newSocket.on('room-access-blocked', (data: { roomId: string; hostUserId?: string; message: string }) => {
+        if (cancelled) return
+        setIsBlocked(true)
+        setBlockedReason(data.message)
+        if (data.hostUserId) setBlockedHostUserId(data.hostUserId)
+      })
+
+      newSocket.on('room-access-approved', () => {
+        if (cancelled) return
+        setIsBlocked(false)
+        setBlockedReason(null)
+        setAccessApproved(true)
+        toast.success('Sua entrada na sala foi autorizada pelo Host!')
+      })
+
       setSocket(newSocket)
     }
 
@@ -355,39 +394,54 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     userProfileRef.current.chatColor = color
   }, [])
 
-  const sendMessage = useCallback((messageText: string, type: 'text' | 'sticker' = 'text', stickerUrl?: string) => {
-    if (socket && (messageText.trim() !== '' || type === 'sticker')) {
-      const payload = {
-        text: messageText,
-        color: userProfileRef.current.chatColor || selectedColor,
-        image: userProfileRef.current.image,
-        type,
-        stickerUrl
+  const sendMessage = useCallback(
+    (
+      messageText: string,
+      type: 'text' | 'sticker' = 'text',
+      stickerUrl?: string,
+      replyTo?: ChatReplyInfo | null,
+      isPro?: boolean
+    ) => {
+      if (socket && (messageText.trim() !== '' || type === 'sticker')) {
+        const payload: ChatPayload = {
+          text: messageText,
+          color: userProfileRef.current.chatColor || selectedColor,
+          image: userProfileRef.current.image || '',
+          type,
+          stickerUrl,
+          replyTo: replyTo || null,
+          isPro: isPro || (session?.user as any)?.plan === 'MAXPRO' || (session?.user as any)?.plan === 'PRO',
+        }
+        socket.emit('send-message', { message: JSON.stringify(payload) })
       }
-      socket.emit('send-message', { message: JSON.stringify(payload) })
-    }
-  }, [socket, selectedColor])
+    },
+    [socket, selectedColor, session?.user]
+  )
 
-  const reactToMessage = useCallback((messageId: string, emoji: string) => {
-    if (socket && currentUserId) {
+  const reactToMessage = useCallback(
+    (messageId: string, emoji: string) => {
+      const myId = currentUserId || session?.user?.id || 'me'
       setMessages((prevMessages) =>
         prevMessages.map((msg) => {
           if (msg.id !== messageId) return msg
           const currentReactions = { ...(msg.userReactions || {}) }
-          if (currentReactions[currentUserId] === emoji) {
-            delete currentReactions[currentUserId]
+          if (currentReactions[myId] === emoji) {
+            delete currentReactions[myId]
           } else {
-            currentReactions[currentUserId] = emoji
+            currentReactions[myId] = emoji
           }
           return {
             ...msg,
-            userReactions: currentReactions
+            userReactions: currentReactions,
           }
         })
       )
-      socket.emit('message-reaction', { messageId, emoji })
-    }
-  }, [socket, currentUserId])
+      if (socket) {
+        socket.emit('message-reaction', { messageId, emoji })
+      }
+    },
+    [socket, currentUserId, session?.user?.id]
+  )
 
   const syncPlayerState = useCallback((stateData: PlayerStateData) => {
     if (socket) {
@@ -421,6 +475,13 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     }
   }, [socket, roomId])
 
+  const kickUser = useCallback((targetUserId: string) => {
+    if (socket) {
+      socket.emit('kick-user', { roomId, targetUserId })
+      toast.success('Participante removido e bloqueado da sala.')
+    }
+  }, [socket, roomId])
+
   return {
     socket,
     isConnected,
@@ -435,6 +496,9 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     pendingAccessRequests,
     accessApproved,
     accessRejectedReason,
+    isBlocked,
+    blockedReason,
+    blockedHostUserId,
     changeChatColor,
     sendMessage,
     syncPlayerState,
@@ -443,6 +507,7 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     approveAccessRequest,
     rejectAccessRequest,
     reactToMessage,
+    kickUser,
     currentUserId
   }
 }

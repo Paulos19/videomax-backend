@@ -1,32 +1,48 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  Users, UserPlus, Check, X, Trash2, Send,
-  Mail, Play, Loader2, Sparkles, Clock, SquareCheck,
-  Search, SlidersHorizontal, MessageSquare, MoreHorizontal, ShieldOff
+  Users,
+  UserPlus,
+  Check,
+  X,
+  Trash2,
+  Send,
+  Mail,
+  Play,
+  Loader2,
+  Sparkles,
+  Clock,
+  SquareCheck,
+  Search,
+  SlidersHorizontal,
+  MessageSquare,
+  MoreHorizontal,
+  Crown,
+  Radio,
+  Share2,
+  CheckSquare,
+  Square,
+  Zap,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import io, { Socket } from 'socket.io-client'
 import {
-  getFriendsAndRequests, sendFriendRequest,
-  acceptFriendRequest, rejectFriendRequest, removeFriend
+  getFriendsAndRequests,
+  sendFriendRequest,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  removeFriend,
+  createRoomInviteNotification,
 } from '../../actions'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { HomeHeader } from '../components/home-header'
 import { FriendSuggestions } from './components/friend-suggestions'
 import { FriendStats } from './components/friend-stats'
-import { FriendImport } from './components/friend-import'
+import { FriendsMesh3DView } from '@/components/dashboard/friends-mesh-3d'
+import { CreateRoomDialog, InvitedFriendPayload } from '../components/create-room-dialog'
 
 const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'https://services-videomax-websocket.khdya3.easypanel.host/'
 
@@ -36,6 +52,7 @@ interface FriendUser {
   email: string
   image: string | null
   chatColor?: string | null
+  plan?: string | null
 }
 
 interface FriendRequestItem {
@@ -58,18 +75,11 @@ function generateRoomCode(): string {
 
 function getThumbnailForVideo(url?: string | null, title?: string | null): string | null {
   if (url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/
     const match = url.match(regExp)
     if (match && match[2].length === 11) {
       return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`
     }
-  }
-  if (title) {
-    const lower = title.toLowerCase()
-    if (lower.includes('duna') || lower.includes('dune')) return 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=200&auto=format&fit=crop&q=80'
-    if (lower.includes('one piece') || lower.includes('anime')) return 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=200&auto=format&fit=crop&q=80'
-    if (lower.includes('arcane')) return 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&auto=format&fit=crop&q=80'
-    if (lower.includes('spider') || lower.includes('aranha')) return 'https://images.unsplash.com/photo-1635805737707-575885ab0820?w=200&auto=format&fit=crop&q=80'
   }
   return null
 }
@@ -84,15 +94,27 @@ export default function FriendsPage() {
 
   const [targetInput, setTargetInput] = useState('')
   const [sending, setSending] = useState(false)
-  const [activeTab, setActiveTab] = useState<'friends' | 'pending' | 'requests' | 'blocked'>('friends')
+  const [activeTab, setActiveTab] = useState<'friends' | 'pending' | 'requests'>('friends')
   const [searchFilter, setSearchFilter] = useState('')
+  const [liveUser, setLiveUser] = useState<any>(null)
 
-  // Multi-friend select mode
-  const [selectMode, setSelectMode] = useState(false)
+  // Multi-friend selection mode
   const [selectedFriendIds, setSelectedFriendIds] = useState<Set<string>>(new Set())
+  const [createRoomOpen, setCreateRoomOpen] = useState(false)
+
   const [socket, setSocket] = useState<Socket | null>(null)
   const [activeRooms, setActiveRooms] = useState<Array<{ roomId: string; videoTitle: string; videoUrl?: string; viewers: Array<{ userId: string }> }>>([])
   const [presenceMap, setPresenceMap] = useState<Record<string, { status: 'online' | 'in_room'; roomId?: string; videoTitle?: string; videoUrl?: string }>>({})
+
+  // Fetch live user info
+  useEffect(() => {
+    fetch('/api/user/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user) setLiveUser(data.user)
+      })
+      .catch(() => {})
+  }, [])
 
   // Socket connection
   useEffect(() => {
@@ -126,19 +148,16 @@ export default function FriendsPage() {
         newSocket?.emit('get-presence-list')
       })
 
-      newSocket.on('active-rooms-update', (rooms) => {
+      const handleRooms = (rooms: any[]) => {
         if (!cancelled && Array.isArray(rooms)) {
           setActiveRooms(rooms)
         }
-      })
+      }
 
-      newSocket.on('active-rooms-list', (rooms) => {
-        if (!cancelled && Array.isArray(rooms)) {
-          setActiveRooms(rooms)
-        }
-      })
+      newSocket.on('active-rooms-update', handleRooms)
+      newSocket.on('active-rooms-list', handleRooms)
 
-      newSocket.on('presence-update', (list) => {
+      const handlePresence = (list: any[]) => {
         if (!cancelled && Array.isArray(list)) {
           const map: Record<string, any> = {}
           for (const item of list) {
@@ -146,17 +165,10 @@ export default function FriendsPage() {
           }
           setPresenceMap(map)
         }
-      })
+      }
 
-      newSocket.on('presence-list', (list) => {
-        if (!cancelled && Array.isArray(list)) {
-          const map: Record<string, any> = {}
-          for (const item of list) {
-            if (item.userId) map[item.userId] = item
-          }
-          setPresenceMap(map)
-        }
-      })
+      newSocket.on('presence-update', handlePresence)
+      newSocket.on('presence-list', handlePresence)
 
       setSocket(newSocket)
     }
@@ -182,92 +194,113 @@ export default function FriendsPage() {
     }
   }, [])
 
-  useEffect(() => { loadData() }, [loadData])
-
-  const handleSendRequest = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!targetInput.trim()) {
-      toast.error('Insira um e-mail ou nome de usuário')
-      return
-    }
-
-    setSending(true)
-    try {
-      const result = await sendFriendRequest(targetInput.trim())
-      toast.success(`Pedido de amizade enviado para ${result.receiverName}!`)
-      setTargetInput('')
-      await loadData()
-
-      if (socket && result.receiverId) {
-        socket.emit('friend-request-sent', {
-          receiverId: result.receiverId,
-          senderName: session?.user?.name || session?.user?.email
-        })
-      }
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : 'Erro ao enviar pedido'
-      toast.error(errorMessage)
-    } finally {
-      setSending(false)
-    }
-  }, [targetInput, loadData, socket, session])
-
-  const handleAccept = useCallback(async (requestId: string) => {
-    try {
-      const res = await acceptFriendRequest(requestId)
-      toast.success(`Você e ${res.senderName} agora são amigos!`)
-      await loadData()
-
-      if (socket && res.senderId) {
-        socket.emit('friend-request-accepted', {
-          senderId: res.senderId,
-          receiverName: session?.user?.name || session?.user?.email
-        })
-      }
-    } catch {
-      toast.error('Erro ao aceitar pedido de amizade')
-    }
-  }, [loadData, socket, session])
-
-  const handleReject = useCallback(async (requestId: string) => {
-    try {
-      await rejectFriendRequest(requestId)
-      toast.info('Pedido de amizade recusado')
-      await loadData()
-    } catch {
-      toast.error('Erro ao recusar pedido')
-    }
+  useEffect(() => {
+    loadData()
   }, [loadData])
 
-  const handleRemoveFriend = useCallback(async (friend: FriendUser) => {
-    const friendName = friend.name || friend.email
-    if (!confirm(`Remover ${friendName} da sua lista de amigos?`)) return
+  const handleSendRequest = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!targetInput.trim()) {
+        toast.error('Insira um e-mail ou nome de usuário')
+        return
+      }
 
-    try {
-      await removeFriend(friend.id)
-      toast.info(`${friendName} foi removido dos seus amigos`)
-      await loadData()
-    } catch {
-      toast.error('Erro ao remover amigo')
-    }
-  }, [loadData])
+      setSending(true)
+      try {
+        const result = await sendFriendRequest(targetInput.trim())
+        toast.success(`Pedido de amizade enviado para ${result.receiverName}!`)
+        setTargetInput('')
+        await loadData()
 
-  const handleSendRoomInvite = useCallback((friend: FriendUser) => {
-    const code = generateRoomCode()
-    if (!socket) return
+        if (socket && result.receiverId) {
+          socket.emit('friend-request-sent', {
+            receiverId: result.receiverId,
+            senderName: session?.user?.name || session?.user?.email,
+          })
+        }
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Erro ao enviar pedido'
+        toast.error(errorMessage)
+      } finally {
+        setSending(false)
+      }
+    },
+    [targetInput, loadData, socket, session]
+  )
 
-    socket.emit('invite-to-room', {
-      targetUserId: friend.id,
-      roomCode: code,
-      senderName: session?.user?.name || session?.user?.email || 'Um amigo'
-    })
+  const handleAccept = useCallback(
+    async (requestId: string) => {
+      try {
+        const res = await acceptFriendRequest(requestId)
+        toast.success(`Você e ${res.senderName} agora são amigos!`)
+        await loadData()
 
-    toast.success(`Convite para a sala ${code} enviado para ${friend.name || friend.email}!`)
-    router.push(`/room/${code}`)
-  }, [socket, session, router])
+        if (socket && res.senderId) {
+          socket.emit('friend-request-accepted', {
+            senderId: res.senderId,
+            receiverName: session?.user?.name || session?.user?.email,
+          })
+        }
+      } catch {
+        toast.error('Erro ao aceitar pedido de amizade')
+      }
+    },
+    [loadData, socket, session]
+  )
+
+  const handleReject = useCallback(
+    async (requestId: string) => {
+      try {
+        await rejectFriendRequest(requestId)
+        toast.info('Pedido de amizade recusado')
+        await loadData()
+      } catch {
+        toast.error('Erro ao recusar pedido')
+      }
+    },
+    [loadData]
+  )
+
+  const handleRemoveFriend = useCallback(
+    async (friend: FriendUser) => {
+      const friendName = friend.name || friend.email
+      if (!confirm(`Remover ${friendName} da sua lista de amigos?`)) return
+
+      try {
+        await removeFriend(friend.id)
+        toast.info(`${friendName} foi removido dos seus amigos`)
+        await loadData()
+      } catch {
+        toast.error('Erro ao remover amigo')
+      }
+    },
+    [loadData]
+  )
+
+  const handleSendSingleRoomInvite = useCallback(
+    async (friend: FriendUser) => {
+      const code = generateRoomCode()
+      const senderName = session?.user?.name || session?.user?.email || 'Um amigo'
+
+      await createRoomInviteNotification(friend.id, code, senderName).catch(() => {})
+
+      if (socket) {
+        socket.emit('invite-to-room', {
+          targetUserId: friend.id,
+          roomCode: code,
+          senderName,
+        })
+      }
+
+      toast.success(`Convite para a sala #${code} enviado para ${friend.name || friend.email}!`)
+      router.push(`/room/${code}`)
+    },
+    [socket, session, router]
+  )
 
   const toggleFriendSelection = useCallback((id: string) => {
-    setSelectedFriendIds(prev => {
+    setSelectedFriendIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
@@ -275,442 +308,520 @@ export default function FriendsPage() {
     })
   }, [])
 
-  const filteredFriends = friends.filter((f) => {
-    if (!searchFilter.trim()) return true
-    const term = searchFilter.toLowerCase()
-    return (
-      (f.name && f.name.toLowerCase().includes(term)) ||
-      f.email.toLowerCase().includes(term)
+  const selectAllFriends = useCallback(() => {
+    if (selectedFriendIds.size === friends.length) {
+      setSelectedFriendIds(new Set())
+    } else {
+      setSelectedFriendIds(new Set(friends.map((f) => f.id)))
+    }
+  }, [friends, selectedFriendIds])
+
+  const filteredFriends = useMemo(() => {
+    if (!searchFilter.trim()) return friends
+    const term = searchFilter.toLowerCase().trim()
+    return friends.filter(
+      (f) =>
+        (f.name && f.name.toLowerCase().includes(term)) ||
+        f.email.toLowerCase().includes(term)
     )
-  })
+  }, [friends, searchFilter])
+
+  // Selected friends object list for CreateRoomDialog
+  const selectedFriendsList: InvitedFriendPayload[] = useMemo(() => {
+    return friends
+      .filter((f) => selectedFriendIds.has(f.id))
+      .map((f) => ({
+        id: f.id,
+        name: f.name,
+        email: f.email,
+      }))
+  }, [friends, selectedFriendIds])
+
+  const user = liveUser || session?.user
+  const userPlan = (user?.plan || 'FREE').toUpperCase()
+  const isPro = userPlan === 'PRO' || userPlan === 'MAXPRO'
 
   return (
-    <div className="w-full space-y-6 animate-fade-in">
-      {/* Top Header */}
-      <HomeHeader user={session?.user} />
+    <div className="space-y-6 pb-24 relative">
+      
+      {/* ── HEADER COMMAND BANNER ─────────────────────────────────── */}
+      <div className="relative overflow-hidden bg-[#09090D] border border-[#222] p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl">
+        <div
+          className={cn(
+            'absolute top-0 right-0 w-80 h-full blur-3xl pointer-events-none opacity-20 transition-colors',
+            isPro ? 'bg-[#FFE600]' : 'bg-[#FF5A00]'
+          )}
+        />
 
-      {/* Main Grid: 3 columns main, 1 column right sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
-        {/* Main Column */}
-        <div className="lg:col-span-2 xl:col-span-3 space-y-6 min-w-0">
-          
-          {/* ═══ HERO BANNER ═══ */}
-          <div className="relative overflow-hidden rounded-2xl border border-[#242424] p-6 sm:p-8 bg-gradient-to-r from-[rgba(255,90,0,0.12)] via-[#0B0B0B] to-[#0B0B0B] flex items-center justify-between">
-            <div className="space-y-2 max-w-lg z-10">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FF5A00]/10 border border-[#FF5A00]/20 text-[#FF5A00] text-[11px] font-bold uppercase tracking-wider">
-                <Users className="w-3.5 h-3.5" />
-                Rede Social
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F5F5F5]">
-                Gerenciar <span className="brand-gradient-text">amigos</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-[#8A8A8A] leading-relaxed">
-                Adicione amigos pelo nome de usuário ou e-mail e convide-os em tempo real para assistir com você nas salas.
-              </p>
-            </div>
-
-            <div className="relative hidden md:flex items-center justify-center w-28 h-28 shrink-0">
-              <div className="absolute inset-0 bg-[#FF5A00]/15 rounded-full blur-2xl pointer-events-none" />
-              <div className="w-20 h-20 rounded-full border border-[#FF5A00]/40 bg-[#151515] flex items-center justify-center relative shadow-2xl">
-                <Users className="w-10 h-10 text-[#FF5A00]" />
-                <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full brand-gradient flex items-center justify-center text-white text-xs font-bold border-2 border-[#0B0B0B] shadow-md">
-                  +
-                </div>
-              </div>
-            </div>
+        {/* Left Info */}
+        <div className="flex items-center gap-4 relative z-10 flex-1 min-w-0">
+          <div
+            className={cn(
+              'w-12 h-12 flex items-center justify-center font-black shrink-0 shadow-[0_0_20px_rgba(255,90,0,0.3)]',
+              isPro ? 'bg-[#FFE600] text-black' : 'bg-[#FF5A00] text-black'
+            )}
+          >
+            <Users className="w-6 h-6 stroke-[2.5]" />
           </div>
 
-          {/* ═══ CARD: ADICIONAR NOVO AMIGO ═══ */}
-          <div className="bg-[#0B0B0B] border border-[#242424] rounded-2xl p-5 sm:p-6 space-y-4">
+          <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2">
-              <UserPlus className="w-4 h-4 text-[#FF5A00]" />
-              <h3 className="text-[#F5F5F5] font-bold text-sm">Adicionar novo amigo</h3>
+              <span className="text-[9px] font-mono text-[#FF5A00] uppercase font-bold tracking-widest bg-[#14141E] px-2 py-0.5 border border-[#222]">
+                [ REDE SOCIAL // NÓS P2P WEBRTC ]
+              </span>
+              <span className="text-[9px] font-mono text-[#22C55E] uppercase font-bold bg-[#061508] border border-[#16381C] px-2 py-0.5">
+                ● SINCRONIA ATIVA
+              </span>
             </div>
 
-            <form onSubmit={handleSendRequest} className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Mail className="w-4 h-4 text-[#5F5F5F] absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={targetInput}
-                  onChange={(e) => setTargetInput(e.target.value)}
-                  placeholder="Digite o nome de usuário ou e-mail..."
-                  className="w-full bg-[#151515] border border-[#242424] text-[#F5F5F5] pl-11 pr-4 py-3 rounded-xl text-sm placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all"
-                />
-              </div>
+            <h1 className="text-xl sm:text-2xl font-black font-mono text-white uppercase tracking-tight truncate">
+              GERENCIAR REDE DE AMIGOS
+            </h1>
+            <p className="text-[11px] font-mono text-[#888] truncate">
+              Adicione conexões por e-mail ou nickname e inicie salas compartilhadas instantâneas.
+            </p>
+          </div>
+        </div>
 
+        {/* Center: 3D Neural P2P Mesh */}
+        <div className="hidden lg:flex items-center justify-center relative z-10">
+          <FriendsMesh3DView isPro={isPro} className="w-24 h-24 relative" />
+        </div>
+
+        {/* Right Stats */}
+        <div className="flex items-center gap-3 relative z-10 shrink-0">
+          <div className="flex items-center gap-2 px-3.5 py-2 bg-[#060608] border border-[#222] font-mono text-[10px]">
+            <span className="text-[#777] uppercase">AMIGOS:</span>
+            <strong className="text-white font-bold text-sm">{friends.length}</strong>
+          </div>
+
+          <div className="flex items-center gap-2 px-3.5 py-2 bg-[#060608] border border-[#222] font-mono text-[10px]">
+            <span className="text-[#777] uppercase">SOLICITAÇÕES:</span>
+            <strong className="text-[#FF5A00] font-bold text-sm">{receivedRequests.length}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* ── ADD FRIEND QUICK INPUT BAR ─────────────────────────────── */}
+      <form
+        onSubmit={handleSendRequest}
+        className="p-4 bg-[#09090D] border border-[#222] flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shadow-xl"
+      >
+        <div className="flex items-center gap-2 text-[#FF5A00] font-mono text-[11px] font-bold uppercase shrink-0">
+          <UserPlus className="w-4 h-4" />
+          <span>[ ADICIONAR NOVO AMIGO ]:</span>
+        </div>
+
+        <input
+          type="text"
+          value={targetInput}
+          onChange={(e) => setTargetInput(e.target.value)}
+          placeholder="Digite o e-mail ou nickname exato do amigo..."
+          className="flex-1 h-10 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00]"
+        />
+
+        <button
+          type="submit"
+          disabled={sending}
+          className="px-6 py-2.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+          <span>ENVIAR PEDIDO</span>
+        </button>
+      </form>
+
+      {/* ── MAIN GRID: LIST (LEFT) & STATS/SUGGESTIONS (RIGHT) ─────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+        
+        {/* Main Friends List Area */}
+        <div className="lg:col-span-2 xl:col-span-3 space-y-4 min-w-0">
+          
+          {/* Tabs and Controls Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-[#222] pb-3">
+            
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
               <button
-                type="submit"
-                disabled={sending || !targetInput.trim()}
+                onClick={() => setActiveTab('friends')}
                 className={cn(
-                  "px-5 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shrink-0",
-                  targetInput.trim() && !sending
-                    ? "brand-gradient text-white brand-glow-strong hover:brightness-110 active:scale-[0.98]"
-                    : "bg-[#151515] text-[#5F5F5F] cursor-not-allowed"
+                  'px-3.5 py-1.5 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-1.5',
+                  activeTab === 'friends'
+                    ? 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
+                    : 'bg-[#09090D] text-[#777] border-[#222] hover:text-white hover:border-[#333]'
                 )}
               >
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {sending ? 'Enviando...' : 'Enviar pedido'}
+                <span>[ AMIGOS ]</span>
+                <span className="text-[9px] px-1 py-0.2 bg-black/40 text-current font-bold">
+                  {friends.length}
+                </span>
               </button>
-            </form>
-          </div>
 
-          {/* ═══ MAIN FRIENDS LIST & TABS CARD ═══ */}
-          <div className="bg-[#0B0B0B] border border-[#242424] rounded-2xl p-5 sm:p-6 space-y-5">
-            {/* Navigation Tabs Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#242424] pb-4">
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-                <button
-                  onClick={() => setActiveTab('friends')}
-                  className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all relative",
-                    activeTab === 'friends'
-                      ? "text-[#F5F5F5] bg-[#151515] border border-[#242424]"
-                      : "text-[#8A8A8A] hover:text-[#F5F5F5]"
-                  )}
-                >
-                  Amigos
-                  <span className={cn(
-                    "px-2 py-0.5 rounded-full text-[10px] font-extrabold",
-                    activeTab === 'friends' ? "bg-[#FF5A00] text-white" : "bg-[#151515] text-[#8A8A8A]"
-                  )}>
-                    {friends.length}
+              <button
+                onClick={() => setActiveTab('requests')}
+                className={cn(
+                  'px-3.5 py-1.5 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-1.5',
+                  activeTab === 'requests'
+                    ? 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
+                    : 'bg-[#09090D] text-[#777] border-[#222] hover:text-white hover:border-[#333]'
+                )}
+              >
+                <span>[ SOLICITAÇÕES ]</span>
+                {receivedRequests.length > 0 && (
+                  <span className="text-[9px] px-1.5 py-0.2 bg-[#EF2020] text-white font-bold animate-pulse">
+                    {receivedRequests.length}
                   </span>
-                  {activeTab === 'friends' && (
-                    <div className="absolute -bottom-4 left-0 right-0 h-[2px] brand-gradient" />
-                  )}
-                </button>
+                )}
+              </button>
 
-                <button
-                  onClick={() => setActiveTab('pending')}
-                  className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all relative",
-                    activeTab === 'pending'
-                      ? "text-[#F5F5F5] bg-[#151515] border border-[#242424]"
-                      : "text-[#8A8A8A] hover:text-[#F5F5F5]"
-                  )}
-                >
-                  Pendentes
-                  <span className="px-2 py-0.5 rounded-full bg-[#151515] text-[#8A8A8A] text-[10px] font-extrabold">
-                    {sentRequests.length}
-                  </span>
-                  {activeTab === 'pending' && (
-                    <div className="absolute -bottom-4 left-0 right-0 h-[2px] brand-gradient" />
-                  )}
-                </button>
+              <button
+                onClick={() => setActiveTab('pending')}
+                className={cn(
+                  'px-3.5 py-1.5 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-1.5',
+                  activeTab === 'pending'
+                    ? 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
+                    : 'bg-[#09090D] text-[#777] border-[#222] hover:text-white hover:border-[#333]'
+                )}
+              >
+                <span>[ PENDENTES ]</span>
+                <span className="text-[9px] px-1 py-0.2 bg-black/40 text-current font-bold">
+                  {sentRequests.length}
+                </span>
+              </button>
+            </div>
 
-                <button
-                  onClick={() => setActiveTab('requests')}
-                  className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all relative",
-                    activeTab === 'requests'
-                      ? "text-[#F5F5F5] bg-[#151515] border border-[#242424]"
-                      : "text-[#8A8A8A] hover:text-[#F5F5F5]"
-                  )}
-                >
-                  Solicitações
-                  {receivedRequests.length > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-[#EF2020] text-white text-[10px] font-extrabold animate-pulse">
-                      {receivedRequests.length}
-                    </span>
-                  )}
-                  {activeTab === 'requests' && (
-                    <div className="absolute -bottom-4 left-0 right-0 h-[2px] brand-gradient" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('blocked')}
-                  className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all relative",
-                    activeTab === 'blocked'
-                      ? "text-[#F5F5F5] bg-[#151515] border border-[#242424]"
-                      : "text-[#8A8A8A] hover:text-[#F5F5F5]"
-                  )}
-                >
-                  Bloqueados
-                  <span className="px-2 py-0.5 rounded-full bg-[#151515] text-[#8A8A8A] text-[10px] font-extrabold">0</span>
-                  {activeTab === 'blocked' && (
-                    <div className="absolute -bottom-4 left-0 right-0 h-[2px] brand-gradient" />
-                  )}
-                </button>
-              </div>
-
-              {/* Table controls: Search filter & Selection mode */}
+            {/* Search & Select All Controls */}
+            {activeTab === 'friends' && (
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-[#5F5F5F] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className="w-3.5 h-3.5 text-[#555] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
-                    placeholder="Filtrar por nome..."
-                    className="bg-[#151515] border border-[#242424] text-[#F5F5F5] pl-8 pr-3 py-1.5 rounded-xl text-xs placeholder:text-[#5F5F5F] outline-none focus:border-[#FF5A00] transition-all w-36 sm:w-44"
+                    placeholder="Filtrar amigo..."
+                    className="bg-[#050508] border border-[#222] text-[#F5F5F5] pl-8 pr-3 py-1 text-[10px] font-mono outline-none focus:border-[#FF5A00] w-36 sm:w-44"
                   />
                 </div>
 
                 <button
-                  onClick={() => setSelectMode(!selectMode)}
-                  className={cn(
-                    "p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all",
-                    selectMode
-                      ? "border-[#FF5A00] bg-[#FF5A00]/10 text-[#FF5A00]"
-                      : "border-[#242424] bg-[#151515] text-[#8A8A8A] hover:text-[#F5F5F5]"
-                  )}
-                  title="Seleção múltipla"
+                  onClick={selectAllFriends}
+                  className="px-2.5 py-1 bg-[#121218] hover:bg-[#1A1A24] border border-[#333] hover:border-[#FF5A00] text-[9px] font-mono uppercase text-[#AAA] hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+                  title="Selecionar / Desmarcar Todos"
                 >
-                  <SquareCheck className="w-4 h-4" />
+                  {selectedFriendIds.size === friends.length && friends.length > 0 ? (
+                    <CheckSquare className="w-3 h-3 text-[#FF5A00]" />
+                  ) : (
+                    <Square className="w-3 h-3" />
+                  )}
+                  <span>TODOS</span>
                 </button>
-              </div>
-            </div>
-
-            {/* List Rows */}
-            {loading ? (
-              <div className="py-12 text-center text-xs text-[#8A8A8A]">Carregando amigos...</div>
-            ) : activeTab === 'friends' ? (
-              <div>
-                {filteredFriends.length === 0 ? (
-                  <div className="py-12 text-center text-xs text-[#8A8A8A]">
-                    Nenhum amigo encontrado.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {filteredFriends.map((friend) => {
-                      const activeRoom = activeRooms.find(r => r.viewers.some(v => v.userId === friend.id))
-                      const presence = presenceMap[friend.id]
-
-                      const isWatching = !!activeRoom || presence?.status === 'in_room'
-                      const isOnline = !isWatching && (presence?.status === 'online' || presence?.status === 'in_room')
-                      const videoTitle = activeRoom?.videoTitle || presence?.videoTitle || null
-                      const videoUrl = activeRoom?.videoUrl || presence?.videoUrl || null
-                      const roomId = activeRoom?.roomId || presence?.roomId
-                      const miniThumb = videoTitle ? getThumbnailForVideo(videoUrl, videoTitle) : null
-
-                      return (
-                        <div
-                          key={friend.id}
-                          className="bg-[#0B0B0B] hover:bg-[#111111] border border-[#242424] hover:border-[#FF5A00]/30 rounded-xl p-3 flex items-center justify-between gap-4 transition-all group"
-                        >
-                          {/* Left: Checkbox (if select mode), Avatar & Name */}
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            {selectMode && (
-                              <div
-                                onClick={() => toggleFriendSelection(friend.id)}
-                                className={cn(
-                                  "w-5 h-5 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all shrink-0",
-                                  selectedFriendIds.has(friend.id)
-                                    ? "bg-[#FF5A00] border-[#FF5A00]"
-                                    : "border-[#242424] bg-[#151515]"
-                                )}
-                              >
-                                {selectedFriendIds.has(friend.id) && <Check className="w-3 h-3 text-white" />}
-                              </div>
-                            )}
-
-                            <div className="relative shrink-0">
-                              <Avatar className="w-11 h-11 border border-[#242424]">
-                                <AvatarImage src={friend.image || undefined} />
-                                <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
-                                  {(friend.name || friend.email).charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className={cn(
-                                "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0B0B0B]",
-                                isWatching ? "bg-[#EF2020] animate-pulse" : isOnline ? "bg-emerald-500" : "bg-zinc-600"
-                              )} />
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-[#F5F5F5] group-hover:text-[#FF5A00] transition-colors truncate">
-                                {friend.name || friend.email.split('@')[0]}
-                              </p>
-                              <p className="text-[11px] text-[#8A8A8A] truncate">
-                                @{friend.name ? friend.name.toLowerCase().replace(/\s+/g, '') : friend.email.split('@')[0]}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Middle: Rich Presence Status & Mini Video Thumbnail */}
-                          <div className="flex items-center gap-3 flex-1 justify-center hidden sm:flex">
-                            {isWatching && videoTitle ? (
-                              <div className="flex items-center gap-3">
-                                <div className="text-left">
-                                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                                    Assistindo agora
-                                  </span>
-                                  <p className="text-[11px] text-[#8A8A8A] truncate max-w-[150px]">
-                                    {videoTitle}
-                                  </p>
-                                </div>
-
-                                {miniThumb && (
-                                  <div className="w-10 h-7 rounded-md bg-[#151515] overflow-hidden border border-[#242424] shrink-0">
-                                    <img src={miniThumb} alt={videoTitle} className="w-full h-full object-cover" />
-                                  </div>
-                                )}
-                              </div>
-                            ) : isOnline ? (
-                              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                Online
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 text-xs text-[#5F5F5F] font-medium">
-                                <span className="w-2 h-2 rounded-full bg-zinc-600" />
-                                Offline
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Right: Action Buttons */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            {isWatching && roomId ? (
-                              <button
-                                onClick={() => router.push(`/room/${roomId}`)}
-                                className="px-3.5 py-1.5 rounded-xl brand-gradient text-white text-xs font-bold brand-glow-strong hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
-                              >
-                                <Play className="w-3 h-3 fill-white" />
-                                Entrar
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleSendRoomInvite(friend)}
-                                className="p-2 rounded-xl bg-[#151515] hover:bg-[#FF5A00] text-[#8A8A8A] hover:text-white transition-all"
-                                title="Convidar para sala"
-                              >
-                                <MessageSquare className="w-4 h-4" />
-                              </button>
-                            )}
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger className="p-2 rounded-xl bg-[#151515] hover:bg-[#242424] text-[#8A8A8A] hover:text-[#F5F5F5] transition-all outline-none">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48 bg-[#0B0B0B] border-[#242424] text-[#F5F5F5] p-1.5 shadow-2xl">
-                                <DropdownMenuItem
-                                  onClick={() => handleSendRoomInvite(friend)}
-                                  className="px-3 py-2 rounded-lg text-xs font-medium hover:bg-[#151515] hover:text-[#FF5A00] cursor-pointer flex items-center gap-2"
-                                >
-                                  <Play className="w-3.5 h-3.5 text-[#FF5A00]" />
-                                  Convidar para sala
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-[#242424]" />
-                                <DropdownMenuItem
-                                  onClick={() => handleRemoveFriend(friend)}
-                                  className="px-3 py-2 rounded-lg text-xs font-medium hover:bg-[#EF2020]/10 hover:text-[#EF2020] text-[#EF2020] cursor-pointer flex items-center gap-2"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5 text-[#EF2020]" />
-                                  Remover amigo
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            ) : activeTab === 'requests' ? (
-              <div className="space-y-2">
-                {receivedRequests.length === 0 ? (
-                  <div className="py-12 text-center text-xs text-[#8A8A8A]">
-                    Nenhuma solicitação de amizade pendente.
-                  </div>
-                ) : (
-                  receivedRequests.map((req) => (
-                    <div
-                      key={req.id}
-                      className="bg-[#0B0B0B] border border-[#242424] rounded-xl p-3 flex items-center justify-between gap-3"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar className="w-10 h-10 border border-[#242424] shrink-0">
-                          <AvatarImage src={req.sender?.image || undefined} />
-                          <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
-                            {(req.sender?.name || req.sender?.email || 'U').charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-[#F5F5F5] truncate">
-                            {req.sender?.name || req.sender?.email.split('@')[0]}
-                          </p>
-                          <p className="text-[11px] text-[#8A8A8A] truncate">{req.sender?.email}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => handleAccept(req.id)}
-                          className="px-3.5 py-1.5 rounded-xl brand-gradient text-white text-xs font-bold flex items-center gap-1 hover:brightness-110 active:scale-95 transition-all"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          Aceitar
-                        </button>
-                        <button
-                          onClick={() => handleReject(req.id)}
-                          className="p-1.5 rounded-xl bg-[#151515] hover:bg-[#EF2020]/20 text-[#8A8A8A] hover:text-[#EF2020] transition-all"
-                          title="Recusar"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            ) : activeTab === 'pending' ? (
-              <div className="space-y-2">
-                {sentRequests.length === 0 ? (
-                  <div className="py-12 text-center text-xs text-[#8A8A8A]">
-                    Nenhuma solicitação enviada.
-                  </div>
-                ) : (
-                  sentRequests.map((req) => (
-                    <div
-                      key={req.id}
-                      className="bg-[#0B0B0B] border border-[#242424] rounded-xl p-3 flex items-center justify-between gap-3"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar className="w-10 h-10 border border-[#242424] shrink-0">
-                          <AvatarImage src={req.receiver?.image || undefined} />
-                          <AvatarFallback className="bg-[#151515] text-[#FF5A00] font-bold text-xs">
-                            {(req.receiver?.name || req.receiver?.email || 'U').charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-[#F5F5F5] truncate">
-                            {req.receiver?.name || req.receiver?.email.split('@')[0]}
-                          </p>
-                          <p className="text-[11px] text-[#8A8A8A] truncate">Aguardando resposta...</p>
-                        </div>
-                      </div>
-                      <span className="text-xs font-semibold text-[#8A8A8A] bg-[#151515] px-3 py-1 rounded-lg border border-[#242424]">
-                        Enviado
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            ) : (
-              <div className="py-12 text-center text-xs text-[#8A8A8A]">
-                Nenhum usuário bloqueado.
               </div>
             )}
           </div>
+
+          {/* List Content */}
+          {loading ? (
+            <div className="p-12 bg-[#09090D] border border-[#222] text-center font-mono text-[11px] text-[#777]">
+              CARREGANDO REDE DE AMIGOS...
+            </div>
+          ) : activeTab === 'friends' ? (
+            <div>
+              {filteredFriends.length === 0 ? (
+                <div className="p-12 bg-[#09090D] border border-[#222] text-center font-mono text-[11px] text-[#777] space-y-2">
+                  <p>NENHUM AMIGO ENCONTRADO.</p>
+                  <p className="text-[9px] text-[#555]">
+                    Envie pedidos de amizade utilizando o campo acima para formar seu grupo de transmissão.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredFriends.map((friend) => {
+                    const activeRoom = activeRooms.find((r) =>
+                      r.viewers.some((v) => v.userId === friend.id)
+                    )
+                    const presence = presenceMap[friend.id]
+
+                    const isWatching = !!activeRoom || presence?.status === 'in_room'
+                    const isOnline = !isWatching && (presence?.status === 'online' || presence?.status === 'in_room')
+                    const videoTitle = activeRoom?.videoTitle || presence?.videoTitle || null
+                    const videoUrl = activeRoom?.videoUrl || presence?.videoUrl || null
+                    const roomId = activeRoom?.roomId || presence?.roomId
+                    const miniThumb = videoTitle ? getThumbnailForVideo(videoUrl, videoTitle) : null
+                    const isSelected = selectedFriendIds.has(friend.id)
+
+                    return (
+                      <div
+                        key={friend.id}
+                        onClick={() => toggleFriendSelection(friend.id)}
+                        className={cn(
+                          'p-3 border flex items-center justify-between gap-4 transition-all duration-150 cursor-pointer select-none',
+                          isSelected
+                            ? 'bg-[#1E1408] border-[#FF5A00] shadow-[0_0_15px_rgba(255,90,0,0.15)]'
+                            : 'bg-[#09090D] border-[#1C1C24] hover:bg-[#0E0E14] hover:border-[#333]'
+                        )}
+                      >
+                        {/* Left: Checkbox, Avatar, Name & Handle */}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          
+                          {/* Brutalist Checkbox */}
+                          <div
+                            className={cn(
+                              'w-5 h-5 border flex items-center justify-center transition-all shrink-0',
+                              isSelected
+                                ? 'bg-[#FF5A00] border-[#FF5A00] text-black font-black'
+                                : 'bg-[#050508] border-[#333] group-hover:border-[#FF5A00]'
+                            )}
+                          >
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </div>
+
+                          {/* Avatar with live presence ring */}
+                          <div className="relative shrink-0">
+                            {friend.image ? (
+                              <img
+                                src={friend.image}
+                                alt={friend.name || 'Friend'}
+                                className="w-9 h-9 rounded border border-[#333] object-cover"
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded bg-[#151520] border border-[#333] flex items-center justify-center font-mono font-bold text-xs text-[#FF5A00]">
+                                {(friend.name || friend.email).charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div
+                              className={cn(
+                                'absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#050505]',
+                                isWatching
+                                  ? 'bg-[#EF2020] animate-ping'
+                                  : isOnline
+                                  ? 'bg-[#22C55E]'
+                                  : 'bg-[#555]'
+                              )}
+                            />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-mono font-bold text-white uppercase truncate">
+                              {friend.name || friend.email.split('@')[0]}
+                            </p>
+                            <p className="text-[10px] font-mono text-[#777] truncate">
+                              {friend.email}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Middle: Live Watch Status & Preview */}
+                        <div className="hidden sm:flex items-center gap-3 flex-1 justify-center">
+                          {isWatching && videoTitle ? (
+                            <div className="flex items-center gap-2.5">
+                              {miniThumb && (
+                                <div className="w-12 h-8 bg-black border border-[#333] overflow-hidden shrink-0">
+                                  <img src={miniThumb} alt="Video" className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              <div className="text-left min-w-0">
+                                <span className="inline-flex items-center gap-1 font-mono text-[9px] font-bold text-[#EF2020] uppercase">
+                                  <Radio className="w-2.5 h-2.5 animate-pulse" />
+                                  ASSISTINDO AGORA
+                                </span>
+                                <p className="text-[10px] font-mono text-[#BBB] truncate max-w-[140px]">
+                                  {videoTitle}
+                                </p>
+                              </div>
+                            </div>
+                          ) : isOnline ? (
+                            <span className="inline-flex items-center gap-1.5 font-mono text-[9px] text-[#22C55E] font-bold uppercase">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+                              ONLINE NO LOBBY
+                            </span>
+                          ) : (
+                            <span className="font-mono text-[9px] text-[#555] uppercase">
+                              OFFLINE
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Right: Actions */}
+                        <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          {isWatching && roomId ? (
+                            <button
+                              onClick={() => router.push(`/room/${roomId}`)}
+                              className="px-3 py-1.5 bg-[#EF2020] text-white hover:bg-white hover:text-black font-mono font-bold text-[9px] uppercase transition-colors flex items-center gap-1 cursor-pointer shadow-[0_0_10px_rgba(239,32,32,0.4)]"
+                            >
+                              <Play className="w-2.5 h-2.5 fill-current" />
+                              <span>ENTRAR</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleSendSingleRoomInvite(friend)}
+                              className="px-3 py-1.5 bg-[#151520] hover:bg-[#FF5A00] text-white hover:text-black font-mono font-bold text-[9px] uppercase border border-[#333] hover:border-[#FF5A00] transition-colors flex items-center gap-1 cursor-pointer"
+                              title="Convidar para sala"
+                            >
+                              <Play className="w-2.5 h-2.5 fill-current" />
+                              <span>CONVIDAR</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleRemoveFriend(friend)}
+                            className="p-1.5 border border-[#222] hover:border-[#EF2020] text-[#666] hover:text-[#EF2020] transition-colors cursor-pointer"
+                            title="Remover amigo"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          ) : activeTab === 'requests' ? (
+            /* Tab: Requests */
+            <div className="space-y-2">
+              {receivedRequests.length === 0 ? (
+                <div className="p-12 bg-[#09090D] border border-[#222] text-center font-mono text-[11px] text-[#777]">
+                  NENHUMA SOLICITAÇÃO DE AMIZADE PENDENTE.
+                </div>
+              ) : (
+                receivedRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="bg-[#09090D] border border-[#1C1C24] p-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 bg-[#151520] border border-[#333] flex items-center justify-center font-mono font-bold text-xs text-[#FF5A00]">
+                        {(req.sender?.name || req.sender?.email || 'U').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-mono font-bold text-white uppercase truncate">
+                          {req.sender?.name || req.sender?.email.split('@')[0]}
+                        </p>
+                        <p className="text-[10px] font-mono text-[#777] truncate">{req.sender?.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleAccept(req.id)}
+                        className="px-3.5 py-1.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[10px] uppercase transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        <span>ACEITAR</span>
+                      </button>
+                      <button
+                        onClick={() => handleReject(req.id)}
+                        className="p-1.5 border border-[#333] hover:border-[#EF2020] text-[#777] hover:text-[#EF2020] transition-colors cursor-pointer"
+                        title="Recusar"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            /* Tab: Pending */
+            <div className="space-y-2">
+              {sentRequests.length === 0 ? (
+                <div className="p-12 bg-[#09090D] border border-[#222] text-center font-mono text-[11px] text-[#777]">
+                  NENHUMA SOLICITAÇÃO ENVIADA PENDENTE.
+                </div>
+              ) : (
+                sentRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="bg-[#09090D] border border-[#1C1C24] p-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 bg-[#151520] border border-[#333] flex items-center justify-center font-mono font-bold text-xs text-[#FF5A00]">
+                        {(req.receiver?.name || req.receiver?.email || 'U').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-mono font-bold text-white uppercase truncate">
+                          {req.receiver?.name || req.receiver?.email.split('@')[0]}
+                        </p>
+                        <p className="text-[10px] font-mono text-[#777] truncate">Aguardando resposta...</p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-mono text-[#888] bg-[#111] px-2.5 py-1 border border-[#222] uppercase">
+                      ENVIADO
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar Column */}
         <div className="space-y-6 lg:sticky lg:top-6">
-          <FriendSuggestions />
+          <FriendSuggestions onRequestSent={loadData} />
           <FriendStats
             friendsCount={friends.length}
             pendingCount={sentRequests.length}
             requestsCount={receivedRequests.length}
           />
-          <FriendImport />
         </div>
       </div>
+
+      {/* ── FLOATING CYBERPUNK COMMAND DOCK (MULTI-SELECT ROOM CREATOR) ── */}
+      {selectedFriendIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4 animate-in slide-in-from-bottom duration-200">
+          <div className="bg-[#0D0D12] border-2 border-[#FF5A00] p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_40px_rgba(255,90,0,0.35)]">
+            
+            {/* Selection info & Stacked Avatars */}
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2 overflow-hidden">
+                {selectedFriendsList.slice(0, 5).map((f, idx) => (
+                  <div
+                    key={f.id}
+                    className="w-8 h-8 rounded-full border-2 border-[#0D0D12] bg-[#FF5A00] flex items-center justify-center font-mono font-bold text-xs text-black"
+                  >
+                    {(f.name || f.email).charAt(0).toUpperCase()}
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <span className="text-sm font-mono font-black text-white uppercase block">
+                  {selectedFriendIds.size} AMIGO(S) SELECIONADO(S)
+                </span>
+                <span className="text-[10px] font-mono text-[#FF5A00]">
+                  PRONTO PARA INICIAR WATCH PARTY EM GRUPO
+                </span>
+              </div>
+            </div>
+
+            {/* Actions: Deselect & Launch Room Dialog */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => setSelectedFriendIds(new Set())}
+                className="px-3.5 py-2.5 border border-[#333] hover:border-[#EF2020] text-[#888] hover:text-[#EF2020] font-mono text-[10px] uppercase font-bold transition-colors cursor-pointer"
+              >
+                DESMARCAR
+              </button>
+
+              <button
+                onClick={() => setCreateRoomOpen(true)}
+                className="flex-1 sm:flex-none px-6 py-2.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.4)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+              >
+                <Zap className="w-4 h-4 fill-black" />
+                <span>[ CRIAR SALA COM ELES ({selectedFriendIds.size}) ]</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Room Dialog with auto-inviting multi-selected friends */}
+      {createRoomOpen && (
+        <CreateRoomDialog
+          invitedFriends={selectedFriendsList}
+          onClose={() => setCreateRoomOpen(false)}
+        />
+      )}
     </div>
   )
 }

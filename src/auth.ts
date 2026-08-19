@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 }, // 7 days (reduzido de 30)
+  session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 }, // 7 days
   cookies: {
     sessionToken: {
       name: process.env.NODE_ENV === "production"
@@ -57,7 +57,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id
         token.email = user.email
+        // @ts-ignore
+        token.plan = (user as any).plan || 'FREE'
       }
+
+      if (token?.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { plan: true, name: true, image: true, stripeCurrentPeriodEnd: true }
+          })
+          if (dbUser) {
+            token.plan = dbUser.plan || 'FREE'
+            if (dbUser.name) token.name = dbUser.name
+            if (dbUser.image) token.picture = dbUser.image
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
       return token
     },
     async session({ session, token }) {
@@ -65,6 +84,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // @ts-ignore
         session.user.id = token.id as string
         session.user.email = token.email as string
+        // @ts-ignore
+        session.user.plan = (token.plan as string) || 'FREE'
+        if (token.name) session.user.name = token.name as string
+        if (token.picture) session.user.image = token.picture as string
       }
       return session
     }

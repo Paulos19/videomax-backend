@@ -8,6 +8,7 @@ import { SectionSync } from './section-sync'
 import { SectionChat } from './section-chat'
 import { SectionSocial } from './section-social'
 import { SectionLibrary } from './section-library'
+import { SectionPlans } from './section-plans'
 import { SectionCTA } from './section-cta'
 import { LandingFooter } from './landing-footer'
 
@@ -59,12 +60,18 @@ export function LandingPageClient() {
 
         <div className="relative z-[70]">
           <ParallaxWrapper>
+            <SectionPlans />
+          </ParallaxWrapper>
+        </div>
+
+        <div className="relative z-[80]">
+          <ParallaxWrapper>
             <SectionCTA />
           </ParallaxWrapper>
         </div>
 
         {/* Footer sits at the highest z-index to roll over everything */}
-        <div className="relative z-[80]">
+        <div className="relative z-[90]">
           <LandingFooter />
         </div>
 

@@ -1,21 +1,19 @@
 'use client'
 
-import { Clapperboard } from 'lucide-react'
+import { MessageSquare, Sparkles } from 'lucide-react'
 
 export function EmptyChat() {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 h-full">
-      <div className="relative w-20 h-20 rounded-3xl brand-gradient-subtle flex items-center justify-center animate-ember border border-room-accent/20 brand-glow shadow-xl">
-        <Clapperboard className="w-10 h-10 text-room-accent opacity-90 drop-shadow-md" />
+    <div className="h-full flex flex-col items-center justify-center p-6 text-center select-none font-mono">
+      <div className="w-10 h-10 border-2 border-[#262633] bg-[#0E0E14] flex items-center justify-center mb-3 text-[#FF5A00]">
+        <MessageSquare className="w-5 h-5" />
       </div>
-      <div className="text-center space-y-1.5 z-10">
-        <p className="text-white text-base font-bold tracking-tight">
-          A conversa começa aqui
-        </p>
-        <p className="text-room-text-secondary text-xs">
-          Diga oi para quebrar o gelo!
-        </p>
-      </div>
+      <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1">
+        CANAL DE CHAT PRONTO
+      </h4>
+      <p className="text-[10px] text-[#777] max-w-[200px] leading-relaxed">
+        Envie uma mensagem ou figurinha para interagir com a sala.
+      </p>
     </div>
   )
 }

@@ -16,10 +16,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'hostUserId é obrigatório' }, { status: 400 })
     }
 
-    // Fetch Host details
+    // Fetch Host details with Plan
     const hostUser = await prisma.user.findUnique({
       where: { id: hostUserId },
-      select: { id: true, name: true, email: true, image: true }
+      select: { id: true, name: true, email: true, image: true, plan: true },
     })
 
     // 1. Host has full access to their own room
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         isHost: true,
         isFriend: true,
         hostUser,
-        message: 'Acesso liberado (Você é o Host da sala)'
+        message: 'Acesso liberado (Você é o Host da sala)',
       })
     }
 
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
         isHost: false,
         isFriend: true,
         hostUser,
-        message: 'Acesso liberado (Vínculo de amizade confirmado)'
+        message: 'Acesso liberado (Vínculo de amizade confirmado)',
       })
     }
 
@@ -61,7 +61,8 @@ export async function POST(req: Request) {
       isFriend: false,
       requiresApproval: true,
       hostUser,
-      message: 'Este host não pertence à sua rede de amigos. Envie uma solicitação de amizade para entrar na sala.'
+      message:
+        'Este host não pertence à sua rede de amigos. Envie uma solicitação de amizade para entrar na sala.',
     })
   } catch (error: any) {
     console.error('[ROOM ACCESS CHECK ERROR]', error)

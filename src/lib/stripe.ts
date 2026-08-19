@@ -6,7 +6,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 })
 
 export interface UserSubscriptionPlan {
-  plan: 'FREE' | 'PRO'
+  plan: 'FREE' | 'PRO' | 'MAXPRO'
   isPro: boolean
   stripeCustomerId?: string | null
   stripeSubscriptionId?: string | null
@@ -35,13 +35,15 @@ export async function getUserSubscriptionPlan(userId: string): Promise<UserSubsc
     return { plan: 'FREE', isPro: false }
   }
 
-  const isPro =
-    user.plan === 'PRO' &&
+  const hasDbProPlan = user.plan === 'PRO' || user.plan === 'MAXPRO'
+  const isStripeActive =
     !!user.stripeCurrentPeriodEnd &&
     user.stripeCurrentPeriodEnd.getTime() + 86_400_000 > Date.now()
 
+  const isPro = hasDbProPlan || isStripeActive
+
   let isCanceled = false
-  if (isPro && user.stripeSubscriptionId) {
+  if (user.stripeSubscriptionId) {
     try {
       const stripePlan = await stripe.subscriptions.retrieve(user.stripeSubscriptionId)
       isCanceled = stripePlan.cancel_at_period_end
@@ -50,8 +52,12 @@ export async function getUserSubscriptionPlan(userId: string): Promise<UserSubsc
     }
   }
 
+  const resolvedPlan: 'FREE' | 'PRO' | 'MAXPRO' = isPro
+    ? (user.plan === 'MAXPRO' ? 'MAXPRO' : 'PRO')
+    : 'FREE'
+
   return {
-    plan: isPro ? 'PRO' : 'FREE',
+    plan: resolvedPlan,
     isPro,
     stripeCustomerId: user.stripeCustomerId,
     stripeSubscriptionId: user.stripeSubscriptionId,

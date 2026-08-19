@@ -2,18 +2,21 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ChatMessage as ChatMessageType } from '@/types'
+import { ChatMessage as ChatMessageType, ChatReplyInfo } from '@/types'
 import { cn } from '@/lib/utils'
-import { Sparkles, Shield, User } from 'lucide-react'
+import { Sparkles, Shield, User, Crown, Reply, Flame, Heart, Smile } from 'lucide-react'
+import { ProChatAura } from './pro-chat-aura'
+import { renderFormattedChatMessage, isOnlyEmojis } from './premium-emojis'
 
 interface ChatMessageProps {
   message: ChatMessageType & { isSystem?: boolean; role?: 'host' | 'cohost' | 'viewer' }
   currentUserId?: string | null
   isOwn?: boolean
   onReact?: (messageId: string, emoji: string) => void
+  onReply?: (message: ChatMessageType) => void
 }
 
-const QUICK_EMOJIS = ['🔥', '❤️', '😂', '😮', '😢', '👍', '🎉']
+const QUICK_EMOJIS = ['🔥', '❤️', '😂', '😮', '👑', '👍', '⚡']
 
 function parseChatMessageContent(rawMessage: string, msgColor?: string, msgImage?: string) {
   let text = rawMessage
@@ -21,6 +24,8 @@ function parseChatMessageContent(rawMessage: string, msgColor?: string, msgImage
   let image = msgImage
   let type = 'text'
   let stickerUrl = ''
+  let replyTo: ChatReplyInfo | null = null
+  let isPro = false
 
   if (typeof rawMessage === 'string' && rawMessage.trim().startsWith('{')) {
     try {
@@ -31,22 +36,69 @@ function parseChatMessageContent(rawMessage: string, msgColor?: string, msgImage
         image = parsed.image || image
         type = parsed.type || type
         stickerUrl = parsed.stickerUrl || stickerUrl
+        replyTo = parsed.replyTo || null
+        isPro = !!parsed.isPro
       }
     } catch {
       // Not JSON
     }
   }
 
-  return { text, color, image, type, stickerUrl }
+  return { text, color, image, type, stickerUrl, replyTo, isPro }
 }
 
-export function ChatMessage({ message, currentUserId, isOwn, onReact }: ChatMessageProps) {
-  // Store userId -> emoji map for strictly 1 emoji reaction per user per message
+function SystemTelemetryTag({ text, timestamp }: { text: string; timestamp?: string }) {
+  const [visible, setVisible] = useState(true)
+  const [fading, setFading] = useState(false)
+
+  useEffect(() => {
+    const creationTime = timestamp ? new Date(timestamp).getTime() : Date.now()
+    const elapsed = Date.now() - creationTime
+
+    const remainingToFade = Math.max(0, 8500 - elapsed)
+    const remainingToHide = Math.max(0, 10000 - elapsed)
+
+    if (elapsed >= 10000) {
+      setVisible(false)
+      return
+    }
+
+    const fadeTimer = setTimeout(() => {
+      setFading(true)
+    }, remainingToFade)
+
+    const hideTimer = setTimeout(() => {
+      setVisible(false)
+    }, remainingToHide)
+
+    return () => {
+      clearTimeout(fadeTimer)
+      clearTimeout(hideTimer)
+    }
+  }, [timestamp])
+
+  if (!visible) return null
+
+  return (
+    <div
+      className={cn(
+        'my-1.5 text-center flex items-center justify-center font-mono transition-all duration-1000',
+        fading ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+      )}
+    >
+      <span className="inline-flex items-center gap-1.5 text-[9px] text-[#AAA] bg-[#0E0E14] border border-[#222] px-2.5 py-0.5 font-bold uppercase tracking-wider shadow-sm">
+        <Sparkles className="w-3 h-3 text-[#FF5A00]" />
+        {text}
+      </span>
+    </div>
+  )
+}
+
+export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }: ChatMessageProps) {
   const [userReactions, setUserReactions] = useState<Record<string, string>>(
     message.userReactions || {}
   )
 
-  // Keep state in sync with incoming props
   useEffect(() => {
     if (message.userReactions) {
       setUserReactions(message.userReactions)
@@ -55,11 +107,13 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact }: ChatMess
 
   const parsedContent = parseChatMessageContent(message.message, message.color, message.image)
   const effectiveUserId = currentUserId || 'me'
-
-  // User's own currently selected reaction on this message
   const myActiveEmoji = userReactions[effectiveUserId] || null
 
-  // Calculate aggregated emoji counts
+  const effectiveReplyTo = message.replyTo || parsedContent.replyTo
+  const isMessagePro = message.isPro || parsedContent.isPro
+  const isSticker = parsedContent.type === 'sticker' && !!parsedContent.stickerUrl
+  const isStandaloneEmoji = !isSticker && isOnlyEmojis(parsedContent.text)
+
   const aggregatedReactions = useMemo(() => {
     const counts: Record<string, number> = {}
     Object.values(userReactions).forEach((emoji) => {
@@ -74,92 +128,117 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact }: ChatMess
     setUserReactions((prev) => {
       const next = { ...prev }
       if (next[effectiveUserId] === emoji) {
-        // Toggle OFF if clicking the same emoji
         delete next[effectiveUserId]
       } else {
-        // REPLACE previous reaction with new emoji
         next[effectiveUserId] = emoji
       }
       return next
     })
-
-    // Notify parent / socket
     onReact?.(message.id, emoji)
   }
 
-  // System Messages
+  // System telemetry notifications with 10s lifetime and smooth fade
   if (message.isSystem || message.userId === 'system') {
     return (
-      <div className="my-3 text-center flex items-center justify-center">
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-[#A0A0A0] bg-[#12121A]/80 backdrop-blur-md border border-white/10 px-3.5 py-1 rounded-full shadow-md font-medium">
-          <Sparkles className="w-3 h-3 text-[#FF5A00]" />
-          {parsedContent.text}
-        </span>
-      </div>
+      <SystemTelemetryTag
+        text={parsedContent.text}
+        timestamp={message.timestamp}
+      />
     )
   }
 
-  // Mobile touch toggle for reaction bar
-  const [showMobileReactions, setShowMobileReactions] = useState(false)
-
   const isHost = message.role === 'host' || message.userName?.toLowerCase().includes('host')
   const isCoHost = message.role === 'cohost'
+  const userAvatarUrl =
+    message.userImage ||
+    (typeof parsedContent.image === 'string' && parsedContent.image.length > 5
+      ? parsedContent.image
+      : undefined)
 
-  const userAvatarUrl = message.userImage || (typeof parsedContent.image === 'string' && parsedContent.image.length > 5 ? parsedContent.image : undefined)
+  const handleColor =
+    parsedContent.color ||
+    (isMessagePro ? '#FFE600' : isHost ? '#FFE600' : isOwn ? '#FF5A00' : '#FFFFFF')
 
   return (
-    <div className={cn("group relative flex items-start gap-2 sm:gap-2.5 my-3 sm:my-3.5 transition-all", isOwn && "flex-row-reverse")}>
-      {/* Avatar */}
-      <Avatar className={cn(
-        "w-8 h-8 sm:w-9 sm:h-9 border shrink-0 shadow-md transition-transform group-hover:scale-105",
-        isHost ? "border-[#FFB800] ring-2 ring-[#FFB800]/20" : isCoHost ? "border-[#00E5FF] ring-2 ring-[#00E5FF]/20" : "border-[#282838]"
-      )}>
-        <AvatarImage src={userAvatarUrl} />
-        <AvatarFallback className="bg-[#14141E] text-[#FF5A00] font-black text-[11px] sm:text-xs">
-          {message.userName?.charAt(0)?.toUpperCase() || 'U'}
-        </AvatarFallback>
-      </Avatar>
+    <div
+      className={cn(
+        'group relative flex items-start gap-2.5 my-2.5 font-mono transition-all',
+        isOwn && 'flex-row-reverse'
+      )}
+    >
+      {/* Avatar with optional PRO Glow */}
+      <div className="relative shrink-0">
+        <Avatar
+          className={cn(
+            'w-8 h-8 rounded-none border-2 shrink-0 transition-transform group-hover:scale-105',
+            isMessagePro
+              ? 'border-[#FFE600] shadow-[0_0_15px_rgba(255,230,0,0.5)]'
+              : isHost
+              ? 'border-[#FFE600]'
+              : isCoHost
+              ? 'border-[#00F0FF]'
+              : 'border-[#333]'
+          )}
+        >
+          <AvatarImage src={userAvatarUrl} />
+          <AvatarFallback className="bg-[#121218] text-[#FF5A00] font-black text-xs rounded-none">
+            {message.userName?.charAt(0)?.toUpperCase() || 'U'}
+          </AvatarFallback>
+        </Avatar>
 
-      {/* Content */}
-      <div className={cn("space-y-1 sm:space-y-1.5 max-w-[85%] sm:max-w-[80%]", isOwn && "items-end text-right flex flex-col")}>
-        {/* Header: Name + Badge + Timestamp */}
-        <div className={cn("flex items-center gap-1.5 text-xs select-none", isOwn && "justify-end")}>
-          <span className="font-bold text-[#F5F5F5] truncate max-w-[110px] sm:max-w-[140px] text-[11px] sm:text-xs">
+        {isMessagePro && (
+          <div className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-[#FFE600] text-black flex items-center justify-center shadow-md">
+            <Crown className="w-2.5 h-2.5 fill-black" />
+          </div>
+        )}
+      </div>
+
+      {/* Message Content Container */}
+      <div className={cn('flex flex-col max-w-[82%]', isOwn ? 'items-end' : 'items-start')}>
+        
+        {/* Author Header */}
+        <div className="flex items-center gap-1.5 mb-1 text-[10px]">
+          <span
+            style={{ color: handleColor }}
+            className="font-black uppercase tracking-wider truncate max-w-[120px]"
+          >
             {message.userName}
           </span>
 
-          {isHost && (
-            <span className="text-[8px] sm:text-[9px] font-black text-[#FFB800] bg-[#FFB800]/15 border border-[#FFB800]/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_8px_rgba(255,184,0,0.2)] flex items-center gap-0.5">
-              <Shield className="w-2.5 h-2.5 fill-[#FFB800]" />
+          {isMessagePro ? (
+            <span className="text-[8px] font-black bg-[#FFE600] text-black px-1 uppercase flex items-center gap-0.5 shadow-sm">
+              <Crown className="w-2.5 h-2.5 fill-black" />
+              MAXPRO VIP
+            </span>
+          ) : isHost ? (
+            <span className="text-[8px] font-bold bg-[#FFE600]/20 text-[#FFE600] border border-[#FFE600]/40 px-1 uppercase">
               HOST
             </span>
-          )}
-
-          {isCoHost && (
-            <span className="text-[8px] sm:text-[9px] font-black text-[#00E5FF] bg-[#00E5FF]/15 border border-[#00E5FF]/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_8px_rgba(0,229,255,0.2)] flex items-center gap-0.5">
-              <User className="w-2.5 h-2.5 text-[#00E5FF]" />
+          ) : isCoHost ? (
+            <span className="text-[8px] font-bold bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40 px-1 uppercase">
               CO-HOST
             </span>
-          )}
+          ) : null}
 
-          <span className="text-[9px] sm:text-[10px] text-[#71717A] font-medium">
-            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-          </span>
+          {message.timestamp && (
+            <span className="text-[#666] text-[8px] font-mono">
+              {new Date(message.timestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          )}
         </div>
 
-        {/* Message Bubble Container with Quick Hover/Tap Reaction Bar */}
-        <div 
-          onClick={() => setShowMobileReactions(prev => !prev)}
-          className="relative group/bubble inline-block max-w-full cursor-pointer sm:cursor-default"
-        >
-          {/* Floating Hover/Tap Reaction Bar */}
-          <div className={cn(
-            "absolute -top-9 z-30 scale-95 transition-all duration-200 ease-out flex items-center gap-1 bg-[#0D0D14]/95 backdrop-blur-xl border border-white/15 px-2 py-1 rounded-full shadow-2xl",
-            isOwn ? "right-0" : "left-0",
-            showMobileReactions 
-              ? "opacity-100 scale-100 pointer-events-auto" 
-              : "opacity-0 group-hover/bubble:opacity-100 group-hover/bubble:scale-100 pointer-events-none group-hover/bubble:pointer-events-auto"
-          )}>
+        {/* Action Bar on Hover (Reactions + Reply button) */}
+        <div className="relative group/bubble w-full">
+          <div
+            className={cn(
+              'opacity-0 group-hover/bubble:opacity-100 transition-opacity absolute -top-8 z-30 flex items-center gap-1 bg-[#0A0A0F] border border-[#333] px-1.5 py-0.5 shadow-xl',
+              isOwn ? 'right-0' : 'left-0'
+            )}
+          >
+            {/* Quick Reactions */}
             {QUICK_EMOJIS.map((emoji) => {
               const isSelected = myActiveEmoji === emoji
               return (
@@ -169,78 +248,105 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact }: ChatMess
                   onClick={(e) => {
                     e.stopPropagation()
                     handleReact(emoji)
-                    setShowMobileReactions(false)
                   }}
                   className={cn(
-                    "w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all duration-150 hover:scale-135 active:scale-95",
-                    isSelected ? "bg-[#FF5A00]/30 border border-[#FF5A00] shadow-[0_0_8px_rgba(255,90,0,0.5)] scale-110" : "hover:bg-white/10"
+                    'p-0.5 text-xs hover:scale-130 transition-transform cursor-pointer',
+                    isSelected && 'bg-[#FF5A00]/20 border border-[#FF5A00]'
                   )}
-                  title={isSelected ? `Remover reação ${emoji}` : `Reagir com ${emoji}`}
                 >
-                  <span>{emoji}</span>
+                  {emoji}
                 </button>
               )
             })}
+
+            <div className="w-px h-3 bg-[#333] mx-0.5" />
+
+            {/* Reply Button */}
+            {onReply && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onReply(message)
+                }}
+                className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold text-white bg-[#181824] hover:bg-[#FF5A00] hover:text-black transition-colors cursor-pointer"
+                title="Responder mensagem"
+              >
+                <Reply className="w-3 h-3" />
+                <span>RESPONDER</span>
+              </button>
+            )}
           </div>
 
-          {/* Bubble Render */}
-          {(() => {
-            if (parsedContent.type === 'sticker' && parsedContent.stickerUrl) {
-              return (
-                <div className={cn("mt-1 animate-message-in", isOwn ? "origin-bottom-right" : "origin-bottom-left")}>
-                  <img 
-                    src={parsedContent.stickerUrl} 
-                    alt="Sticker" 
-                    className="w-32 h-32 object-contain drop-shadow-xl hover:scale-105 transition-transform cursor-pointer"
+          {/* ── Message Bubble Structure ─────────────────────────── */}
+          <div
+            className={cn(
+              'relative select-text text-xs leading-relaxed transition-all',
+              isSticker
+                ? 'p-0 bg-transparent border-0 shadow-none'
+                : isMessagePro
+                ? 'overflow-hidden p-3 bg-[#0E0C06] border-2 border-[#FFE600] text-white shadow-[0_0_25px_rgba(255,230,0,0.25)] animate-in fade-in zoom-in-98 duration-200'
+                : isStandaloneEmoji
+                ? 'p-0 bg-transparent border-0 shadow-none text-white'
+                : isOwn
+                ? 'overflow-hidden p-2.5 bg-[#FF5A00] text-black font-bold shadow-md'
+                : 'overflow-hidden p-2.5 bg-[#121218] border border-[#262633] text-white shadow-md'
+            )}
+          >
+            {/* Three.js Aura Background for PRO Messages */}
+            {isMessagePro && !isSticker && <ProChatAura />}
+
+            {/* Quoted Message (Reply Preview Box) */}
+            {effectiveReplyTo && (
+              <div
+                className={cn(
+                  'mb-2 p-1.5 border-l-2 bg-black/40 text-[10px] space-y-0.5 relative z-10',
+                  effectiveReplyTo.isPro
+                    ? 'border-[#FFE600] text-[#FFE600]'
+                    : 'border-[#FF5A00] text-[#FF5A00]'
+                )}
+              >
+                <div className="flex items-center gap-1 font-black uppercase text-[9px]">
+                  <Reply className="w-2.5 h-2.5" />
+                  <span>@{effectiveReplyTo.userName}</span>
+                  {effectiveReplyTo.isPro && (
+                    <span className="text-[7px] bg-[#FFE600] text-black px-1 font-black">
+                      VIP PRO
+                    </span>
+                  )}
+                </div>
+                <p className="text-[#AAA] truncate text-[9px] pl-3.5">
+                  {renderFormattedChatMessage(effectiveReplyTo.text, 18, effectiveReplyTo.isPro)}
+                </p>
+              </div>
+            )}
+
+            {/* Main Message Text / Sticker Content */}
+            <div className="relative z-10">
+              {isSticker ? (
+                <div className="my-1">
+                  <img
+                    src={parsedContent.stickerUrl}
+                    alt="Sticker"
+                    className="w-28 h-28 object-contain hover:scale-105 transition-transform cursor-pointer"
                   />
                 </div>
-              )
-            }
-
-            const color = parsedContent.color
-            const isLightColor = color ? ['#F5F5F5', '#FFB800', '#FFFFFF', '#FDE047'].includes(color.toUpperCase()) : false
-
-            if (isOwn) {
-              if (color) {
-                return (
-                  <div
-                    className={cn(
-                      "p-3 rounded-2xl text-xs leading-relaxed break-words rounded-tr-xs font-semibold shadow-lg transition-all animate-message-in origin-bottom-right border border-white/10",
-                      isLightColor ? "text-[#090909]" : "text-white"
-                    )}
-                    style={{
-                      backgroundColor: color,
-                      boxShadow: `0 4px 16px 0 ${color}45`
-                    }}
-                  >
-                    {parsedContent.text}
-                  </div>
-                )
-              }
-              return (
-                <div className="p-3 rounded-2xl text-xs leading-relaxed break-words brand-gradient text-white font-medium rounded-tr-xs shadow-lg shadow-[#FF5A00]/25 border border-white/15 animate-message-in origin-bottom-right">
-                  {parsedContent.text}
+              ) : isMessagePro ? (
+                <div className="text-white font-mono font-bold leading-relaxed break-words">
+                  {renderFormattedChatMessage(parsedContent.text, 34, true)}
                 </div>
-              )
-            } else {
-              return (
-                <div
-                  className="p-3 rounded-2xl text-xs leading-relaxed break-words bg-[#161622]/90 backdrop-blur-md border border-white/10 rounded-tl-xs font-medium transition-all animate-message-in origin-bottom-left shadow-md"
-                  style={{
-                    borderColor: color ? `${color}50` : 'rgba(255,255,255,0.08)',
-                    color: color ? (isLightColor ? '#F5F5F5' : color) : '#F5F5F5'
-                  }}
-                >
-                  {parsedContent.text}
+              ) : (
+                <div className="break-words">
+                  {renderFormattedChatMessage(parsedContent.text, 30, false)}
                 </div>
-              )
-            }
-          })()}
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Reaction Badges (Aggregated with active state indicator) */}
+        {/* Aggregated Reaction Badges */}
         {Object.keys(aggregatedReactions).length > 0 && (
-          <div className={cn("flex flex-wrap items-center gap-1.5 pt-1", isOwn && "justify-end")}>
+          <div className={cn('flex flex-wrap items-center gap-1 pt-1.5', isOwn && 'justify-end')}>
             {Object.entries(aggregatedReactions).map(([emoji, count]) => {
               const isMyReaction = myActiveEmoji === emoji
               return (
@@ -249,17 +355,14 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact }: ChatMess
                   type="button"
                   onClick={() => handleReact(emoji)}
                   className={cn(
-                    "text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1.5 transition-all duration-150 active:scale-95 select-none",
+                    'text-[10px] px-1.5 py-0.5 border flex items-center gap-1 font-mono transition-colors cursor-pointer shadow-sm',
                     isMyReaction
-                      ? "bg-[#FF5A00]/20 border border-[#FF5A00]/70 text-white font-bold shadow-[0_0_10px_rgba(255,90,0,0.3)] ring-1 ring-[#FF5A00]/30"
-                      : "bg-[#14141E]/80 hover:bg-[#20202E] border border-white/10 text-white/80 hover:text-white font-medium"
+                      ? 'bg-[#FF5A00]/20 border-[#FF5A00] text-[#FF5A00] font-black ring-1 ring-[#FF5A00]'
+                      : 'bg-[#121218] border-[#333] text-[#AAA] hover:border-white hover:text-white'
                   )}
-                  title={isMyReaction ? `Sua reação (${emoji}). Clique para remover.` : `Reagir com ${emoji}`}
                 >
-                  <span className="text-xs">{emoji}</span>
-                  <span className={cn("font-bold text-[10px]", isMyReaction ? "text-[#FF5A00]" : "text-[#9A9A9A]")}>
-                    {count}
-                  </span>
+                  <span>{emoji}</span>
+                  <span className="font-bold">{count}</span>
                 </button>
               )
             })}

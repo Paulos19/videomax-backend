@@ -1,33 +1,29 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Play, Users } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Play, Users, Clock } from 'lucide-react'
 
 export interface RecentRoomData {
   roomId: string
   title: string
   thumbnailUrl?: string
+  creatorId?: string
   creatorName: string
   creatorImage?: string
   timeAgo: string
+  isMyRoom?: boolean
+  isFriendRoom?: boolean
+  isJoined?: boolean
   participants: Array<{ userId: string; userName: string; userImage?: string }>
 }
 
 function getThumbnailForVideo(url?: string, title?: string): string | null {
   if (url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/
     const match = url.match(regExp)
     if (match && match[2].length === 11) {
       return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`
     }
-  }
-  if (title) {
-    const lower = title.toLowerCase()
-    if (lower.includes('arcane')) return 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&auto=format&fit=crop&q=80'
-    if (lower.includes('duna') || lower.includes('dune')) return 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&auto=format&fit=crop&q=80'
-    if (lower.includes('aranha') || lower.includes('spider')) return 'https://images.unsplash.com/photo-1635805737707-575885ab0820?w=400&auto=format&fit=crop&q=80'
-    if (lower.includes('interestelar')) return 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop&q=80'
   }
   return null
 }
@@ -39,51 +35,71 @@ export function RecentRoomItem({ room }: { room: RecentRoomData }) {
   return (
     <div
       onClick={() => router.push(`/room/${room.roomId}`)}
-      className="group cursor-pointer bg-[#0B0B0B] hover:bg-[#111111] border border-[#242424] hover:border-[#FF5A00]/40 rounded-xl p-3 flex items-center justify-between gap-4 transition-all"
+      className="group cursor-pointer bg-[#09090D] hover:bg-[#0E0E14] border border-[#222] hover:border-[#FF5A00] p-3 flex items-center justify-between gap-4 transition-all duration-200"
     >
       {/* Left: Thumbnail & Info */}
       <div className="flex items-center gap-3.5 min-w-0 flex-1">
-        <div className="relative w-16 h-11 rounded-lg bg-[#151515] overflow-hidden shrink-0 border border-[#242424]">
+        <div className="relative w-18 h-12 bg-[#050508] overflow-hidden shrink-0 border border-[#222]">
           {thumb ? (
             <img
               src={thumb}
               alt={room.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
-            <div className="w-full h-full brand-gradient-subtle flex items-center justify-center">
-              <Play className="w-4 h-4 text-[#FF5A00]/40" />
+            <div className="w-full h-full flex items-center justify-center bg-[#151520]">
+              <Play className="w-4 h-4 text-[#FF5A00]" />
             </div>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <h4 className="text-xs font-bold text-[#F5F5F5] group-hover:text-[#FF5A00] transition-colors truncate">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-[9px] font-mono text-[#FF5A00] uppercase font-bold">
+              [ SALA #{room.roomId} ]
+            </span>
+            {room.isMyRoom ? (
+              <span className="text-[8px] font-mono text-black bg-[#FF5A00] px-1 font-bold uppercase">
+                MINHA SALA
+              </span>
+            ) : room.isFriendRoom ? (
+              <span className="text-[8px] font-mono text-[#22C55E] bg-[#22C55E]/10 border border-[#22C55E]/30 px-1 font-bold uppercase">
+                AMIGO
+              </span>
+            ) : null}
+          </div>
+          <h4 className="text-[12px] font-mono font-bold text-white uppercase group-hover:text-[#FF5A00] transition-colors truncate">
             {room.title}
           </h4>
-          <p className="text-[11px] text-[#8A8A8A] mt-0.5 truncate">
-            {room.creatorName} • {room.timeAgo}
+          <p className="text-[10px] font-mono text-[#777] mt-0.5 truncate flex items-center gap-1.5">
+            <span>{room.creatorName}</span>
+            <span>•</span>
+            <span className="text-[#555]">{room.timeAgo}</span>
           </p>
         </div>
       </div>
 
-      {/* Right: Participants & Entrar Button */}
+      {/* Right: Participants & Action */}
       <div className="flex items-center gap-3 shrink-0">
-        <div className="flex -space-x-1.5 overflow-hidden hidden sm:flex">
+        <div className="hidden sm:flex items-center -space-x-1.5 overflow-hidden">
           {room.participants.slice(0, 3).map((p, idx) => (
-            <Avatar key={p.userId + idx} className="w-5 h-5 border border-[#0B0B0B]">
-              <AvatarImage src={p.userImage} />
-              <AvatarFallback className="bg-[#151515] text-[#FF5A00] text-[8px] font-bold">
-                {p.userName?.charAt(0)?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <div
+              key={p.userId + idx}
+              className="w-6 h-6 rounded-full border border-[#09090D] bg-[#222] flex items-center justify-center font-mono font-bold text-[8px] text-[#FF5A00] overflow-hidden"
+            >
+              {p.userImage ? (
+                <img src={p.userImage} alt={p.userName} className="w-full h-full object-cover" />
+              ) : (
+                p.userName?.charAt(0)?.toUpperCase() || 'U'
+              )}
+            </div>
           ))}
         </div>
 
-        <button className="px-3.5 py-1.5 rounded-lg bg-[#151515] group-hover:brand-gradient text-[#F5F5F5] group-hover:text-white text-xs font-bold transition-all flex items-center gap-1">
-          <Play className="w-3 h-3 fill-current" />
-          Entrar
-        </button>
+        <div className="px-3 py-1.5 bg-[#151520] group-hover:bg-[#FF5A00] text-white group-hover:text-black font-mono font-bold text-[10px] uppercase transition-colors flex items-center gap-1.5 border border-[#333] group-hover:border-[#FF5A00]">
+          <Play className="w-2.5 h-2.5 fill-current" />
+          <span>ENTRAR</span>
+        </div>
       </div>
     </div>
   )

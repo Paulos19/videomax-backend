@@ -1,12 +1,13 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { ChatHeader } from './chat-header'
 import { ChatMessage } from './chat-message'
 import { ChatInput } from './chat-input'
 import { EmptyChat } from './empty-chat'
-import { ChatMessage as ChatMessageType } from '@/types'
+import { ChatMessage as ChatMessageType, ChatReplyInfo } from '@/types'
 import { Viewer } from '@/lib/useSocket'
+import { useSession } from 'next-auth/react'
 
 interface ChatPanelProps {
   messages: ChatMessageType[]
@@ -14,10 +15,31 @@ interface ChatPanelProps {
   viewerCount: number
   viewers: Viewer[]
   selectedColor?: string
+  isPro?: boolean
   onSelectColor?: (color: string) => void
-  onSend: (message: string, type?: 'text' | 'sticker', stickerUrl?: string) => void
+  onSend: (
+    message: string,
+    type?: 'text' | 'sticker',
+    stickerUrl?: string,
+    replyTo?: ChatReplyInfo | null
+  ) => void
   onReact?: (messageId: string, emoji: string) => void
   onClose?: () => void
+}
+
+function parseSnippetText(rawMessage: string): string {
+  if (typeof rawMessage === 'string' && rawMessage.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(rawMessage)
+      if (parsed.type === 'sticker' || parsed.stickerUrl) {
+        return '[Figurinha]'
+      }
+      if (typeof parsed.text === 'string' && parsed.text.trim()) {
+        return parsed.text.trim()
+      }
+    } catch {}
+  }
+  return typeof rawMessage === 'string' ? rawMessage : ''
 }
 
 export function ChatPanel({
@@ -26,12 +48,18 @@ export function ChatPanel({
   viewerCount,
   viewers,
   selectedColor,
+  isPro = false,
   onSelectColor,
   onSend,
   onReact,
-  onClose
+  onClose,
 }: ChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [replyingTo, setReplyingTo] = useState<ChatReplyInfo | null>(null)
+  const { data: session } = useSession()
+
+  const currentUserPlan = (session?.user as any)?.plan || 'FREE'
+  const isCurrentUserPro = isPro || currentUserPlan === 'MAXPRO' || currentUserPlan === 'PRO'
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -40,11 +68,31 @@ export function ChatPanel({
     }
   }, [messages])
 
-  // Convert viewers to format expected by ChatHeader
-  const headerViewers = viewers.map(v => ({ name: v.name, image: v.image }))
+  const headerViewers = viewers.map((v) => ({ name: v.name, image: v.image }))
+
+  const handleReplyToMessage = (msg: ChatMessageType) => {
+    const textSnippet = parseSnippetText(msg.message)
+    setReplyingTo({
+      messageId: msg.id,
+      userName: msg.userName,
+      text: textSnippet.slice(0, 80),
+      color: msg.color,
+      isPro: msg.isPro,
+    })
+  }
+
+  const handleSendMessage = (
+    text: string,
+    type?: 'text' | 'sticker',
+    stickerUrl?: string,
+    replyTo?: ChatReplyInfo | null
+  ) => {
+    onSend(text, type, stickerUrl, replyTo)
+    setReplyingTo(null)
+  }
 
   return (
-    <div className="w-full h-full flex flex-col bg-room-bg/50 backdrop-blur-2xl border border-white/5 rounded-2xl overflow-hidden shrink-0 shadow-2xl">
+    <div className="w-full h-full flex flex-col bg-[#08080C] border border-[#1F1F28] overflow-hidden shrink-0 shadow-2xl">
       {/* Header */}
       <ChatHeader
         viewerCount={viewerCount}
@@ -54,15 +102,12 @@ export function ChatPanel({
         onClose={onClose}
       />
 
-      {/* Messages */}
-      <div className="flex-1 min-h-0">
+      {/* Messages Feed */}
+      <div className="flex-1 min-h-0 relative">
         {messages.length === 0 ? (
           <EmptyChat />
         ) : (
-          <div
-            ref={scrollRef}
-            className="h-full overflow-y-auto px-4 py-3 chat-scroll"
-          >
+          <div ref={scrollRef} className="h-full overflow-y-auto px-3 py-2 space-y-1 scrollbar-thin">
             {messages.map((msg) => (
               <ChatMessage
                 key={msg.id}
@@ -70,14 +115,20 @@ export function ChatPanel({
                 currentUserId={currentUserId}
                 isOwn={msg.userId === currentUserId}
                 onReact={onReact}
+                onReply={handleReplyToMessage}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Input */}
-      <ChatInput onSend={onSend} />
+      {/* Input Dock */}
+      <ChatInput
+        onSend={handleSendMessage}
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
+        isPro={isCurrentUserPro}
+      />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Plus, Loader2, Sticker as StickerIcon, X, Check, Image as ImageIcon } from 'lucide-react'
+import { Plus, Loader2, Sticker as StickerIcon, X, Check, Image as ImageIcon, Sparkles, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getStickerPacks, saveSticker, createStickerPack } from '@/app/(main)/actions/stickers'
 import { useUploadThing } from '@/lib/uploadthing'
@@ -37,7 +37,7 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
 
-  const { startUpload } = useUploadThing("stickerUploader")
+  const { startUpload } = useUploadThing('stickerUploader')
 
   useEffect(() => {
     loadPacks()
@@ -75,7 +75,7 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
 
       const response = await fetch('/api/process-sticker', {
         method: 'POST',
-        body: formData
+        body: formData,
       })
 
       if (!response.ok) {
@@ -86,7 +86,7 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
       setProcessedBlob(blob)
       setPreviewUrl(URL.createObjectURL(blob))
     } catch (err) {
-      toast.error('Falha ao processar a figurinha. Tente outro arquivo.')
+      toast.error('Falha ao processar figurinha.')
       setSelectedFile(null)
     } finally {
       setIsProcessing(false)
@@ -98,18 +98,17 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
 
     setIsUploading(true)
     try {
-      // Create a File from the Blob
       const ext = processedBlob.type === 'image/webp' ? '.webp' : '.gif'
-      const fileToUpload = new File([processedBlob], `sticker-${Date.now()}${ext}`, { type: processedBlob.type })
+      const fileToUpload = new File([processedBlob], `sticker-${Date.now()}${ext}`, {
+        type: processedBlob.type,
+      })
 
-      // Upload to UploadThing
       const res = await startUpload([fileToUpload])
       if (!res || !res[0]) throw new Error('Upload falhou')
 
       const url = res[0].url
 
-      // Save to database
-      const defaultPack = packs[0] // Favoritos
+      const defaultPack = packs[0]
       let packId = defaultPack?.id
 
       if (!packId) {
@@ -118,15 +117,13 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
       }
 
       await saveSticker(packId, url)
-      toast.success('Figurinha salva!')
-      
-      // Reset state and reload
+      toast.success('Figurinha salva com sucesso!')
+
       setSelectedFile(null)
       setProcessedBlob(null)
       setPreviewUrl(null)
       await loadPacks()
       setActiveTab('library')
-      
     } catch (err) {
       console.error(err)
       toast.error('Erro ao salvar figurinha.')
@@ -137,7 +134,6 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
 
   const pickerRef = useRef<HTMLDivElement>(null)
 
-  // Click outside and Escape key handler
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
@@ -159,99 +155,120 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
   return (
     <div
       ref={pickerRef}
-      className="w-[calc(100vw-32px)] max-w-[340px] sm:w-[320px] h-[360px] sm:h-[400px] bg-[#0B0B0B] border border-[#242424] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+      className="w-[calc(100vw-32px)] max-w-[340px] sm:w-[320px] h-[370px] bg-[#0A0A0F] border-2 border-[#FF5A00] shadow-[0_0_35px_rgba(255,90,0,0.35)] flex flex-col overflow-hidden font-mono select-none animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header / Tabs */}
-      <div className="flex items-center justify-between p-2 border-b border-[#242424] bg-[#050505] shrink-0 gap-1.5">
+      <div className="flex items-center justify-between p-2 border-b border-[#1F1F28] bg-[#0E0E14] shrink-0 gap-1.5">
         <div className="flex gap-1 flex-1">
           <button
             onClick={() => setActiveTab('library')}
             className={cn(
-              "flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5",
-              activeTab === 'library' ? "bg-[#151515] text-[#F5F5F5] border border-white/10" : "text-[#8A8A8A] hover:text-[#F5F5F5] hover:bg-[#111111]"
+              'flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer',
+              activeTab === 'library'
+                ? 'bg-[#FF5A00] text-black shadow-sm'
+                : 'text-[#888] hover:text-white hover:bg-[#151520]'
             )}
           >
             <StickerIcon className="w-3.5 h-3.5" />
-            Minhas
+            <span>MINHAS</span>
           </button>
           <button
             onClick={() => setActiveTab('create')}
             className={cn(
-              "flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5",
-              activeTab === 'create' ? "bg-[#151515] text-[#F5F5F5] border border-white/10" : "text-[#8A8A8A] hover:text-[#F5F5F5] hover:bg-[#111111]"
+              'flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer',
+              activeTab === 'create'
+                ? 'bg-[#FF5A00] text-black shadow-sm'
+                : 'text-[#888] hover:text-white hover:bg-[#151520]'
             )}
           >
             <Plus className="w-3.5 h-3.5" />
-            Criar
+            <span>+ CRIAR</span>
           </button>
         </div>
 
         <button
           type="button"
           onClick={onClose}
-          className="p-1.5 rounded-lg text-[#8A8A8A] hover:text-white hover:bg-white/10 transition-colors shrink-0"
+          className="p-1 border border-[#333] hover:border-white text-[#888] hover:text-white transition-colors cursor-pointer shrink-0"
           title="Fechar"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-3 custom-scrollbar relative">
+      <div className="flex-1 overflow-y-auto p-3 relative">
         {activeTab === 'library' ? (
           isLoading ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="w-6 h-6 text-[#FF5A00] animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-[#888]">
+              <Loader2 className="w-5 h-5 text-[#FF5A00] animate-spin mr-2" />
+              <span>CARREGANDO...</span>
             </div>
-          ) : packs.length === 0 || packs.every(p => p.stickers.length === 0) ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-[#8A8A8A] p-4 text-center">
-              <StickerIcon className="w-10 h-10 mb-3 opacity-20" />
-              <p className="text-sm font-semibold">Nenhuma figurinha salva</p>
-              <p className="text-xs mt-1 text-[#5F5F5F]">Crie a sua primeira figurinha na aba "Criar"</p>
+          ) : packs.length === 0 || packs.every((p) => p.stickers.length === 0) ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-[#777] p-4 text-center">
+              <StickerIcon className="w-8 h-8 mb-2 opacity-30 text-[#FF5A00]" />
+              <p className="text-xs font-bold text-white uppercase tracking-wider">
+                NENHUMA FIGURINHA SALVA
+              </p>
+              <p className="text-[9px] mt-1 text-[#666]">
+                Crie sua figurinha personalizada na aba "+ CRIAR"
+              </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {packs.map(pack => pack.stickers.length > 0 && (
-                <div key={pack.id}>
-                  <h4 className="text-xs font-bold text-[#5F5F5F] uppercase mb-2 px-1">{pack.name}</h4>
-                  <div className="grid grid-cols-4 gap-2">
-                    {pack.stickers.map(sticker => (
-                      <button
-                        key={sticker.id}
-                        onClick={() => { onSelectSticker(sticker.url); onClose() }}
-                        className="aspect-square bg-[#111111] border border-[#242424] rounded-xl overflow-hidden hover:border-[#FF5A00]/50 hover:bg-[#151515] transition-all flex items-center justify-center p-1 group"
-                      >
-                        <Image
-                          src={sticker.url}
-                          alt="Sticker"
-                          width={64}
-                          height={64}
-                          className="object-contain w-full h-full group-hover:scale-110 transition-transform"
-                          unoptimized
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {packs.map(
+                (pack) =>
+                  pack.stickers.length > 0 && (
+                    <div key={pack.id}>
+                      <h4 className="text-[9px] font-black text-[#888] uppercase tracking-wider mb-2 px-0.5">
+                        [ {pack.name} ]
+                      </h4>
+                      <div className="grid grid-cols-4 gap-2">
+                        {pack.stickers.map((sticker) => (
+                          <button
+                            key={sticker.id}
+                            onClick={() => {
+                              onSelectSticker(sticker.url)
+                              onClose()
+                            }}
+                            className="aspect-square bg-[#121218] border border-[#222] hover:border-[#FF5A00] hover:bg-[#181824] transition-all flex items-center justify-center p-1 cursor-pointer group"
+                          >
+                            <Image
+                              src={sticker.url}
+                              alt="Sticker"
+                              width={64}
+                              height={64}
+                              className="object-contain w-full h-full group-hover:scale-110 transition-transform"
+                              unoptimized
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+              )}
             </div>
           )
         ) : (
           <div className="h-full flex flex-col">
             {!selectedFile ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-2">
-                <div className="w-14 h-14 rounded-2xl bg-[#151515] border border-[#242424] border-dashed flex items-center justify-center">
-                  <ImageIcon className="w-6 h-6 text-[#8A8A8A]" />
+              <div className="flex-1 flex flex-col items-center justify-center gap-2.5 text-center px-2">
+                <div className="w-12 h-12 bg-[#121218] border border-[#333] flex items-center justify-center text-[#FF5A00]">
+                  <ImageIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-[#F5F5F5] mb-1">Upload de Imagem ou GIF</h3>
-                  <p className="text-[11px] text-[#8A8A8A]">A imagem será cortada no formato Sticker (512x512)</p>
+                  <h3 className="text-xs font-black text-white uppercase tracking-wider">
+                    UPLOAD DE FIGURINHA
+                  </h3>
+                  <p className="text-[9px] text-[#777] mt-0.5">
+                    Formato Sticker (512x512) cortado automaticamente
+                  </p>
                 </div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 rounded-xl brand-gradient text-white text-xs font-bold brand-glow mt-1 hover:brightness-110 active:scale-95 transition-all"
+                  className="px-4 py-2 bg-[#FF5A00] hover:bg-white text-black font-black text-[10px] uppercase tracking-wider transition-colors cursor-pointer shadow-[0_0_15px_rgba(255,90,0,0.3)] mt-1"
                 >
-                  Selecionar Arquivo
+                  SELECIONAR ARQUIVO
                 </button>
                 <input
                   type="file"
@@ -262,33 +279,37 @@ export function StickerPicker({ onSelectSticker, onClose }: StickerPickerProps) 
                 />
               </div>
             ) : isProcessing ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-8 h-8 text-[#FF5A00] animate-spin" />
-                <p className="text-sm font-semibold text-[#F5F5F5]">Processando e cortando...</p>
-                <p className="text-xs text-[#8A8A8A]">Preparando para o formato Sticker</p>
+              <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
+                <Loader2 className="w-6 h-6 text-[#FF5A00] animate-spin" />
+                <p className="text-xs font-bold text-white uppercase">PROCESSANDO IMAGEM...</p>
+                <p className="text-[9px] text-[#777]">Otimizando para figurinha</p>
               </div>
             ) : previewUrl ? (
-              <div className="flex-1 flex flex-col items-center justify-between py-2">
+              <div className="flex-1 flex flex-col items-center justify-between py-1">
                 <div className="flex-1 flex items-center justify-center w-full">
-                  <div className="relative w-36 h-36 bg-[#111111] rounded-2xl border border-[#242424] overflow-hidden flex items-center justify-center p-2 shadow-inner">
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-contain drop-shadow-md" />
+                  <div className="relative w-28 h-28 bg-[#121218] border border-[#FF5A00] flex items-center justify-center p-2">
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
                   </div>
                 </div>
-                <div className="w-full space-y-2 pt-3">
+                <div className="w-full space-y-1.5 pt-2">
                   <button
                     onClick={handleSaveSticker}
                     disabled={isUploading}
-                    className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                    className="w-full py-2 bg-[#22C55E] hover:bg-white text-black font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
                   >
-                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    {isUploading ? 'Salvando...' : 'Salvar Figurinha'}
+                    {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    <span>{isUploading ? 'SALVANDO...' : 'SALVAR FIGURINHA'}</span>
                   </button>
                   <button
-                    onClick={() => { setSelectedFile(null); setPreviewUrl(null); setProcessedBlob(null) }}
+                    onClick={() => {
+                      setSelectedFile(null)
+                      setPreviewUrl(null)
+                      setProcessedBlob(null)
+                    }}
                     disabled={isUploading}
-                    className="w-full py-2 rounded-xl bg-[#151515] hover:bg-[#242424] text-[#8A8A8A] hover:text-[#F5F5F5] text-xs font-bold transition-colors"
+                    className="w-full py-1.5 bg-[#121218] hover:bg-[#222] text-[#888] hover:text-white font-bold text-[9px] uppercase transition-colors cursor-pointer border border-[#333]"
                   >
-                    Cancelar
+                    CANCELAR
                   </button>
                 </div>
               </div>

@@ -78,7 +78,7 @@ function WebGLOverlay() {
 
   return (
     <motion.div 
-      className="fixed inset-0 pointer-events-none z-50 mix-blend-screen"
+      className="fixed inset-0 pointer-events-none z-30 mix-blend-screen"
       style={{ opacity: velocityOpacity }}
     >
       <Canvas camera={{ position: [0, 0, 5], fov: 60 }}>

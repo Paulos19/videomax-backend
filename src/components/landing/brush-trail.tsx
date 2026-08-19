@@ -2,9 +2,28 @@
 
 import { useRef, useEffect } from 'react'
 
+interface Stain {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  radius: number
+  maxRadius: number
+  alpha: number
+  color: string
+}
+
+const STAIN_PALETTE = [
+  'rgba(255, 90, 0, ',    // Electric Orange
+  'rgba(255, 0, 120, ',   // Neon Magenta
+  'rgba(0, 240, 255, ',   // Cyber Cyan
+  'rgba(168, 85, 247, ',  // Deep Violet
+  'rgba(255, 200, 0, ',   // Golden Glow
+]
+
 export function BrushTrail() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -13,95 +32,98 @@ export function BrushTrail() {
 
     let width = window.innerWidth
     let height = window.innerHeight
-    
-    // Set canvas to full screen
+
     const resize = () => {
       width = window.innerWidth
       height = window.innerHeight
       canvas.width = width
       canvas.height = height
-      // Fill with black initially (difference of black = transparent)
-      ctx.fillStyle = '#000000'
-      ctx.fillRect(0, 0, width, height)
     }
     window.addEventListener('resize', resize)
     resize()
 
-    // Mouse tracking
-    let mouse = { x: width / 2, y: height / 2 }
-    let lastMouse = { x: width / 2, y: height / 2 }
-    let isMoving = false
+    const stains: Stain[] = []
+    let lastX = -100
+    let lastY = -100
+    let colorIdx = 0
 
     const handleMouseMove = (e: MouseEvent) => {
-      lastMouse.x = mouse.x
-      lastMouse.y = mouse.y
-      mouse.x = e.clientX
-      mouse.y = e.clientY
-      isMoving = true
+      const x = e.clientX
+      const y = e.clientY
+
+      const dx = x - lastX
+      const dy = y - lastY
+      const dist = Math.sqrt(dx * dx + dy * dy)
+
+      if (dist > 12) {
+        const count = Math.min(2, Math.floor(dist / 20) + 1)
+        for (let i = 0; i < count; i++) {
+          const colorBase = STAIN_PALETTE[colorIdx % STAIN_PALETTE.length]
+          colorIdx++
+
+          stains.push({
+            x: x + (Math.random() - 0.5) * 15,
+            y: y + (Math.random() - 0.5) * 15,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: (Math.random() - 0.5) * 0.8 - 0.2,
+            radius: Math.random() * 20 + 25,
+            maxRadius: Math.random() * 45 + 55,
+            alpha: 0.65,
+            color: colorBase,
+          })
+        }
+        lastX = x
+        lastY = y
+      }
     }
-    
+
     window.addEventListener('mousemove', handleMouseMove)
 
-    // Animation Loop
-    let animationFrameId: number
-    
-    const draw = () => {
-      // 1. Fade the existing trail slowly to black
-      // We use a semi-transparent black rectangle to progressively erase the white brush
-      ctx.globalCompositeOperation = 'source-over'
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.03)' // Lower alpha = longer trail
-      ctx.fillRect(0, 0, width, height)
+    let animId: number
+    const render = () => {
+      ctx.clearRect(0, 0, width, height)
+      ctx.globalCompositeOperation = 'screen'
 
-      // 2. Draw the new brush stroke if mouse moved
-      if (isMoving) {
-        ctx.lineJoin = 'round'
-        ctx.lineCap = 'round'
-        ctx.lineWidth = 150 // Thick brush
-        
-        // Add a soft edge to the brush using a radial gradient
-        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 10, mouse.x, mouse.y, 75)
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)')
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
-        
-        ctx.strokeStyle = gradient
-        
-        ctx.beginPath()
-        ctx.moveTo(lastMouse.x, lastMouse.y)
-        ctx.lineTo(mouse.x, mouse.y)
-        ctx.stroke()
-        
-        // Add some noise/bubbles to the brush stroke to simulate the soapy texture
-        for (let i = 0; i < 5; i++) {
-          const offsetX = (Math.random() - 0.5) * 100
-          const offsetY = (Math.random() - 0.5) * 100
-          const radius = Math.random() * 20 + 5
-          ctx.beginPath()
-          ctx.arc(mouse.x + offsetX, mouse.y + offsetY, radius, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.5})`
-          ctx.fill()
+      for (let i = stains.length - 1; i >= 0; i--) {
+        const s = stains[i]
+        s.x += s.vx
+        s.y += s.vy
+        s.radius += (s.maxRadius - s.radius) * 0.08
+        s.alpha -= 0.022 // Soft quick dissolve (~500ms)
+
+        if (s.alpha <= 0.01) {
+          stains.splice(i, 1)
+          continue
         }
 
-        lastMouse.x = mouse.x
-        lastMouse.y = mouse.y
-        isMoving = false
+        // Draw soft expanding watercolor/smoke stain
+        const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.radius)
+        grad.addColorStop(0, `${s.color}${s.alpha * 0.85})`)
+        grad.addColorStop(0.45, `${s.color}${s.alpha * 0.45})`)
+        grad.addColorStop(1, `${s.color}0)`)
+
+        ctx.fillStyle = grad
+        ctx.beginPath()
+        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2)
+        ctx.fill()
       }
 
-      animationFrameId = requestAnimationFrame(draw)
+      animId = requestAnimationFrame(render)
     }
-    
-    draw()
+
+    render()
 
     return () => {
       window.removeEventListener('resize', resize)
       window.removeEventListener('mousemove', handleMouseMove)
-      cancelAnimationFrame(animationFrameId)
+      cancelAnimationFrame(animId)
     }
   }, [])
 
   return (
-    <canvas 
+    <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-[100] mix-blend-difference"
+      className="fixed inset-0 pointer-events-none z-20 mix-blend-screen"
       style={{ width: '100vw', height: '100vh' }}
     />
   )

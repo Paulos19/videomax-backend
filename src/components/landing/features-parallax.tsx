@@ -10,7 +10,7 @@ export function FeaturesParallax() {
   const [roomCode, setRoomCode] = useState('JF4LU8')
 
   return (
-    <section className="relative w-full bg-[#050505] text-white z-20 border-t border-[#222] flex flex-col">
+    <section id="funcionalidades" className="relative w-full bg-[#050505] text-white z-20 border-t border-[#222] flex flex-col">
       
       {/* BLOCK 1: O PROBLEMA */}
       <div className="w-full min-h-[100vh] grid grid-cols-1 lg:grid-cols-2 border-b border-[#222]">
@@ -27,8 +27,8 @@ export function FeaturesParallax() {
           </p>
         </div>
         
-        {/* VISUAL (ThreeJS) */}
-        <div className="relative h-[60vh] lg:h-auto bg-[#080808]">
+        {/* VISUAL (ThreeJS Interactive Co-Watching Array) */}
+        <div className="relative h-[600px] lg:h-auto min-h-[520px] bg-[#080808] flex flex-col justify-center">
           {/* Overlay Grid lines for extra technical feel */}
           <div className="absolute inset-0 pointer-events-none z-10 opacity-20" 
                style={{ backgroundImage: 'linear-gradient(#222 1px, transparent 1px), linear-gradient(90deg, #222 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
@@ -81,7 +81,7 @@ export function FeaturesParallax() {
       </div>
 
       {/* BLOCK 3: ACESSO */}
-      <div className="w-full min-h-[80vh] grid grid-cols-1 lg:grid-cols-2">
+      <div id="salas" className="w-full min-h-[80vh] grid grid-cols-1 lg:grid-cols-2">
         {/* TEXT */}
         <div className="flex flex-col justify-center p-8 lg:p-24 border-r border-[#222]">
           <span className="text-[10px] font-mono text-[#FF5A00] tracking-widest uppercase mb-6 bg-[#111] w-fit px-2 py-1">

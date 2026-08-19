@@ -12,7 +12,6 @@ import { SectionCTA } from './section-cta'
 import { LandingFooter } from './landing-footer'
 
 import { ParallaxWrapper } from './parallax-wrapper'
-import { GlobalTransitions3D } from './global-transitions-3d'
 
 export function LandingPageClient() {
   return (
@@ -21,15 +20,14 @@ export function LandingPageClient() {
         
         {/* Fixed Elements */}
         <HeroNavbar />
-        <GlobalTransitions3D />
         
-        {/* We don't wrap the HeroSection because it has its own massive scroll logic */}
-        <div className="relative z-[10]">
+        {/* Sticky Hero section: stays in place while Section 2 rolls immediately over it */}
+        <div className="sticky top-0 z-[10]">
           <HeroSection />
         </div>
 
-        {/* The rest of the sections sink down as the next one rolls over them */}
-        <div className="relative z-[20]">
+        {/* Section 2 immediately rolls over the Hero */}
+        <div className="relative z-[20] shadow-[0_-25px_60px_rgba(0,0,0,0.95)]">
           <ParallaxWrapper>
             <FeaturesParallax />
           </ParallaxWrapper>

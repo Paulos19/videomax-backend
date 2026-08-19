@@ -37,7 +37,7 @@ export function LandingFooter() {
               [PRODUTO]
             </span>
             <div className="flex flex-col gap-4">
-              <a href="#experiencia" className="text-[#8A8A8A] hover:text-white text-[12px] font-mono uppercase transition-colors hover:translate-x-1 transform duration-200">Sincronia 0ms</a>
+              <a href="#sincronizacao" className="text-[#8A8A8A] hover:text-white text-[12px] font-mono uppercase transition-colors hover:translate-x-1 transform duration-200">Sincronia 0ms</a>
               <a href="#chat" className="text-[#8A8A8A] hover:text-white text-[12px] font-mono uppercase transition-colors hover:translate-x-1 transform duration-200">Chat em Rede</a>
               <a href="#biblioteca" className="text-[#8A8A8A] hover:text-white text-[12px] font-mono uppercase transition-colors hover:translate-x-1 transform duration-200">Biblioteca Cloud</a>
             </div>

@@ -19,6 +19,7 @@ export function SectionCTA() {
   return (
     <section
       ref={sectionRef}
+      id="iniciar"
       className="relative min-h-[100vh] w-full bg-[#050505] flex flex-col justify-center items-center overflow-hidden border-t border-[#222]"
     >
       {/* 3D Interactive Neutron Swarm */}

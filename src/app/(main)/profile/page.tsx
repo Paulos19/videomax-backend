@@ -26,11 +26,17 @@ import {
   Tv,
   Activity,
   Infinity as InfinityIcon,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  Send,
+  Shield,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { generateReactHelpers } from '@uploadthing/react'
 import type { OurFileRouter } from '@/app/api/uploadthing/core'
-import { updateProfile } from '../actions'
+import { updateProfile, requestProfilePasswordResetCode, changeProfilePassword } from '../actions'
 import { ProfileCore3DView } from '@/components/dashboard/profile-core-3d'
 import { cn } from '@/lib/utils'
 
@@ -78,7 +84,7 @@ interface UsageData {
 }
 
 export default function ProfilePage() {
-  const [activeTab, setActiveTab] = useState<'identity' | 'billing'>('billing')
+  const [activeTab, setActiveTab] = useState<'identity' | 'security' | 'billing'>('identity')
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [name, setName] = useState('')
   const [color, setColor] = useState('#FF5A00')
@@ -88,6 +94,17 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Password change state
+  const [pwdStep, setPwdStep] = useState<'request' | 'verify'>('request')
+  const [pwdCode, setPwdCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [sendingCode, setSendingCode] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [pwdCooldown, setPwdCooldown] = useState(0)
 
   const [subData, setSubData] = useState<SubscriptionData>({
     plan: 'FREE',
@@ -191,6 +208,67 @@ export default function ProfilePage() {
       toast.error(errorMessage)
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Request password reset token via email
+  const handleRequestPasswordCode = async () => {
+    if (pwdCooldown > 0 || sendingCode) return
+    setSendingCode(true)
+    try {
+      const res = await requestProfilePasswordResetCode()
+      toast.success(res.message || 'Código de 6 dígitos enviado para seu e-mail!')
+      setPwdStep('verify')
+      setPwdCooldown(60)
+      const timer = setInterval(() => {
+        setPwdCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao enviar código de verificação.')
+    } finally {
+      setSendingCode(false)
+    }
+  }
+
+  // Change password with token
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pwdCode || pwdCode.trim().length !== 6) {
+      toast.error('Informe o código de 6 dígitos recebido por e-mail.')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('As senhas não coincidem.')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      toast.error('A nova senha deve ter pelo menos 8 caracteres.')
+      return
+    }
+
+    setChangingPassword(true)
+    try {
+      const res = await changeProfilePassword({
+        code: pwdCode.trim(),
+        newPassword,
+      })
+      toast.success(res.message || 'Sua senha foi alterada com sucesso!')
+      setPwdCode('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setPwdStep('request')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao alterar a senha.')
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -304,24 +382,37 @@ export default function ProfilePage() {
         </div>
 
         {/* Switch / Tab Navigator in Header */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#050508] border border-[#333] relative z-10 shrink-0">
+        <div className="flex items-center gap-1.5 p-1 bg-[#050508] border border-[#333] relative z-10 shrink-0 flex-wrap">
           <button
             onClick={() => setActiveTab('identity')}
             className={cn(
-              'px-4 py-2 font-mono font-bold text-[10px] uppercase transition-all flex items-center gap-1.5 cursor-pointer',
+              'px-3.5 py-2 font-mono font-bold text-[10px] uppercase transition-all flex items-center gap-1.5 cursor-pointer',
               activeTab === 'identity'
                 ? 'bg-[#FF5A00] text-black shadow-[0_0_12px_rgba(255,90,0,0.3)]'
                 : 'text-[#888] hover:text-white'
             )}
           >
             <User className="w-3.5 h-3.5" />
-            <span>[ DADOS DO PERFIL ]</span>
+            <span>[ PERFIL ]</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('security')}
+            className={cn(
+              'px-3.5 py-2 font-mono font-bold text-[10px] uppercase transition-all flex items-center gap-1.5 cursor-pointer',
+              activeTab === 'security'
+                ? 'bg-[#22C55E] text-black shadow-[0_0_12px_rgba(34,197,94,0.3)]'
+                : 'text-[#888] hover:text-white'
+            )}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>[ SEGURANÇA & SENHA ]</span>
           </button>
 
           <button
             onClick={() => setActiveTab('billing')}
             className={cn(
-              'px-4 py-2 font-mono font-bold text-[10px] uppercase transition-all flex items-center gap-1.5 cursor-pointer',
+              'px-3.5 py-2 font-mono font-bold text-[10px] uppercase transition-all flex items-center gap-1.5 cursor-pointer',
               activeTab === 'billing'
                 ? isPro
                   ? 'bg-[#FFE600] text-black shadow-[0_0_12px_rgba(255,230,0,0.3)]'
@@ -330,7 +421,7 @@ export default function ProfilePage() {
             )}
           >
             <CreditCard className="w-3.5 h-3.5" />
-            <span>[ ASSINATURA & BILLING ]</span>
+            <span>[ ASSINATURA ]</span>
           </button>
         </div>
       </div>
@@ -794,6 +885,259 @@ export default function ProfilePage() {
                 Você pode cancelar sua renovação a qualquer momento pelo portal do assinante com apenas 1 clique, mantendo seus benefícios até o final do período pago.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 3: SECURITY & PASSWORD CHANGE ────────────────────── */}
+      {activeTab === 'security' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Left Column: Security Overview */}
+          <div className="bg-[#09090D] border border-[#222] p-6 space-y-5 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#22C55E]/10 border border-[#22C55E]/40 text-[#22C55E] flex items-center justify-center font-bold">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-mono font-black text-sm text-white uppercase">
+                  SEGURANÇA DA CONTA
+                </h3>
+                <span className="text-[10px] font-mono text-[#777] block">
+                  Autenticação em 2 etapas por token
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-[#050508] border border-[#1C1C24] space-y-3 font-mono text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[#777]">E-MAIL VINCULADO:</span>
+                <span className="text-white font-bold text-[11px] truncate max-w-[160px]">
+                  {profile?.email}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#777]">CRIPTOGRAFIA:</span>
+                <span className="text-[#22C55E] font-bold text-[10px] uppercase">
+                  BCRYPT (12 ROUNDS)
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#777]">PROTEÇÃO TOKEN:</span>
+                <span className="text-[#FF5A00] font-bold text-[10px] uppercase">
+                  6 DÍGITOS // 10 MIN
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-[#120A0A] border-l-2 border-[#FF5A00] text-[11px] font-sans text-[#CCC] leading-relaxed">
+              <strong className="text-white font-mono uppercase block mb-1">
+                🔒 Como funciona a alteração de senha:
+              </strong>
+              Para proteger sua conta, você precisará solicitar um código de segurança que será enviado para seu e-mail cadastrado antes de definir a nova senha.
+            </div>
+          </div>
+
+          {/* Right Column: Password Change Form / Steps */}
+          <div className="lg:col-span-2 bg-[#09090D] border border-[#222] p-6 sm:p-8 space-y-6 shadow-xl relative">
+            <div className="flex items-center justify-between border-b border-[#222] pb-4">
+              <div>
+                <span className="text-[9px] font-mono text-[#FF5A00] uppercase font-bold tracking-widest bg-[#14141E] px-2 py-0.5 border border-[#222]">
+                  [ PROTOCOLO DE ALTERAÇÃO ]
+                </span>
+                <h3 className="text-lg font-black font-mono text-white uppercase mt-2">
+                  ALTERAR SENHA DE ACESSO
+                </h3>
+              </div>
+
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 border bg-[#0D0D14] border-[#22C55E]/40 text-[#22C55E] uppercase">
+                {pwdStep === 'request' ? 'ETAPA 1/2' : 'ETAPA 2/2'}
+              </span>
+            </div>
+
+            {/* STEP 1: Request Code */}
+            {pwdStep === 'request' && (
+              <div className="space-y-6 py-4">
+                <div className="p-5 bg-[#050508] border border-[#222] text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-[#FF5A00]/10 border border-[#FF5A00]/40 text-[#FF5A00] mx-auto flex items-center justify-center">
+                    <Mail className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-mono font-bold text-sm text-white uppercase">
+                    ENVIAR TOKEN DE AUTORIZAÇÃO
+                  </h4>
+                  <p className="text-xs text-[#888] font-sans max-w-md mx-auto leading-relaxed">
+                    Clique no botão abaixo para receber um código de 6 dígitos no seu endereço de e-mail{' '}
+                    <strong className="text-white font-mono">{profile?.email}</strong>.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRequestPasswordCode}
+                  disabled={sendingCode || pwdCooldown > 0}
+                  className="w-full h-12 bg-gradient-to-r from-[#EF2020] via-[#FF5A00] to-[#FFB800] text-black font-mono font-black text-xs uppercase tracking-wider shadow-[0_0_25px_rgba(255,90,0,0.35)] hover:shadow-[0_0_35px_rgba(255,90,0,0.6)] hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {sendingCode ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>GERANDO CÓDIGO DE SEGURANÇA...</span>
+                    </>
+                  ) : pwdCooldown > 0 ? (
+                    <span>AGUARDE ({pwdCooldown}s) PARA NOVO CÓDIGO</span>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 stroke-[2.5]" />
+                      <span>SOLICITAR CÓDIGO POR E-MAIL</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* STEP 2: Enter Code & New Password */}
+            {pwdStep === 'verify' && (
+              <form onSubmit={handleChangePassword} className="space-y-5 animate-scale-in">
+                <div className="p-3.5 bg-[#140C06] border border-[#FF5A00]/40 flex items-center justify-between text-xs font-mono">
+                  <div className="flex items-center gap-2 text-[#FF5A00]">
+                    <span className="w-2 h-2 rounded-full bg-[#FF5A00] animate-ping" />
+                    <span>Código enviado para {profile?.email}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRequestPasswordCode}
+                    disabled={sendingCode || pwdCooldown > 0}
+                    className="text-[10px] text-[#FF5A00] hover:text-white uppercase font-bold underline cursor-pointer disabled:opacity-50 disabled:no-underline"
+                  >
+                    {pwdCooldown > 0 ? `Reenviar (${pwdCooldown}s)` : 'Reenviar Código'}
+                  </button>
+                </div>
+
+                {/* 6-Digit Token Input */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono text-[#888] uppercase block">
+                    CÓDIGO DE VERIFICAÇÃO (6 DÍGITOS)
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-[#666] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={pwdCode}
+                      onChange={(e) => setPwdCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="Ex: 849201"
+                      className="w-full h-11 bg-[#050508] border border-[#333] text-[#FF5A00] pl-10 pr-4 font-mono font-black text-lg tracking-[0.3em] outline-none focus:border-[#FF5A00]"
+                    />
+                  </div>
+                </div>
+
+                {/* New Password Input */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono text-[#888] uppercase block">
+                    NOVA SENHA
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-[#666] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Mínimo 8 caracteres (A-Z, a-z, 0-9)"
+                      className="w-full h-11 bg-[#050508] border border-[#333] text-white pl-10 pr-10 font-mono text-xs outline-none focus:border-[#FF5A00]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666] hover:text-white cursor-pointer"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password Input */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono text-[#888] uppercase block">
+                    CONFIRMAR NOVA SENHA
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-[#666] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Digite a nova senha novamente"
+                      className="w-full h-11 bg-[#050508] border border-[#333] text-white pl-10 pr-10 font-mono text-xs outline-none focus:border-[#FF5A00]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666] hover:text-white cursor-pointer"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Real-time Password Requirements Meter */}
+                <div className="p-3 bg-[#050508] border border-[#1C1C24] space-y-1.5 text-[10px] font-mono">
+                  <span className="text-[#666] uppercase block mb-1">REQUISITOS DE SEGURANÇA:</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className={cn('flex items-center gap-1.5', newPassword.length >= 8 ? 'text-[#22C55E]' : 'text-[#666]')}>
+                      <Check className="w-3 h-3" />
+                      <span>Mínimo 8 caracteres</span>
+                    </div>
+                    <div className={cn('flex items-center gap-1.5', /[A-Z]/.test(newPassword) ? 'text-[#22C55E]' : 'text-[#666]')}>
+                      <Check className="w-3 h-3" />
+                      <span>Letra maiúscula (A-Z)</span>
+                    </div>
+                    <div className={cn('flex items-center gap-1.5', /[a-z]/.test(newPassword) ? 'text-[#22C55E]' : 'text-[#666]')}>
+                      <Check className="w-3 h-3" />
+                      <span>Letra minúscula (a-z)</span>
+                    </div>
+                    <div className={cn('flex items-center gap-1.5', /[0-9]/.test(newPassword) ? 'text-[#22C55E]' : 'text-[#666]')}>
+                      <Check className="w-3 h-3" />
+                      <span>Pelo menos um número</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPwdStep('request')
+                      setPwdCode('')
+                      setNewPassword('')
+                      setConfirmPassword('')
+                    }}
+                    className="h-11 px-5 bg-[#121218] border border-[#333] text-[#888] hover:text-white font-mono text-xs uppercase font-bold cursor-pointer"
+                  >
+                    CANCELAR
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={changingPassword || pwdCode.length !== 6 || newPassword.length < 8}
+                    className="flex-1 h-11 bg-[#22C55E] hover:bg-white text-black font-mono font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-[0_0_20px_rgba(34,197,94,0.35)] disabled:opacity-50"
+                  >
+                    {changingPassword ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>ATUALIZANDO SENHA...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 stroke-[3]" />
+                        <span>CONFIRMAR E SALVAR NOVA SENHA</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

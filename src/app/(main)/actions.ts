@@ -680,3 +680,116 @@ export async function createRoomInviteNotification(targetUserId: string, roomId:
 
   return notif
 }
+
+// --- Profile Security: Password Change with Email Token ---
+
+import bcrypt from "bcryptjs"
+import { sendPasswordResetCode, sendPasswordChangedEmail } from "@/lib/email"
+import { checkRateLimit } from "@/lib/rate-limit"
+
+const ChangePasswordSchema = z.object({
+  code: z.string().length(6, "O código de verificação deve ter 6 dígitos"),
+  newPassword: z
+    .string()
+    .min(8, "A senha deve ter pelo menos 8 caracteres")
+    .max(128, "A senha deve ter no máximo 128 caracteres")
+    .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula")
+    .regex(/[a-z]/, "A senha deve conter pelo menos uma letra minúscula")
+    .regex(/[0-9]/, "A senha deve conter pelo menos um número"),
+})
+
+export async function requestProfilePasswordResetCode() {
+  const session = await auth()
+  if (!session?.user?.email || !session?.user?.id) {
+    throw new Error("Não autorizado. Faça login novamente.")
+  }
+
+  const cleanEmail = session.user.email.trim().toLowerCase()
+
+  // Rate limit: 3 requests every 5 minutes per user email
+  const rateResult = checkRateLimit(`profile-pwd-reset:${cleanEmail}`, 3, 300_000)
+  if (!rateResult.allowed) {
+    throw new Error("Muitas solicitações de código. Aguarde 5 minutos antes de solicitar novamente.")
+  }
+
+  // Invalidate previous active codes for this email
+  await prisma.passwordReset.updateMany({
+    where: { email: cleanEmail, used: false },
+    data: { used: true },
+  })
+
+  // Generate 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString()
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+
+  await prisma.passwordReset.create({
+    data: {
+      email: cleanEmail,
+      code,
+      expiresAt,
+    },
+  })
+
+  await sendPasswordResetCode(cleanEmail, code, session.user.name || undefined)
+
+  return { success: true, message: `Código de verificação enviado para ${cleanEmail}!` }
+}
+
+export async function changeProfilePassword(data: { code: string; newPassword: string }) {
+  const session = await auth()
+  if (!session?.user?.email || !session?.user?.id) {
+    throw new Error("Não autorizado. Faça login novamente.")
+  }
+
+  const parsed = ChangePasswordSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0].message)
+  }
+
+  const cleanEmail = session.user.email.trim().toLowerCase()
+  const { code, newPassword } = parsed.data
+
+  // Rate limit: 5 attempts every 15 minutes per user email
+  const rateResult = checkRateLimit(`profile-pwd-change:${cleanEmail}`, 5, 900_000)
+  if (!rateResult.allowed) {
+    throw new Error("Limite de tentativas excedido. Solicite um novo código de verificação.")
+  }
+
+  // Find valid password reset code
+  const resetRecord = await prisma.passwordReset.findFirst({
+    where: {
+      email: cleanEmail,
+      code,
+      used: false,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: "desc" },
+  })
+
+  if (!resetRecord) {
+    throw new Error("Código de verificação inválido ou expirado. Solicite um novo código.")
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12)
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: session.user.id },
+      data: { password: hashedPassword },
+    }),
+    prisma.passwordReset.update({
+      where: { id: resetRecord.id },
+      data: { used: true },
+    }),
+  ])
+
+  // Dispatch security alert email asynchronously
+  sendPasswordChangedEmail({
+    email: cleanEmail,
+    name: session.user.name || 'Usuário',
+  }).catch((err) => {
+    console.error("Erro ao enviar e-mail de confirmação de alteração de senha:", err)
+  })
+
+  return { success: true, message: "Sua senha foi alterada com sucesso!" }
+}

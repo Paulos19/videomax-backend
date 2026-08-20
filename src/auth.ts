@@ -59,18 +59,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = user.email
         // @ts-ignore
         token.plan = (user as any).plan || 'FREE'
+        // @ts-ignore
+        token.emailVerified = (user as any).emailVerified ? true : false
       }
 
       if (token?.id) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { plan: true, name: true, image: true, stripeCurrentPeriodEnd: true }
+            select: { plan: true, name: true, image: true, stripeCurrentPeriodEnd: true, emailVerified: true }
           })
           if (dbUser) {
             token.plan = dbUser.plan || 'FREE'
             if (dbUser.name) token.name = dbUser.name
             if (dbUser.image) token.picture = dbUser.image
+            token.emailVerified = dbUser.emailVerified ? true : false
           }
         } catch (e) {
           // ignore
@@ -86,6 +89,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.email = token.email as string
         // @ts-ignore
         session.user.plan = (token.plan as string) || 'FREE'
+        // @ts-ignore
+        session.user.emailVerified = token.emailVerified ? true : false
         if (token.name) session.user.name = token.name as string
         if (token.picture) session.user.image = token.picture as string
       }

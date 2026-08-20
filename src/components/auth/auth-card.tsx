@@ -16,32 +16,33 @@ export function AuthCard({ defaultTab = 'login', registered, passwordReset }: Au
 
   return (
     <div className="w-full h-full p-6 sm:p-8 lg:p-10 overflow-y-auto scrollbar-none flex flex-col justify-center">
-      {/* ─── Tabs ─── */}
-      <div className="flex items-center gap-7 mb-5">
+      {/* ─── Cyberpunk Tabs ─── */}
+      <div className="flex items-center gap-6 mb-6 font-mono border-b border-[#1F1F28] pb-2">
         <button
           onClick={() => setActiveTab('login')}
-          className={`relative text-[12.5px] font-bold tracking-wide pb-1.5 transition-colors cursor-pointer ${
+          className={`relative text-[12px] font-black uppercase tracking-wider pb-1.5 transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'login'
               ? 'text-[#FF5A00]'
-              : 'text-[#5F5F5F] hover:text-[#A3A3A3]'
+              : 'text-[#666] hover:text-white'
           }`}
         >
-          ENTRAR
+          <span>[ ENTRAR ]</span>
           {activeTab === 'login' && (
-            <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF5A00] rounded-full shadow-[0_0_8px_rgba(255,90,0,0.4)]" />
+            <span className="absolute -bottom-[9px] left-0 right-0 h-[2px] bg-[#FF5A00] shadow-[0_0_10px_rgba(255,90,0,0.8)]" />
           )}
         </button>
+
         <button
           onClick={() => setActiveTab('register')}
-          className={`relative text-[12.5px] font-bold tracking-wide pb-1.5 transition-colors cursor-pointer ${
+          className={`relative text-[12px] font-black uppercase tracking-wider pb-1.5 transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'register'
               ? 'text-[#FF5A00]'
-              : 'text-[#5F5F5F] hover:text-[#A3A3A3]'
+              : 'text-[#666] hover:text-white'
           }`}
         >
-          CRIAR CONTA
+          <span>[ CRIAR CONTA ]</span>
           {activeTab === 'register' && (
-            <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF5A00] rounded-full shadow-[0_0_8px_rgba(255,90,0,0.4)]" />
+            <span className="absolute -bottom-[9px] left-0 right-0 h-[2px] bg-[#FF5A00] shadow-[0_0_10px_rgba(255,90,0,0.8)]" />
           )}
         </button>
       </div>
@@ -54,22 +55,22 @@ export function AuthCard({ defaultTab = 'login', registered, passwordReset }: Au
       )}
 
       {/* ─── Divider ─── */}
-      <div className="relative flex items-center justify-center mt-6 mb-4">
-        <div className="border-t border-white/[0.04] w-full" />
-        <span className="bg-[#0B0B0B] px-3 text-[10px] text-[#5F5F5F] font-medium absolute">
+      <div className="relative flex items-center justify-center mt-6 mb-3">
+        <div className="border-t border-[#1F1F28] w-full" />
+        <span className="bg-[#08080C] px-3 text-[10px] font-mono text-[#555] uppercase absolute">
           ou
         </span>
       </div>
 
       {/* ─── Alternate prompt ─── */}
-      <p className="text-center text-[12px] text-[#5F5F5F]">
+      <p className="text-center text-[11px] font-mono text-[#777]">
         {activeTab === 'login' ? (
           <>
             Não possui uma conta?{' '}
             <Link
               href="/register"
               onClick={(e) => { e.preventDefault(); setActiveTab('register') }}
-              className="text-[#FF5A00] hover:text-[#FFB800] font-bold transition-colors ml-1"
+              className="text-[#FF5A00] hover:text-white font-bold transition-colors ml-1 uppercase"
             >
               Criar conta →
             </Link>
@@ -80,7 +81,7 @@ export function AuthCard({ defaultTab = 'login', registered, passwordReset }: Au
             <Link
               href="/login"
               onClick={(e) => { e.preventDefault(); setActiveTab('login') }}
-              className="text-[#FF5A00] hover:text-[#FFB800] font-bold transition-colors ml-1"
+              className="text-[#FF5A00] hover:text-white font-bold transition-colors ml-1 uppercase"
             >
               Entrar →
             </Link>

@@ -16,6 +16,7 @@ model User {
   id                     String          @id @default(cuid())
   name                   String?         @unique
   email                  String          @unique
+  emailVerified          DateTime?
   password               String?
   image                  String?
   createdAt              DateTime        @default(now())
@@ -117,4 +118,16 @@ model PasswordReset {
 
   @@index([email, code])
 }
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email, token])
+}
+
 

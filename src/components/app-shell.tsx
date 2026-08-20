@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { useNotifications } from '@/contexts/notification-context'
 import { CreateRoomDialog } from '@/app/(main)/dashboard/components/create-room-dialog'
+import { UnverifiedEmailBanner } from '@/components/unverified-email-banner'
 import { useLandingSocket } from '@/lib/useLandingSocket'
 import { signOut } from 'next-auth/react'
 import {
@@ -527,6 +528,9 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
       {/* ── MAIN CONTENT & MOBILE HEADER ───────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto relative bg-[#050505]">
         
+        {/* Unverified Email Warning Banner */}
+        <UnverifiedEmailBanner />
+
         {/* Mobile Top Header (< 768px md) */}
         <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 bg-[#050505]/95 backdrop-blur-md border-b border-[#222] md:hidden shrink-0">
           <div className="flex items-center gap-3">

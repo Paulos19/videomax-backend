@@ -23,6 +23,7 @@ export async function GET() {
         image: true,
         plan: true,
         chatColor: true,
+        emailVerified: true,
         stripeCurrentPeriodEnd: true,
         createdAt: true,
       },

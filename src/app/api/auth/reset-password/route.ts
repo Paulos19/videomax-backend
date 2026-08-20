@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit"
+import { sendPasswordChangedEmail } from "@/lib/email"
 
 const ResetPasswordSchema = z.object({
   email: z.string().email("E-mail inválido").toLowerCase(),
@@ -87,6 +88,14 @@ export async function POST(req: Request) {
         data: { used: true },
       }),
     ])
+
+    // Send confirmation security alert asynchronously
+    sendPasswordChangedEmail({
+      email: cleanEmail,
+      name: user.name || 'Usuário',
+    }).catch((err) => {
+      console.error("Erro ao enviar e-mail de confirmação de senha:", err)
+    })
 
     return NextResponse.json({
       message: "Senha redefinida com sucesso!",

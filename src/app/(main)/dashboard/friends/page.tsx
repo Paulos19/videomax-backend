@@ -38,6 +38,7 @@ import {
   createRoomInviteNotification,
 } from '../../actions'
 import { cn } from '@/lib/utils'
+import { useNotifications } from '@/contexts/notification-context'
 import { HomeHeader } from '../components/home-header'
 import { FriendSuggestions } from './components/friend-suggestions'
 import { FriendStats } from './components/friend-stats'
@@ -87,6 +88,7 @@ function getThumbnailForVideo(url?: string | null, title?: string | null): strin
 export default function FriendsPage() {
   const router = useRouter()
   const { data: session } = useSession()
+  const { emailVerified } = useNotifications()
   const [friends, setFriends] = useState<FriendUser[]>([])
   const [receivedRequests, setReceivedRequests] = useState<FriendRequestItem[]>([])
   const [sentRequests, setSentRequests] = useState<FriendRequestItem[]>([])
@@ -201,6 +203,10 @@ export default function FriendsPage() {
   const handleSendRequest = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
+      if (!emailVerified) {
+        toast.error('Por favor, confirme seu e-mail para adicionar amigos.')
+        return
+      }
       if (!targetInput.trim()) {
         toast.error('Insira um e-mail ou nome de usuário')
         return
@@ -405,7 +411,7 @@ export default function FriendsPage() {
       {/* ── ADD FRIEND QUICK INPUT BAR ─────────────────────────────── */}
       <form
         onSubmit={handleSendRequest}
-        className="p-4 bg-[#09090D] border border-[#222] flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shadow-xl"
+        className="p-4 bg-[#09090D] border border-[#222] flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shadow-xl relative"
       >
         <div className="flex items-center gap-2 text-[#FF5A00] font-mono text-[11px] font-bold uppercase shrink-0">
           <UserPlus className="w-4 h-4" />
@@ -415,18 +421,19 @@ export default function FriendsPage() {
         <input
           type="text"
           value={targetInput}
+          disabled={!emailVerified}
           onChange={(e) => setTargetInput(e.target.value)}
-          placeholder="Digite o e-mail ou nickname exato do amigo..."
-          className="flex-1 h-10 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00]"
+          placeholder={!emailVerified ? "Confirme seu e-mail para desbloquear a adição de amigos..." : "Digite o e-mail ou nickname exato do amigo..."}
+          className="flex-1 h-10 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00] disabled:opacity-50 disabled:cursor-not-allowed"
         />
 
         <button
           type="submit"
-          disabled={sending}
-          className="px-6 py-2.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          disabled={sending || !emailVerified}
+          className="px-6 py-2.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-          <span>ENVIAR PEDIDO</span>
+          <span>{!emailVerified ? 'E-MAIL NÃO CONFIRMADO' : 'ENVIAR PEDIDO'}</span>
         </button>
       </form>
 

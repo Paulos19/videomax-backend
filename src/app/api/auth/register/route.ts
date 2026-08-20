@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { z } from "zod";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
+import { sendWelcomeEmail, sendVerificationEmail } from "@/lib/email";
 
 const RegisterSchema = z.object({
   name: z
@@ -87,6 +89,31 @@ export async function POST(req: Request) {
         email: cleanEmail,
         password: hashedPassword,
       },
+    });
+
+    // Generate secure email verification token (24 hours expiry)
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.emailVerificationToken.create({
+      data: {
+        email: cleanEmail,
+        token: verificationToken,
+        expiresAt,
+      },
+    });
+
+    // Send Cyberpunk Welcome and Verification Emails asynchronously
+    sendWelcomeEmail({ email: cleanEmail, name: cleanName }).catch((err) => {
+      console.error("Erro ao enviar e-mail de boas-vindas:", err);
+    });
+
+    sendVerificationEmail({
+      email: cleanEmail,
+      name: cleanName,
+      token: verificationToken,
+    }).catch((err) => {
+      console.error("Erro ao enviar e-mail de ativação:", err);
     });
 
     return NextResponse.json({ message: "Usuário criado com sucesso!" }, { status: 201 });

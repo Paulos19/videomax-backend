@@ -96,8 +96,8 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  const inputClass = "w-full bg-[#111111] border border-white/[0.07] text-[#F5F5F5] text-[13px] pl-10 pr-4 py-0 rounded-[10px] placeholder:text-[#666666] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_0_3px_rgba(255,90,0,0.10)] transition-all h-[46px]"
-  const inputClassPassword = "w-full bg-[#111111] border border-white/[0.07] text-[#F5F5F5] text-[13px] pl-10 pr-10 py-0 rounded-[10px] placeholder:text-[#666666] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_0_3px_rgba(255,90,0,0.10)] transition-all h-[46px]"
+  const inputClass = "w-full bg-[#121218] border border-[#262635] text-white text-[13px] font-mono pl-11 pr-4 rounded-none placeholder:text-[#555] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_15px_rgba(255,90,0,0.2)] transition-all h-[46px]"
+  const inputClassPassword = "w-full bg-[#121218] border border-[#262635] text-white text-[13px] font-mono pl-11 pr-11 rounded-none placeholder:text-[#555] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_15px_rgba(255,90,0,0.2)] transition-all h-[46px]"
 
   return (
     <AuthScene>
@@ -105,20 +105,20 @@ export default function ForgotPasswordPage() {
         {/* Back link */}
         <Link
           href="/login"
-          className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#737373] hover:text-[#FF5A00] transition-colors mb-4 w-fit"
+          className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold text-[#888] hover:text-[#FF5A00] transition-colors mb-4 w-fit uppercase tracking-wider"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar ao login
+          <span>[ VOLTAR AO LOGIN ]</span>
         </Link>
 
         {/* Header */}
-        <div className="mb-5">
-          <h1 className="text-xl lg:text-2xl font-bold text-white tracking-tight leading-tight">
-            {step === 'email' ? 'Esqueceu sua senha?' : 'Redefinir senha'}
+        <div className="mb-5 font-mono">
+          <h1 className="text-lg lg:text-xl font-black text-white uppercase tracking-tight leading-tight">
+            {step === 'email' ? 'RECUPERAÇÃO DE ACESSO' : 'REDEFINIR SENHA'}
           </h1>
-          <p className="text-[12px] text-[#8A8A8A] mt-1 leading-relaxed">
+          <p className="text-[11px] text-[#888] mt-1 leading-relaxed">
             {step === 'email'
-              ? 'Informe seu e-mail para receber um código de recuperação.'
+              ? 'Informe seu e-mail para receber o token de segurança.'
               : `Código enviado para ${email}. Digite-o abaixo com a nova senha.`
             }
           </p>
@@ -126,13 +126,13 @@ export default function ForgotPasswordPage() {
 
         {/* Banners */}
         {successMessage && (
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold flex items-center gap-2 mb-3">
+          <div className="p-2.5 rounded-none bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 text-[10.5px] font-mono font-bold flex items-center gap-2 mb-3">
             <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
             <span>{successMessage}</span>
           </div>
         )}
         {error && (
-          <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] font-semibold flex items-center gap-2 mb-3">
+          <div className="p-2.5 rounded-none bg-[#EF2020]/10 border border-[#EF2020]/40 text-[#EF2020] text-[10.5px] font-mono font-bold flex items-center gap-2 mb-3">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span>{error}</span>
           </div>
@@ -142,9 +142,9 @@ export default function ForgotPasswordPage() {
           /* ─── Step 1: Email ─── */
           <form onSubmit={handleSendCode} className="space-y-3.5">
             <div className="space-y-1">
-              <label htmlFor="forgot-email" className="block text-[11.5px] font-semibold text-[#A3A3A3]">Email</label>
+              <label htmlFor="forgot-email" className="block text-[10.5px] font-mono font-bold uppercase text-[#A3A3A3] tracking-wider">[ EMAIL ]</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-[#5F5F5F] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-[#666] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   id="forgot-email"
                   type="email"
@@ -161,15 +161,15 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[46px] rounded-[10px] brand-gradient text-white text-[13.5px] font-bold shadow-[0_0_25px_rgba(255,90,0,0.18)] hover:brightness-110 hover:-translate-y-[1px] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-2"
+              className="w-full h-[48px] bg-gradient-to-r from-[#EF2020] via-[#FF5A00] to-[#FFB800] text-black font-mono font-black text-[13px] uppercase tracking-wider shadow-[0_0_20px_rgba(255,90,0,0.3)] hover:shadow-[0_0_30px_rgba(255,90,0,0.5)] hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-2 rounded-none"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Enviando código...
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  <span>ENVIANDO TOKEN...</span>
                 </>
               ) : (
-                'ENVIAR CÓDIGO'
+                <span>ENVIAR CÓDIGO</span>
               )}
             </button>
           </form>
@@ -178,9 +178,9 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleResetPassword} className="space-y-2.5">
             {/* Code */}
             <div className="space-y-0.5">
-              <label htmlFor="reset-code" className="block text-[11px] font-semibold text-[#A3A3A3]">Código de 6 dígitos</label>
+              <label htmlFor="reset-code" className="block text-[10px] font-mono font-bold uppercase text-[#A3A3A3] tracking-wider">[ CÓDIGO DE 6 DÍGITOS ]</label>
               <div className="relative">
-                <KeyRound className="w-3.5 h-3.5 text-[#5F5F5F] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <KeyRound className="w-3.5 h-3.5 text-[#666] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   id="reset-code"
                   type="text"
@@ -191,16 +191,16 @@ export default function ForgotPasswordPage() {
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000"
-                  className="w-full bg-[#111111] border border-white/[0.07] text-[#FF5A00] text-center font-mono text-[18px] font-bold tracking-[5px] pl-10 pr-4 py-0 rounded-[9px] placeholder:text-[#666666] placeholder:tracking-[5px] placeholder:text-[18px] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_0_3px_rgba(255,90,0,0.10)] transition-all h-[42px]"
+                  className="w-full bg-[#121218] border border-[#262635] text-[#FF5A00] text-center font-mono text-[18px] font-bold tracking-[5px] pl-10 pr-4 rounded-none placeholder:text-[#555] placeholder:tracking-[5px] placeholder:text-[18px] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_15px_rgba(255,90,0,0.2)] transition-all h-[42px]"
                 />
               </div>
             </div>
 
             {/* New Password */}
             <div className="space-y-0.5">
-              <label htmlFor="reset-password" className="block text-[11px] font-semibold text-[#A3A3A3]">Nova senha</label>
+              <label htmlFor="reset-password" className="block text-[10px] font-mono font-bold uppercase text-[#A3A3A3] tracking-wider">[ NOVA SENHA ]</label>
               <div className="relative">
-                <Lock className="w-3.5 h-3.5 text-[#5F5F5F] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-3.5 h-3.5 text-[#666] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   id="reset-password"
                   type={showPassword ? 'text' : 'password'}
@@ -208,9 +208,9 @@ export default function ForgotPasswordPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Nova senha"
-                  className="w-full bg-[#111111] border border-white/[0.07] text-[#F5F5F5] text-[12.5px] pl-10 pr-10 py-0 rounded-[9px] placeholder:text-[#666666] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_0_3px_rgba(255,90,0,0.10)] transition-all h-[40px]"
+                  className={inputClassPassword}
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Ocultar' : 'Mostrar'} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5F5F5F] hover:text-white transition-colors cursor-pointer">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Ocultar' : 'Mostrar'} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#666] hover:text-white transition-colors cursor-pointer">
                   {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
@@ -218,9 +218,9 @@ export default function ForgotPasswordPage() {
 
             {/* Confirm Password */}
             <div className="space-y-0.5">
-              <label htmlFor="reset-confirm-password" className="block text-[11px] font-semibold text-[#A3A3A3]">Confirmar nova senha</label>
+              <label htmlFor="reset-confirm-password" className="block text-[10px] font-mono font-bold uppercase text-[#A3A3A3] tracking-wider">[ CONFIRMAR NOVA SENHA ]</label>
               <div className="relative">
-                <Lock className="w-3.5 h-3.5 text-[#5F5F5F] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-3.5 h-3.5 text-[#666] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   id="reset-confirm-password"
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -228,9 +228,9 @@ export default function ForgotPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirme a nova senha"
-                  className="w-full bg-[#111111] border border-white/[0.07] text-[#F5F5F5] text-[12.5px] pl-10 pr-10 py-0 rounded-[9px] placeholder:text-[#666666] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_0_3px_rgba(255,90,0,0.10)] transition-all h-[40px]"
+                  className={inputClassPassword}
                 />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-label={showConfirmPassword ? 'Ocultar' : 'Mostrar'} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5F5F5F] hover:text-white transition-colors cursor-pointer">
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-label={showConfirmPassword ? 'Ocultar' : 'Mostrar'} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#666] hover:text-white transition-colors cursor-pointer">
                   {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
@@ -239,15 +239,15 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[42px] rounded-[9px] brand-gradient text-white text-[13px] font-bold shadow-[0_0_20px_rgba(255,90,0,0.18)] hover:brightness-110 hover:-translate-y-[1px] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-1"
+              className="w-full h-[46px] bg-gradient-to-r from-[#EF2020] via-[#FF5A00] to-[#FFB800] text-black font-mono font-black text-[12.5px] uppercase tracking-wider shadow-[0_0_20px_rgba(255,90,0,0.3)] hover:shadow-[0_0_30px_rgba(255,90,0,0.5)] hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-1 rounded-none"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Redefinindo...
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
+                  <span>REDEFININDO...</span>
                 </>
               ) : (
-                'REDEFINIR SENHA'
+                <span>REDEFINIR SENHA</span>
               )}
             </button>
 
@@ -255,7 +255,7 @@ export default function ForgotPasswordPage() {
             <button
               type="button"
               onClick={() => { setStep('email'); setError(''); setSuccessMessage('') }}
-              className="w-full text-center text-[11px] text-[#737373] hover:text-[#FF5A00] transition-colors cursor-pointer pt-1"
+              className="w-full text-center text-[10.5px] font-mono text-[#888] hover:text-[#FF5A00] transition-colors cursor-pointer pt-1 uppercase"
             >
               Não recebeu o código? Enviar novamente
             </button>

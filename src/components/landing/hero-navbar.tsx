@@ -26,6 +26,7 @@ import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-
 import { useLandingSocket } from '@/lib/useLandingSocket'
 import { useLenis } from 'lenis/react'
 import { useSession, signOut } from 'next-auth/react'
+import { UnverifiedEmailBanner } from '@/components/unverified-email-banner'
 
 const NAV_LINKS = [
   { label: 'SALAS_AO_VIVO', href: '#salas' },
@@ -206,6 +207,7 @@ export function HeroNavbar() {
           scrolled ? 'bg-[#050505]/95 backdrop-blur-md shadow-2xl' : 'bg-[#050505]'
         }`}
       >
+        <UnverifiedEmailBanner />
         <div className="w-full flex items-center justify-between">
           
           {/* Logo - Brutalist Block */}

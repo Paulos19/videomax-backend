@@ -2,12 +2,13 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Play, Upload, Check, Loader2, Sparkles, Plus, Users } from 'lucide-react'
+import { X, Play, Upload, Check, Loader2, Sparkles, Plus, Users, Send, AlertTriangle } from 'lucide-react'
 import { YoutubeIcon as Youtube } from '@/components/icons/youtube'
 import { UploadDropzone } from '@/lib/uploadthing'
 import { saveVideo, createRoomInviteNotification } from '@/app/(main)/actions'
 import { cn } from '@/lib/utils'
 import { isYouTubeUrl, getYouTubeThumbnail, fetchYouTubeMetadata } from '@/lib/youtube'
+import { useNotifications } from '@/contexts/notification-context'
 import { toast } from 'sonner'
 import io from 'socket.io-client'
 import { useSession } from 'next-auth/react'
@@ -38,7 +39,31 @@ interface CreateRoomDialogProps {
 export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = [] }: CreateRoomDialogProps) {
   const router = useRouter()
   const { data: session } = useSession()
+  const { emailVerified } = useNotifications()
   const [activeTab, setActiveTab] = useState<'youtube' | 'upload' | 'empty'>('youtube')
+  const [resendingVerification, setResendingVerification] = useState(false)
+
+  const handleResendVerification = async () => {
+    if (!session?.user?.email || resendingVerification) return
+    setResendingVerification(true)
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session.user.email }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message || 'E-mail de ativação reenviado!')
+      } else {
+        toast.error(data.error || 'Erro ao reenviar.')
+      }
+    } catch {
+      toast.error('Erro de conexão.')
+    } finally {
+      setResendingVerification(false)
+    }
+  }
 
   // YouTube state
   const [youtubeUrl, setYoutubeUrl] = useState(initialVideoUrl || '')
@@ -234,6 +259,30 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
 
         {/* Modal Body */}
         <div className="p-6 space-y-4">
+          {!emailVerified && (
+            <div className="p-4 bg-[#140C06] border border-[#FF5A00] text-white font-mono space-y-2.5 shadow-[0_0_20px_rgba(255,90,0,0.15)]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[#FF5A00] font-bold text-xs">
+                  <span className="w-2 h-2 rounded-full bg-[#FF5A00] animate-ping" />
+                  <span>[ E-MAIL NÃO VERIFICADO ]</span>
+                </div>
+                <span className="text-[9px] text-[#888] uppercase">BLOQUEIO ATIVO</span>
+              </div>
+              <p className="text-[11px] text-[#CCCCCC] font-sans leading-relaxed">
+                Para criar salas de transmissão e convidar amigos, você precisa verificar seu endereço de e-mail <strong>({session?.user?.email})</strong>.
+              </p>
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendingVerification}
+                className="px-3 py-1.5 bg-[#FF5A00] hover:bg-white text-black font-black text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                {resendingVerification ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                <span>{resendingVerification ? 'ENVIANDO...' : 'REENVIAR LINK DE ATIVAÇÃO ✉️'}</span>
+              </button>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-3 bg-[#1A0A0A] border border-[#EF2020]/40 text-[#EF2020] text-[11px] font-mono">
               {errorMsg}
@@ -276,11 +325,21 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
 
               <button
                 onClick={handleCreateYoutubeRoom}
-                disabled={isSaving}
-                className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                disabled={isSaving || !emailVerified}
+                className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-black" />}
-                <span>[ INICIAR SALA COM VÍDEO ]</span>
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 fill-black" />
+                )}
+                <span>
+                  {!emailVerified
+                    ? '[ E-MAIL NÃO CONFIRMADO ]'
+                    : isSaving
+                    ? '[ INICIANDO SALA... ]'
+                    : '[ INICIAR SALA COM VÍDEO ]'}
+                </span>
               </button>
             </div>
           )}
@@ -320,10 +379,13 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
               </p>
               <button
                 onClick={handleCreateEmptyRoom}
-                className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer"
+                disabled={!emailVerified}
+                className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Play className="w-4 h-4 fill-black" />
-                <span>[ INICIAR SALA LIVRE AGORA ]</span>
+                <span>
+                  {!emailVerified ? '[ E-MAIL NÃO CONFIRMADO ]' : '[ INICIAR SALA LIVRE AGORA ]'}
+                </span>
               </button>
             </div>
           )}

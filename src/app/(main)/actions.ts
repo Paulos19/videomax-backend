@@ -49,6 +49,15 @@ export async function saveVideo(title: string, url: string, folderId?: string | 
     throw new Error("Não autorizado")
   }
 
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerified: true }
+  })
+
+  if (!dbUser?.emailVerified) {
+    throw new Error("Por favor, confirme seu e-mail antes de criar uma sala.")
+  }
+
   let finalTitle = result.data.title
   if (isYouTubeUrl(result.data.url)) {
     const meta = await fetchYouTubeMetadata(result.data.url)
@@ -287,6 +296,15 @@ export async function sendFriendRequest(target: string) {
   const session = await auth()
   if (!session?.user?.id) {
     throw new Error("Não autorizado")
+  }
+
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerified: true }
+  })
+
+  if (!currentUser?.emailVerified) {
+    throw new Error("Por favor, confirme seu e-mail para enviar solicitações de amizade.")
   }
 
   const trimmed = target.trim()
@@ -627,19 +645,38 @@ export async function deleteNotification(id: string) {
   })
 }
 
-export async function createRoomInviteNotification(targetUserId: string, roomId: string, senderName: string) {
+import { sendRoomInviteEmail } from "@/lib/email"
+
+export async function createRoomInviteNotification(targetUserId: string, roomId: string, senderName: string, roomTitle?: string) {
   const session = await auth()
   if (!session?.user?.id) throw new Error("Não autorizado")
 
-  const notif = await prisma.notification.create({
-    data: {
-      userId: targetUserId,
-      type: 'ROOM_INVITE',
-      title: 'Convite para Sala',
-      message: `${senderName} convidou você para assistir vídeos em sincronia.`,
-      data: JSON.stringify({ roomId, senderId: session.user.id }),
-    }
-  })
+  const [notif, targetUser] = await Promise.all([
+    prisma.notification.create({
+      data: {
+        userId: targetUserId,
+        type: 'ROOM_INVITE',
+        title: 'Convite para Sala',
+        message: `${senderName} convidou você para assistir vídeos em sincronia.`,
+        data: JSON.stringify({ roomId, senderId: session.user.id }),
+      }
+    }),
+    prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { email: true }
+    })
+  ])
+
+  if (targetUser?.email) {
+    sendRoomInviteEmail({
+      toEmail: targetUser.email,
+      inviterName: senderName,
+      roomTitle: roomTitle || 'Sala de Transmissão',
+      roomCode: roomId,
+    }).catch((err) => {
+      console.error("Erro ao enviar e-mail de convite para sala:", err)
+    })
+  }
 
   return notif
 }

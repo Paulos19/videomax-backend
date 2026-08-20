@@ -63,13 +63,13 @@ export function RegisterForm() {
     }
   }
 
-  const inputClass = "w-full bg-[#111111] border border-white/[0.07] text-[#F5F5F5] text-[12.5px] pl-10 pr-4 py-0 rounded-[9px] placeholder:text-[#666666] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_0_3px_rgba(255,90,0,0.10)] transition-all h-[40px]"
-  const inputClassPassword = "w-full bg-[#111111] border border-white/[0.07] text-[#F5F5F5] text-[12.5px] pl-10 pr-10 py-0 rounded-[9px] placeholder:text-[#666666] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_0_3px_rgba(255,90,0,0.10)] transition-all h-[40px]"
+  const inputClass = "w-full bg-[#121218] border border-[#262635] text-white text-[12px] font-mono pl-10 pr-4 rounded-none placeholder:text-[#555] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_15px_rgba(255,90,0,0.2)] transition-all h-[40px]"
+  const inputClassPassword = "w-full bg-[#121218] border border-[#262635] text-white text-[12px] font-mono pl-10 pr-10 rounded-none placeholder:text-[#555] outline-none focus:border-[#FF5A00] focus:shadow-[0_0_15px_rgba(255,90,0,0.2)] transition-all h-[40px]"
 
   return (
     <div className="space-y-2.5">
       {error && (
-        <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-[10.5px] font-semibold flex items-center gap-2">
+        <div className="p-2.5 rounded-none bg-[#EF2020]/10 border border-[#EF2020]/40 text-[#EF2020] text-[10.5px] font-mono font-bold flex items-center gap-2">
           <AlertCircle className="w-3.5 h-3.5 shrink-0" />
           <span>{error}</span>
         </div>
@@ -78,29 +78,29 @@ export function RegisterForm() {
       <form onSubmit={handleRegister} className="space-y-2">
         {/* Nickname */}
         <div className="space-y-0.5">
-          <label htmlFor="reg-nickname" className="block text-[11px] font-semibold text-[#A3A3A3]">Nickname</label>
+          <label htmlFor="reg-nickname" className="block text-[10px] font-mono font-bold uppercase text-[#A3A3A3] tracking-wider">[ NICKNAME ]</label>
           <div className="relative">
-            <User className="w-3.5 h-3.5 text-[#5F5F5F] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <User className="w-3.5 h-3.5 text-[#666] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input id="reg-nickname" type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Seu nickname" className={inputClass} />
           </div>
         </div>
 
         {/* Email */}
         <div className="space-y-0.5">
-          <label htmlFor="reg-email" className="block text-[11px] font-semibold text-[#A3A3A3]">Email</label>
+          <label htmlFor="reg-email" className="block text-[10px] font-mono font-bold uppercase text-[#A3A3A3] tracking-wider">[ EMAIL ]</label>
           <div className="relative">
-            <Mail className="w-3.5 h-3.5 text-[#5F5F5F] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Mail className="w-3.5 h-3.5 text-[#666] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input id="reg-email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className={inputClass} />
           </div>
         </div>
 
         {/* Password */}
         <div className="space-y-0.5">
-          <label htmlFor="reg-password" className="block text-[11px] font-semibold text-[#A3A3A3]">Senha</label>
+          <label htmlFor="reg-password" className="block text-[10px] font-mono font-bold uppercase text-[#A3A3A3] tracking-wider">[ SENHA ]</label>
           <div className="relative">
-            <Lock className="w-3.5 h-3.5 text-[#5F5F5F] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Lock className="w-3.5 h-3.5 text-[#666] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input id="reg-password" type={showPassword ? 'text' : 'password'} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Crie uma senha" className={inputClassPassword} />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5F5F5F] hover:text-white transition-colors cursor-pointer">
+            <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#666] hover:text-white transition-colors cursor-pointer">
               {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
           </div>
@@ -108,11 +108,11 @@ export function RegisterForm() {
 
         {/* Confirm Password */}
         <div className="space-y-0.5">
-          <label htmlFor="reg-confirm-password" className="block text-[11px] font-semibold text-[#A3A3A3]">Confirmar Senha</label>
+          <label htmlFor="reg-confirm-password" className="block text-[10px] font-mono font-bold uppercase text-[#A3A3A3] tracking-wider">[ CONFIRMAR SENHA ]</label>
           <div className="relative">
-            <Lock className="w-3.5 h-3.5 text-[#5F5F5F] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Lock className="w-3.5 h-3.5 text-[#666] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input id="reg-confirm-password" type={showConfirmPassword ? 'text' : 'password'} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirme sua senha" className={inputClassPassword} />
-            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5F5F5F] hover:text-white transition-colors cursor-pointer">
+            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#666] hover:text-white transition-colors cursor-pointer">
               {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
           </div>
@@ -122,15 +122,15 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full h-[42px] rounded-[9px] brand-gradient text-white text-[13px] font-bold shadow-[0_0_20px_rgba(255,90,0,0.18)] hover:brightness-110 hover:-translate-y-[1px] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
+          className="w-full h-[46px] bg-gradient-to-r from-[#EF2020] via-[#FF5A00] to-[#FFB800] text-black font-mono font-black text-[12px] uppercase tracking-wider shadow-[0_0_20px_rgba(255,90,0,0.3)] hover:shadow-[0_0_30px_rgba(255,90,0,0.5)] hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer rounded-none"
         >
           {loading ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Criando conta...
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
+              <span>CRIANDO CONTA...</span>
             </>
           ) : (
-            'CRIAR CONTA'
+            <span>CRIAR CONTA</span>
           )}
         </button>
       </form>

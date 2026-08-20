@@ -29,18 +29,30 @@ export interface Notification {
 interface NotificationContextValue {
   notifications: Notification[]
   unreadCount: number
+  emailVerified: boolean
+  setEmailVerified: (verified: boolean) => void
   markAsRead: (id: string) => Promise<void>
   markAllAsRead: () => Promise<void>
   removeNotification: (id: string) => Promise<void>
   refresh: () => Promise<void>
 }
 
+const defaultNotificationContext: NotificationContextValue = {
+  notifications: [],
+  unreadCount: 0,
+  emailVerified: true,
+  setEmailVerified: () => {},
+  markAsRead: async () => {},
+  markAllAsRead: async () => {},
+  removeNotification: async () => {},
+  refresh: async () => {},
+}
+
 const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 export function useNotifications() {
   const ctx = useContext(NotificationContext)
-  if (!ctx) throw new Error('useNotifications must be used within a NotificationProvider')
-  return ctx
+  return ctx || defaultNotificationContext
 }
 
 export function NotificationProvider({
@@ -53,6 +65,7 @@ export function NotificationProvider({
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isPro, setIsPro] = useState(false)
+  const [emailVerified, setEmailVerified] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -62,6 +75,7 @@ export function NotificationProvider({
         if (data?.user) {
           const plan = (data.user.plan || '').toUpperCase()
           setIsPro(plan === 'PRO' || plan === 'MAXPRO')
+          setEmailVerified(data.user.emailVerified ? true : false)
         }
       })
       .catch(() => {})
@@ -299,14 +313,43 @@ export function NotificationProvider({
       fetchNotifications()
     }
 
+    const onEmailVerified = (data: { userId?: string; email?: string }) => {
+      if (!data || !data.userId || data.userId === userId) {
+        setEmailVerified(true)
+        toast.custom(
+          (t) => (
+            <div className="w-full max-w-[340px] p-3.5 bg-[#0A0A0E] border-2 border-[#22C55E] shadow-[0_0_25px_rgba(34,197,94,0.35)] font-mono text-white flex items-center gap-3">
+              <div className="w-8 h-8 bg-[#22C55E] text-black flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[8px] font-bold text-[#22C55E] uppercase block">
+                  [ CONTA ATIVADA ]
+                </span>
+                <strong className="text-[11px] font-bold text-white uppercase truncate block">
+                  E-mail verificado!
+                </strong>
+                <p className="text-[9.5px] text-[#A3A3A3] mt-0.5">
+                  Criação de salas e amigos liberados.
+                </p>
+              </div>
+            </div>
+          ),
+          { duration: 6000 }
+        )
+      }
+    }
+
     socket.on('room-invite-received', onRoomInvite)
     socket.on('friend-request-received', onFriendRequestReceived)
     socket.on('friend-request-accepted', onFriendRequestAccepted)
+    socket.on('email-verified', onEmailVerified)
 
     return () => {
       socket.off('room-invite-received', onRoomInvite)
       socket.off('friend-request-received', onFriendRequestReceived)
       socket.off('friend-request-accepted', onFriendRequestAccepted)
+      socket.off('email-verified', onEmailVerified)
     }
   }, [socket, userId, isPro, fetchNotifications, router])
 
@@ -346,6 +389,8 @@ export function NotificationProvider({
       value={{
         notifications,
         unreadCount,
+        emailVerified,
+        setEmailVerified,
         markAsRead,
         markAllAsRead,
         removeNotification,

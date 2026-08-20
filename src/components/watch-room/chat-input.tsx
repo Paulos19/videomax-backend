@@ -70,7 +70,7 @@ export function ChatInput({
   )
 
   return (
-    <div className="p-3 bg-[#08080C] border-t border-[#1F1F28] relative shrink-0 font-mono select-none">
+    <div className="p-3 bg-slate-50 dark:bg-[#08080C] border-t border-slate-200 dark:border-[#1F1F28] relative shrink-0 font-mono select-none transition-colors">
       
       {/* Popovers */}
       {showEmojiPicker && (
@@ -94,110 +94,96 @@ export function ChatInput({
       {replyingTo && (
         <div
           className={cn(
-            'mb-2 p-2 bg-[#0E0E14] border-l-4 flex items-center justify-between gap-2 text-xs font-mono animate-in slide-in-from-bottom duration-150',
+            'mb-2 p-2 border-l-4 flex items-center justify-between gap-2 text-xs font-mono animate-in slide-in-from-bottom duration-150',
             isPro
-              ? 'border-[#FFE600] bg-[#1A1408] text-white shadow-[0_0_15px_rgba(255,230,0,0.2)]'
-              : 'border-[#FF5A00] bg-[#120F0C] text-white'
+              ? 'border-amber-400 dark:border-[#FFE600] bg-amber-50 dark:bg-[#1A1408] text-slate-900 dark:text-white shadow-sm'
+              : 'border-[#FF5A00] bg-orange-50 dark:bg-[#120F0C] text-slate-900 dark:text-white'
           )}
         >
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
             <Reply className="w-3.5 h-3.5 text-[#FF5A00] shrink-0" />
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-black uppercase text-[#FF5A00] truncate">
-                  RESPONDENDO A @{replyingTo.userName}
-                </span>
-                {replyingTo.isPro && (
-                  <span className="text-[8px] bg-[#FFE600] text-black px-1 font-black">
-                    VIP PRO
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-[#888] truncate">{replyingTo.text}</p>
+              <span className="font-bold text-[10px] text-[#FF5A00] block truncate">
+                Respondendo a @{replyingTo.userName}
+              </span>
+              <span className="text-[10px] text-slate-600 dark:text-[#AAA] truncate block">
+                {replyingTo.text}
+              </span>
             </div>
           </div>
-
           <button
             type="button"
             onClick={onCancelReply}
-            className="p-1 border border-[#333] hover:border-white text-[#888] hover:text-white transition-colors cursor-pointer shrink-0"
+            className="p-1 text-slate-400 dark:text-[#777] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
             title="Cancelar resposta"
           >
-            <X className="w-3 h-3" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      {/* Input Dock */}
-      <div
-        className={cn(
-          'flex items-center gap-2 bg-[#0C0C12] border p-1.5 transition-all',
-          isPro
-            ? 'border-[#333] focus-within:border-[#FFE600] focus-within:shadow-[0_0_20px_rgba(255,230,0,0.25)]'
-            : 'border-[#262633] focus-within:border-[#FF5A00] focus-within:shadow-[0_0_15px_rgba(255,90,0,0.2)]'
-        )}
-      >
-        {/* Buttons for Emoji and Stickers */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => {
-              setShowEmojiPicker((prev) => !prev)
-              setShowStickerPicker(false)
-            }}
-            className={cn(
-              'p-1.5 border border-transparent hover:border-[#333] hover:text-white transition-colors cursor-pointer',
-              showEmojiPicker ? 'text-[#FF5A00] border-[#FF5A00]' : 'text-[#777]'
-            )}
-            title="Inserir Emoji"
-          >
-            <Smile className="w-4 h-4" />
-          </button>
+      {/* Input row */}
+      <div className="flex items-center gap-1.5 bg-white dark:bg-[#050508] border border-slate-300 dark:border-[#222] focus-within:border-[#FF5A00] transition-colors p-1 shadow-xs">
+        {/* Emoji Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setShowEmojiPicker(!showEmojiPicker)
+            setShowStickerPicker(false)
+          }}
+          disabled={disabled}
+          className={cn(
+            'p-1.5 transition-colors cursor-pointer',
+            showEmojiPicker ? 'text-[#FF5A00]' : 'text-slate-400 dark:text-[#777] hover:text-slate-900 dark:hover:text-white'
+          )}
+          title="Emojis"
+        >
+          <Smile className="w-4 h-4" />
+        </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setShowStickerPicker((prev) => !prev)
-              setShowEmojiPicker(false)
-            }}
-            className={cn(
-              'p-1.5 border border-transparent hover:border-[#333] hover:text-white transition-colors cursor-pointer',
-              showStickerPicker ? 'text-[#FF5A00] border-[#FF5A00]' : 'text-[#777]'
-            )}
-            title="Inserir Figurinha (Sticker)"
-          >
-            <Sticker className="w-4 h-4" />
-          </button>
-        </div>
+        {/* Stickers Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setShowStickerPicker(!showStickerPicker)
+            setShowEmojiPicker(false)
+          }}
+          disabled={disabled}
+          className={cn(
+            'p-1.5 transition-colors cursor-pointer',
+            showStickerPicker ? 'text-[#FF5A00]' : 'text-slate-400 dark:text-[#777] hover:text-slate-900 dark:hover:text-white'
+          )}
+          title="Figurinhas"
+        >
+          <Sticker className="w-4 h-4" />
+        </button>
 
-        {/* Text Input */}
+        {/* Input element */}
         <input
           ref={inputRef}
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={replyingTo ? `Responder a @${replyingTo.userName}...` : 'Transmitir mensagem...'}
+          placeholder="Transmitir mensagem..."
           disabled={disabled}
-          className="flex-1 bg-transparent border-none text-white text-xs font-mono placeholder:text-[#555] outline-none select-text"
+          className="flex-1 bg-transparent border-0 text-slate-900 dark:text-white text-xs outline-none placeholder:text-slate-400 dark:placeholder:text-[#555] px-1.5 disabled:opacity-50"
         />
 
         {/* Send Button */}
         <button
           type="button"
           onClick={handleSend}
-          disabled={!message.trim() || disabled}
+          disabled={disabled || !message.trim()}
           className={cn(
-            'px-3 py-1.5 font-mono text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 select-none',
-            message.trim()
-              ? isPro
-                ? 'bg-[#FFE600] text-black hover:bg-white cursor-pointer shadow-[0_0_15px_rgba(255,230,0,0.4)]'
-                : 'bg-[#FF5A00] text-black hover:bg-white cursor-pointer shadow-[0_0_10px_rgba(255,90,0,0.3)]'
-              : 'bg-[#151520] text-[#555] cursor-not-allowed border border-[#222]'
+            'px-3 py-1.5 font-mono text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed',
+            isPro
+              ? 'bg-amber-500 hover:bg-slate-900 dark:bg-[#FFE600] dark:hover:bg-white text-white dark:text-black shadow-sm'
+              : 'bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black shadow-sm'
           )}
         >
           <Send className="w-3 h-3" />
-          <span>ENVIAR</span>
+          <span className="hidden sm:inline">ENVIAR</span>
         </button>
       </div>
     </div>

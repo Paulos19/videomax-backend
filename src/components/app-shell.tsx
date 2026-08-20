@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 import { useNotifications } from '@/contexts/notification-context'
 import { CreateRoomDialog } from '@/app/(main)/dashboard/components/create-room-dialog'
 import { UnverifiedEmailBanner } from '@/components/unverified-email-banner'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { useLandingSocket } from '@/lib/useLandingSocket'
 import { signOut } from 'next-auth/react'
 import {
@@ -184,12 +185,12 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
   const isPro = userPlan === 'PRO' || userPlan === 'MAXPRO'
 
   return (
-    <div className="h-screen w-full bg-[#050505] text-[#F5F5F5] flex overflow-hidden font-sans">
+    <div className="h-screen w-full bg-[#F8F9FB] dark:bg-[#050505] text-slate-900 dark:text-[#F5F5F5] flex overflow-hidden font-sans transition-colors duration-200">
       
       {/* ── DESKTOP BRUTALIST SIDEBAR (>= 768px md) ────────────────── */}
       <aside
         className={cn(
-          'hidden md:flex flex-col h-full z-40 bg-[#050505] border-r border-[#222] justify-between transition-all duration-300 ease-in-out shrink-0 select-none relative overflow-hidden',
+          'hidden md:flex flex-col h-full z-40 bg-white dark:bg-[#050505] border-r border-slate-200 dark:border-[#222] justify-between transition-all duration-300 ease-in-out shrink-0 select-none relative overflow-hidden',
           isSidebarCollapsed ? 'w-[84px]' : 'w-[270px]'
         )}
       >
@@ -197,7 +198,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
         <div
           className={cn(
             'absolute top-0 left-0 w-full h-40 pointer-events-none opacity-20 blur-3xl z-0 transition-colors',
-            isPro ? 'bg-[#FFE600]' : 'bg-[#FF5A00]'
+            isPro ? 'bg-amber-400 dark:bg-[#FFE600]' : 'bg-orange-400 dark:bg-[#FF5A00]'
           )}
         />
 
@@ -205,7 +206,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
         <div className="relative z-10 flex flex-col flex-1 min-h-0">
           
           {/* Header Brutalist Brand Block */}
-          <div className="p-4 border-b border-[#222] flex items-center justify-between">
+          <div className="p-4 border-b border-slate-200 dark:border-[#222] flex items-center justify-between">
             <Link
               href="/"
               className={cn(
@@ -215,12 +216,12 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
             >
               {/* Logo Emblem (MAXPRO vs FREE) */}
               {isPro ? (
-                <div className="w-8 h-8 bg-gradient-to-br from-[#FFE600] via-[#FFB800] to-[#FF5A00] border border-[#FFE600]/80 flex items-center justify-center transition-transform group-hover:scale-105 shadow-[0_0_20px_rgba(255,230,0,0.5)] shrink-0">
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 via-orange-400 to-amber-600 dark:from-[#FFE600] dark:via-[#FFB800] dark:to-[#FF5A00] border border-amber-300 dark:border-[#FFE600]/80 flex items-center justify-center transition-transform group-hover:scale-105 shadow-[0_0_20px_rgba(245,158,11,0.4)] dark:shadow-[0_0_20px_rgba(255,230,0,0.5)] shrink-0">
                   <Crown className="w-4 h-4 text-black fill-black stroke-[2.5]" />
                 </div>
               ) : (
                 <div className="w-8 h-8 bg-[#FF5A00] flex items-center justify-center transition-transform group-hover:skew-x-[-8deg] shadow-[0_0_15px_rgba(255,90,0,0.4)] shrink-0">
-                  <Play className="w-4 h-4 text-[#050505] fill-[#050505] ml-0.5" />
+                  <Play className="w-4 h-4 text-white dark:text-[#050505] fill-white dark:fill-[#050505] ml-0.5" />
                 </div>
               )}
 
@@ -228,19 +229,19 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                 <div className="flex flex-col">
                   {isPro ? (
                     <>
-                      <span className="font-black text-lg tracking-tighter uppercase leading-none text-transparent bg-clip-text bg-gradient-to-r from-[#FFE600] via-[#FFFFFF] to-[#FF8A00] drop-shadow-[0_0_12px_rgba(255,230,0,0.45)]">
+                      <span className="font-black text-lg tracking-tighter uppercase leading-none text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 dark:from-[#FFE600] dark:via-[#FFFFFF] dark:to-[#FF8A00] drop-shadow-[0_0_12px_rgba(245,158,11,0.35)] dark:drop-shadow-[0_0_12px_rgba(255,230,0,0.45)]">
                         VIDEOMAX
                       </span>
-                      <span className="text-[8px] font-mono font-black text-[#FFE600] tracking-widest uppercase mt-0.5 flex items-center gap-1">
+                      <span className="text-[8px] font-mono font-black text-amber-600 dark:text-[#FFE600] tracking-widest uppercase mt-0.5 flex items-center gap-1">
                         ★ MAXPRO VIP // MESH 6X
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="font-black text-lg tracking-tighter text-white uppercase leading-none">
+                      <span className="font-black text-lg tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
                         VIDEOMAX
                       </span>
-                      <span className="text-[8px] font-mono text-[#777] tracking-widest uppercase mt-0.5">
+                      <span className="text-[8px] font-mono text-slate-500 dark:text-[#777] tracking-widest uppercase mt-0.5">
                         SYS_FREE // 2 NÓS
                       </span>
                     </>
@@ -252,7 +253,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
             {!isSidebarCollapsed && (
               <button
                 onClick={handleToggleSidebar}
-                className="p-1.5 border border-[#222] hover:border-[#FF5A00] hover:bg-[#111] text-[#8A8A8A] hover:text-white transition-all cursor-pointer"
+                className="p-1.5 border border-slate-200 dark:border-[#222] hover:border-[#FF5A00] hover:bg-slate-100 dark:hover:bg-[#111] text-slate-500 dark:text-[#8A8A8A] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
                 title="Recolher menu"
               >
                 <PanelLeftClose className="w-4 h-4" />
@@ -262,10 +263,10 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
 
           {/* Expand Button when Collapsed */}
           {isSidebarCollapsed && (
-            <div className="p-2 border-b border-[#222] flex justify-center">
+            <div className="p-2 border-b border-slate-200 dark:border-[#222] flex justify-center">
               <button
                 onClick={handleToggleSidebar}
-                className="p-2 border border-[#222] hover:border-[#FF5A00] hover:bg-[#111] text-[#8A8A8A] hover:text-white transition-all cursor-pointer"
+                className="p-2 border border-slate-200 dark:border-[#222] hover:border-[#FF5A00] hover:bg-slate-100 dark:hover:bg-[#111] text-slate-500 dark:text-[#8A8A8A] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
                 title="Expandir menu"
               >
                 <PanelLeftOpen className="w-4 h-4" />
@@ -315,13 +316,13 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                   href={item.href}
                   title={isSidebarCollapsed ? item.label : undefined}
                   className={cn(
-                    'relative flex items-center px-3 py-2.5 font-mono text-[11px] uppercase tracking-wider transition-all duration-150 group border',
+                    'relative flex items-center px-3 py-2.5 font-mono text-[11px] uppercase tracking-wider transition-all duration-150 group border cursor-pointer',
                     isSidebarCollapsed ? 'justify-center' : 'justify-between',
                     active
                       ? isPro
-                        ? 'bg-[#FFE600]/10 border-[#FFE600]/50 text-white font-black shadow-[0_0_15px_rgba(255,230,0,0.15)]'
-                        : 'bg-[#FF5A00]/10 border-[#FF5A00]/50 text-white font-black shadow-[0_0_15px_rgba(255,90,0,0.15)]'
-                      : 'border-transparent text-[#8A8A8A] hover:text-white hover:bg-[#101015] hover:border-[#222]'
+                        ? 'bg-amber-500/10 dark:bg-[#FFE600]/10 border-amber-400 dark:border-[#FFE600]/50 text-amber-700 dark:text-[#FFE600] font-black shadow-sm'
+                        : 'bg-orange-500/10 dark:bg-[#FF5A00]/10 border-orange-400 dark:border-[#FF5A00]/50 text-orange-600 dark:text-[#FF5A00] font-black shadow-sm'
+                      : 'border-transparent text-slate-600 dark:text-[#8A8A8A] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#101015] hover:border-slate-200 dark:hover:border-[#222]'
                   )}
                 >
                   {/* Left Neon Glowing Edge */}
@@ -330,7 +331,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                       layoutId="activeNavEdge"
                       className={cn(
                         'absolute left-0 top-0 bottom-0 w-1 shadow-[0_0_10px]',
-                        isPro ? 'bg-[#FFE600] shadow-[#FFE600]' : 'bg-[#FF5A00] shadow-[#FF5A00]'
+                        isPro ? 'bg-amber-500 dark:bg-[#FFE600] shadow-amber-400 dark:shadow-[#FFE600]' : 'bg-[#FF5A00] shadow-[#FF5A00]'
                       )}
                     />
                   )}
@@ -342,9 +343,9 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                         'w-5 h-5 shrink-0 transition-transform duration-200 group-hover:scale-115',
                         active
                           ? isPro
-                            ? 'text-[#FFE600] drop-shadow-[0_0_8px_rgba(255,230,0,0.6)]'
-                            : 'text-[#FF5A00] drop-shadow-[0_0_8px_rgba(255,90,0,0.6)]'
-                          : 'text-[#8A8A8A] group-hover:text-white'
+                            ? 'text-amber-600 dark:text-[#FFE600] drop-shadow-[0_0_8px_rgba(245,158,11,0.5)] dark:drop-shadow-[0_0_8px_rgba(255,230,0,0.6)]'
+                            : 'text-orange-600 dark:text-[#FF5A00] drop-shadow-[0_0_8px_rgba(255,90,0,0.6)]'
+                          : 'text-slate-500 dark:text-[#8A8A8A] group-hover:text-slate-900 dark:group-hover:text-white'
                       )}
                     />
 
@@ -359,7 +360,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                   {!isSidebarCollapsed && (
                     <div className="flex items-center gap-1.5">
                       {item.isProTag && (
-                        <span className="text-[8px] font-mono font-bold bg-[#FF5A00] text-black px-1.5 py-0.2 uppercase">
+                        <span className="text-[8px] font-mono font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white dark:text-black px-1.5 py-0.2 uppercase">
                           VIP
                         </span>
                       )}
@@ -381,14 +382,14 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
           </nav>
         </div>
 
-        {/* ── BOTTOM AREA: CTA + DYNAMIC USER VIP CARD ───────────── */}
-        <div className="p-3 border-t border-[#222] bg-[#07070A] space-y-3 relative z-10">
+        {/* ── BOTTOM AREA: CTA + THEME TOGGLE + USER VIP CARD ───────────── */}
+        <div className="p-3 border-t border-slate-200 dark:border-[#222] bg-slate-50/80 dark:bg-[#07070A] space-y-2.5 relative z-10 transition-colors">
           
           {/* Primary Action: + CRIAR SALA */}
           {isSidebarCollapsed ? (
             <button
               onClick={() => setCreateRoomOpen(true)}
-              className="w-full h-11 bg-[#FF5A00] hover:bg-white text-black transition-all flex items-center justify-center shadow-[0_0_20px_rgba(255,90,0,0.35)] cursor-pointer"
+              className="w-full h-11 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black transition-all flex items-center justify-center shadow-[0_0_20px_rgba(255,90,0,0.35)] cursor-pointer"
               title="Criar sala agora"
             >
               <Plus className="w-5 h-5 stroke-[3]" />
@@ -396,11 +397,20 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
           ) : (
             <button
               onClick={() => setCreateRoomOpen(true)}
-              className="w-full py-3 px-4 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-200 shadow-[0_0_25px_rgba(255,90,0,0.35)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+              className="w-full py-3 px-4 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-200 shadow-[0_0_25px_rgba(255,90,0,0.35)] hover:shadow-[0_0_30px_rgba(255,90,0,0.5)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span>[ CRIAR NOVA SALA ]</span>
             </button>
+          )}
+
+          {/* Theme Switcher in Sidebar */}
+          {isSidebarCollapsed ? (
+            <div className="flex justify-center">
+              <ThemeToggle variant="compact" />
+            </div>
+          ) : (
+            <ThemeToggle variant="sidebar" />
           )}
 
           {/* User Profile Card */}
@@ -415,8 +425,8 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                   className={cn(
                     'w-10 h-10 border rounded flex items-center justify-center font-mono font-bold text-xs transition-colors',
                     isPro
-                      ? 'border-[#FFE600] bg-gradient-to-br from-[#FFE600]/20 to-black text-[#FFE600] shadow-[0_0_12px_rgba(255,230,0,0.4)]'
-                      : 'border-[#333] bg-[#111] text-[#FF5A00] group-hover:border-[#FF5A00]'
+                      ? 'border-amber-400 dark:border-[#FFE600] bg-amber-50 dark:bg-gradient-to-br dark:from-[#FFE600]/20 dark:to-black text-amber-700 dark:text-[#FFE600] shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                      : 'border-slate-300 dark:border-[#333] bg-white dark:bg-[#111] text-orange-600 dark:text-[#FF5A00] group-hover:border-[#FF5A00]'
                   )}
                 >
                   {user?.image ? (
@@ -425,7 +435,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                     initials
                   )}
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#22C55E] rounded-full border-2 border-[#050505]" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#22C55E] rounded-full border-2 border-white dark:border-[#050505]" />
               </button>
             </div>
           ) : (
@@ -433,8 +443,8 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
               className={cn(
                 'p-3 border relative overflow-hidden transition-all',
                 isPro
-                  ? 'bg-gradient-to-b from-[#1A1208] to-[#0A0704] border-[#FF5A00]/60 shadow-[0_0_20px_rgba(255,90,0,0.2)]'
-                  : 'bg-[#0A0A0E] border-[#222] hover:border-[#333]'
+                  ? 'bg-gradient-to-b from-amber-50 to-orange-50/60 dark:from-[#1A1208] dark:to-[#0A0704] border-amber-300 dark:border-[#FF5A00]/60 shadow-[0_0_15px_rgba(245,158,11,0.15)] dark:shadow-[0_0_20px_rgba(255,90,0,0.2)]'
+                  : 'bg-white dark:bg-[#0A0A0E] border-slate-200 dark:border-[#222] hover:border-slate-300 dark:hover:border-[#333] shadow-xs'
               )}
             >
               <div className="flex items-center justify-between mb-2.5">
@@ -446,7 +456,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                         alt="Avatar"
                         className={cn(
                           'w-9 h-9 rounded border object-cover',
-                          isPro ? 'border-[#FFE600]' : 'border-[#333]'
+                          isPro ? 'border-amber-400 dark:border-[#FFE600]' : 'border-slate-300 dark:border-[#333]'
                         )}
                       />
                     ) : (
@@ -454,24 +464,24 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                         className={cn(
                           'w-9 h-9 rounded flex items-center justify-center font-mono font-black text-xs',
                           isPro
-                            ? 'bg-gradient-to-br from-[#FFE600] to-[#FF5A00] text-black shadow-[0_0_10px_rgba(255,90,0,0.4)]'
-                            : 'bg-[#FF5A00] text-black'
+                            ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white dark:text-black shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                            : 'bg-[#FF5A00] text-white dark:text-black'
                         )}
                       >
                         {initials}
                       </div>
                     )}
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-[#22C55E] rounded-full border-2 border-[#050505]" />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-[#22C55E] rounded-full border-2 border-white dark:border-[#050505]" />
                   </div>
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-1">
-                      <span className="text-[12px] font-mono font-black text-white uppercase truncate">
+                      <span className="text-[12px] font-mono font-black text-slate-900 dark:text-white uppercase truncate">
                         {user?.name || user?.email?.split('@')[0] || 'Usuário'}
                       </span>
-                      {isPro && <Crown className="w-3 h-3 text-[#FFE600] fill-[#FFE600] shrink-0" />}
+                      {isPro && <Crown className="w-3 h-3 text-amber-500 dark:text-[#FFE600] fill-current shrink-0" />}
                     </div>
-                    <span className="text-[10px] font-mono text-[#777] truncate block">
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-[#777] truncate block">
                       {user?.email}
                     </span>
                   </div>
@@ -479,7 +489,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
 
                 <button
                   onClick={() => router.push('/profile')}
-                  className="p-1.5 border border-[#222] hover:border-[#FF5A00] hover:bg-[#151520] text-[#8A8A8A] hover:text-white transition-colors cursor-pointer"
+                  className="p-1.5 border border-slate-200 dark:border-[#222] hover:border-[#FF5A00] hover:bg-slate-100 dark:hover:bg-[#151520] text-slate-500 dark:text-[#8A8A8A] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                   title="Configurações"
                 >
                   <Settings className="w-3.5 h-3.5" />
@@ -491,15 +501,15 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                 className={cn(
                   'flex items-center justify-between p-1.5 border text-[9px] font-mono',
                   isPro
-                    ? 'bg-[#150F08] border-[#3D2512] text-[#FFE600]'
-                    : 'bg-[#060608] border-[#1C1C24] text-[#888]'
+                    ? 'bg-amber-100/70 dark:bg-[#150F08] border-amber-300 dark:border-[#3D2512] text-amber-800 dark:text-[#FFE600]'
+                    : 'bg-slate-100 dark:bg-[#060608] border-slate-200 dark:border-[#1C1C24] text-slate-600 dark:text-[#888]'
                 )}
               >
                 <div className="flex items-center gap-1.5">
                   <span
                     className={cn(
                       'w-1.5 h-1.5 rounded-full',
-                      isPro ? 'bg-[#FFE600] animate-ping' : 'bg-[#22C55E]'
+                      isPro ? 'bg-amber-500 dark:bg-[#FFE600] animate-ping' : 'bg-[#22C55E]'
                     )}
                   />
                   <span className="font-bold uppercase tracking-wider">
@@ -508,13 +518,13 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                 </div>
 
                 {isPro ? (
-                  <span className="text-[8px] font-black bg-[#FFE600] text-black px-1.5 py-0.2 uppercase">
+                  <span className="text-[8px] font-black bg-amber-500 dark:bg-[#FFE600] text-white dark:text-black px-1.5 py-0.2 uppercase">
                     MESH 6X
                   </span>
                 ) : (
                   <Link
                     href="/dashboard/loja"
-                    className="text-[8px] font-bold text-[#FF5A00] hover:text-white uppercase tracking-wider"
+                    className="text-[8px] font-bold text-[#FF5A00] hover:text-orange-700 dark:hover:text-white uppercase tracking-wider"
                   >
                     UPGRADE →
                   </Link>
@@ -526,17 +536,17 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
       </aside>
 
       {/* ── MAIN CONTENT & MOBILE HEADER ───────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto relative bg-[#050505]">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto relative bg-[#F8F9FB] dark:bg-[#050505] transition-colors duration-200">
         
         {/* Unverified Email Warning Banner */}
         <UnverifiedEmailBanner />
 
         {/* Mobile Top Header (< 768px md) */}
-        <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 bg-[#050505]/95 backdrop-blur-md border-b border-[#222] md:hidden shrink-0">
+        <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 bg-white/95 dark:bg-[#050505]/95 backdrop-blur-md border-b border-slate-200 dark:border-[#222] md:hidden shrink-0 transition-colors">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-2 border border-[#222] bg-[#0E0E14] text-white hover:border-[#FF5A00] transition-colors cursor-pointer"
+              className="p-2 border border-slate-200 dark:border-[#222] bg-slate-100 dark:bg-[#0E0E14] text-slate-900 dark:text-white hover:border-[#FF5A00] transition-colors cursor-pointer"
               aria-label="Abrir menu"
             >
               <Menu className="w-5 h-5" />
@@ -544,20 +554,20 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
 
             <Link href="/dashboard" className="flex items-center gap-2.5">
               {isPro ? (
-                <div className="w-7 h-7 bg-gradient-to-br from-[#FFE600] to-[#FF5A00] border border-[#FFE600]/80 flex items-center justify-center shadow-[0_0_15px_rgba(255,230,0,0.5)]">
-                  <Crown className="w-3.5 h-3.5 text-black fill-black" />
+                <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 dark:from-[#FFE600] dark:to-[#FF5A00] border border-amber-300 dark:border-[#FFE600]/80 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+                  <Crown className="w-3.5 h-3.5 text-white dark:text-black fill-current" />
                 </div>
               ) : (
                 <div className="w-7 h-7 bg-[#FF5A00] flex items-center justify-center">
-                  <Play className="w-3.5 h-3.5 text-black fill-black ml-0.5" />
+                  <Play className="w-3.5 h-3.5 text-white dark:text-black fill-current ml-0.5" />
                 </div>
               )}
               <span
                 className={cn(
                   'font-black text-lg tracking-tighter uppercase',
                   isPro
-                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-[#FFE600] to-[#FF8A00]'
-                    : 'text-white'
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 dark:from-[#FFE600] dark:to-[#FF8A00]'
+                    : 'text-slate-900 dark:text-white'
                 )}
               >
                 VIDEOMAX
@@ -565,10 +575,12 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
             </Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <ThemeToggle variant="compact" />
+
             <button
               onClick={() => router.push('/dashboard/invites')}
-              className="relative p-2 border border-[#222] bg-[#0E0E14] text-[#A3A3A3] hover:text-white hover:border-[#FF5A00] transition-colors cursor-pointer"
+              className="relative p-2 border border-slate-200 dark:border-[#222] bg-slate-100 dark:bg-[#0E0E14] text-slate-600 dark:text-[#A3A3A3] hover:text-slate-900 dark:hover:text-white hover:border-[#FF5A00] transition-colors cursor-pointer"
               aria-label="Notificações"
             >
               <Bell className="w-4 h-4" />
@@ -578,7 +590,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
             </button>
 
             <Link href="/profile">
-              <div className="w-8 h-8 border border-[#333] rounded flex items-center justify-center font-mono font-bold text-xs text-[#FF5A00] bg-[#111]">
+              <div className="w-8 h-8 border border-slate-300 dark:border-[#333] rounded flex items-center justify-center font-mono font-bold text-xs text-orange-600 dark:text-[#FF5A00] bg-slate-100 dark:bg-[#111]">
                 {user?.image ? (
                   <img src={user.image} alt="User" className="w-full h-full object-cover rounded" />
                 ) : (
@@ -602,27 +614,27 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
           onClick={() => setMobileMenuOpen(false)}
         >
           <aside
-            className="w-[290px] h-full bg-[#08080C] border-r border-[#222] p-5 flex flex-col justify-between select-none animate-in slide-in-from-left duration-200"
+            className="w-[290px] h-full bg-white dark:bg-[#08080C] border-r border-slate-200 dark:border-[#222] p-5 flex flex-col justify-between select-none animate-in slide-in-from-left duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-[#222] pb-4">
+            <div className="space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#222] pb-4">
                 <Link href="/dashboard" className="flex items-center gap-2.5">
                   {isPro ? (
-                    <div className="w-7 h-7 bg-gradient-to-br from-[#FFE600] to-[#FF5A00] border border-[#FFE600]/80 flex items-center justify-center shadow-[0_0_15px_rgba(255,230,0,0.5)]">
-                      <Crown className="w-3.5 h-3.5 text-black fill-black" />
+                    <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 dark:from-[#FFE600] dark:to-[#FF5A00] border border-amber-300 dark:border-[#FFE600]/80 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+                      <Crown className="w-3.5 h-3.5 text-white dark:text-black fill-current" />
                     </div>
                   ) : (
                     <div className="w-7 h-7 bg-[#FF5A00] flex items-center justify-center">
-                      <Play className="w-3.5 h-3.5 text-black fill-black ml-0.5" />
+                      <Play className="w-3.5 h-3.5 text-white dark:text-black fill-current ml-0.5" />
                     </div>
                   )}
                   <span
                     className={cn(
                       'font-black text-lg tracking-tighter uppercase',
                       isPro
-                        ? 'text-transparent bg-clip-text bg-gradient-to-r from-[#FFE600] to-[#FF8A00]'
-                        : 'text-white'
+                        ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 dark:from-[#FFE600] dark:to-[#FF8A00]'
+                        : 'text-slate-900 dark:text-white'
                     )}
                   >
                     VIDEOMAX
@@ -631,11 +643,14 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
 
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 border border-[#222] text-[#8A8A8A] hover:text-white"
+                  className="p-1.5 border border-slate-200 dark:border-[#222] text-slate-500 dark:text-[#8A8A8A] hover:text-slate-900 dark:hover:text-white"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
+
+              {/* Theme Toggle in Mobile Drawer */}
+              <ThemeToggle variant="sidebar" />
 
               {/* Mobile Nav Links with animated icons */}
               <nav className="space-y-1.5">
@@ -653,9 +668,9 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                         'flex items-center justify-between px-3.5 py-3 border font-mono text-[11px] uppercase tracking-wider transition-all',
                         active
                           ? isPro
-                            ? 'bg-[#FFE600]/10 border-[#FFE600] text-[#FFE600] font-black'
-                            : 'bg-[#FF5A00]/10 border-[#FF5A00] text-[#FF5A00] font-black'
-                          : 'border-[#1C1C24] text-[#A3A3A3] hover:text-white hover:bg-[#111]'
+                            ? 'bg-amber-500/10 border-amber-400 dark:border-[#FFE600] text-amber-700 dark:text-[#FFE600] font-black'
+                            : 'bg-orange-500/10 border-orange-400 dark:border-[#FF5A00] text-orange-600 dark:text-[#FF5A00] font-black'
+                          : 'border-slate-200 dark:border-[#1C1C24] text-slate-600 dark:text-[#A3A3A3] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111]'
                       )}
                     >
                       <div className="flex items-center gap-3">
@@ -674,13 +689,13 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
               </nav>
             </div>
 
-            <div className="space-y-3 pt-4 border-t border-[#222]">
+            <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-[#222]">
               <button
                 onClick={() => {
                   setMobileMenuOpen(false)
                   setCreateRoomOpen(true)
                 }}
-                className="w-full py-3.5 bg-[#FF5A00] text-black font-mono font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,90,0,0.35)]"
+                className="w-full py-3.5 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,90,0,0.35)]"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
                 <span>CRIAR NOVA SALA</span>
@@ -691,7 +706,7 @@ export function AppShell({ user: initialUser, children }: AppShellProps) {
                   setMobileMenuOpen(false)
                   signOut({ callbackUrl: '/' })
                 }}
-                className="w-full py-2.5 border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/10 font-mono font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                className="w-full py-2.5 border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/10 font-mono font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>SAIR DA CONTA</span>

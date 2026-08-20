@@ -254,11 +254,11 @@ export default function VideosPage() {
     <div className="space-y-6">
       
       {/* ── HEADER COMMAND BANNER ─────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-[#09090D] border border-[#222] p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl">
+      <div className="relative overflow-hidden bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm dark:shadow-2xl transition-colors">
         <div
           className={cn(
             'absolute top-0 right-0 w-80 h-full blur-3xl pointer-events-none opacity-20 transition-colors',
-            isPro ? 'bg-[#FFE600]' : 'bg-[#FF5A00]'
+            isPro ? 'bg-amber-400 dark:bg-[#FFE600]' : 'bg-orange-400 dark:bg-[#FF5A00]'
           )}
         />
 
@@ -267,7 +267,7 @@ export default function VideosPage() {
           <div
             className={cn(
               'w-12 h-12 flex items-center justify-center font-black shrink-0 shadow-[0_0_20px_rgba(255,90,0,0.3)]',
-              isPro ? 'bg-[#FFE600] text-black' : 'bg-[#FF5A00] text-black'
+              isPro ? 'bg-amber-500 text-white dark:bg-[#FFE600] dark:text-black' : 'bg-[#FF5A00] text-white dark:text-black'
             )}
           >
             <Film className="w-6 h-6 stroke-[2.5]" />
@@ -275,25 +275,25 @@ export default function VideosPage() {
 
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-mono text-[#FF5A00] uppercase font-bold tracking-widest bg-[#14141E] px-2 py-0.5 border border-[#222]">
+              <span className="text-[9px] font-mono text-orange-600 dark:text-[#FF5A00] uppercase font-bold tracking-widest bg-orange-50 dark:bg-[#14141E] px-2 py-0.5 border border-orange-200 dark:border-[#222]">
                 [ CLOUD STORAGE // NUVEM ]
               </span>
               {isPro ? (
-                <span className="flex items-center gap-1 bg-[#1E1408] border border-[#FFE600]/40 px-2 py-0.2 text-[#FFE600] font-mono text-[9px] font-bold uppercase">
-                  <Crown className="w-2.5 h-2.5 fill-[#FFE600]" />
+                <span className="flex items-center gap-1 bg-amber-50 dark:bg-[#1E1408] border border-amber-300 dark:border-[#FFE600]/40 px-2 py-0.2 text-amber-800 dark:text-[#FFE600] font-mono text-[9px] font-bold uppercase">
+                  <Crown className="w-2.5 h-2.5 fill-current" />
                   CLUSTER VIP ILIMITADO ∞
                 </span>
               ) : (
-                <span className="text-[9px] font-mono text-[#777] bg-[#111] border border-[#222] px-2 py-0.2 uppercase">
+                <span className="text-[9px] font-mono text-slate-500 dark:text-[#777] bg-slate-100 dark:bg-[#111] border border-slate-200 dark:border-[#222] px-2 py-0.2 uppercase">
                   CAPACIDADE: {videos.length}/10 VÍDEOS
                 </span>
               )}
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-black font-mono text-white uppercase tracking-tight truncate">
+            <h1 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white uppercase tracking-tight truncate">
               BIBLIOTECA DE VÍDEOS
             </h1>
-            <p className="text-[11px] font-mono text-[#888] truncate">
+            <p className="text-[11px] font-mono text-slate-500 dark:text-[#888] truncate">
               {videos.length} vídeos salvos • {folders.length} pastas organizadas
             </p>
           </div>
@@ -308,7 +308,7 @@ export default function VideosPage() {
         <div className="flex flex-wrap items-center gap-3 relative z-10 shrink-0">
           <button
             onClick={() => setShowNewFolder(true)}
-            className="py-2.5 px-4 bg-[#121218] hover:bg-[#1C1C24] text-white border border-[#333] hover:border-[#FF5A00] font-mono font-bold text-[10px] uppercase tracking-wider transition-colors flex items-center gap-2 cursor-pointer"
+            className="py-2.5 px-4 bg-slate-100 dark:bg-[#121218] hover:bg-slate-200 dark:hover:bg-[#1C1C24] text-slate-800 dark:text-white border border-slate-300 dark:border-[#333] hover:border-[#FF5A00] font-mono font-bold text-[10px] uppercase tracking-wider transition-colors flex items-center gap-2 cursor-pointer"
           >
             <FolderPlus className="w-3.5 h-3.5 text-[#FF5A00]" />
             <span>[ NOVA PASTA ]</span>
@@ -316,7 +316,7 @@ export default function VideosPage() {
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="py-2.5 px-5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center gap-2 cursor-pointer active:scale-[0.98]"
+            className="py-2.5 px-5 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center gap-2 cursor-pointer active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>[ ADICIONAR VÍDEO ]</span>
@@ -326,16 +326,16 @@ export default function VideosPage() {
 
       {/* ── PLAN CAPACITY NOTIFICATION (FREE VS MAXPRO) ───────────── */}
       {!isPro && (
-        <div className="p-3 bg-gradient-to-r from-[#1A1208] to-[#0A0704] border border-[#FF5A00]/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono">
+        <div className="p-3 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-[#1A1208] dark:to-[#0A0704] border border-orange-200 dark:border-[#FF5A00]/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono transition-colors">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#FF5A00] animate-pulse" />
-            <span className="text-[#DDD]">
+            <span className="text-slate-700 dark:text-[#DDD]">
               Plano Free: <strong>{videos.length}/10</strong> vídeos e <strong>{folders.length}/3</strong> pastas.
             </span>
           </div>
           <button
             onClick={() => router.push('/dashboard/loja')}
-            className="text-[10px] font-bold text-[#FFE600] hover:underline uppercase flex items-center gap-1"
+            className="text-[10px] font-bold text-amber-600 dark:text-[#FFE600] hover:underline uppercase flex items-center gap-1 cursor-pointer"
           >
             <span>DESBLOQUEAR ARMAZENAMENTO ILIMITADO NO MAXPRO →</span>
           </button>
@@ -349,16 +349,16 @@ export default function VideosPage() {
         <div className="relative max-w-md">
           <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none text-[#FF5A00] font-mono text-[11px]">
             <span className="animate-pulse">_</span>
-            <Search className="w-3.5 h-3.5 text-[#777]" />
+            <Search className="w-3.5 h-3.5 text-slate-400 dark:text-[#777]" />
           </div>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="BUSCAR VÍDEOS NA BIBLIOTECA..."
-            className="w-full h-10 bg-[#09090D] border border-[#222] text-[#F5F5F5] pl-10 pr-12 text-[11px] font-mono placeholder:text-[#555] outline-none focus:border-[#FF5A00] transition-all"
+            className="w-full h-10 bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] text-slate-900 dark:text-[#F5F5F5] pl-10 pr-12 text-[11px] font-mono placeholder:text-slate-400 dark:placeholder:text-[#555] outline-none focus:border-[#FF5A00] transition-all shadow-xs"
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 border border-[#333] bg-[#050505] text-[9px] font-mono text-[#777] pointer-events-none hidden sm:block">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 border border-slate-200 dark:border-[#333] bg-slate-100 dark:bg-[#050505] text-[9px] font-mono text-slate-500 dark:text-[#777] pointer-events-none hidden sm:block">
             ⌘ K
           </div>
         </div>
@@ -371,13 +371,13 @@ export default function VideosPage() {
             className={cn(
               'px-3.5 py-2 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap',
               activeFolder === null
-                ? 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
-                : 'bg-[#09090D] text-[#777] border-[#222] hover:text-white hover:border-[#333]'
+                ? 'bg-[#FF5A00] text-white dark:text-black border-[#FF5A00] shadow-sm'
+                : 'bg-white dark:bg-[#09090D] text-slate-600 dark:text-[#777] border-slate-200 dark:border-[#222] hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-[#333]'
             )}
           >
             <Folder className="w-3.5 h-3.5" />
             <span>[ TODOS OS VÍDEOS ]</span>
-            <span className="text-[9px] px-1 py-0.2 bg-black/40 text-current font-bold">
+            <span className="text-[9px] px-1 py-0.2 bg-black/10 dark:bg-black/40 text-current font-bold">
               {videos.length}
             </span>
           </button>
@@ -395,14 +395,14 @@ export default function VideosPage() {
                     'px-3.5 py-2 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap',
                     isActive
                       ? isPro
-                        ? 'bg-[#FFE600] text-black border-[#FFE600] shadow-[0_0_12px_rgba(255,230,0,0.3)]'
-                        : 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
-                      : 'bg-[#09090D] text-[#888] border-[#222] hover:text-white hover:border-[#333]'
+                        ? 'bg-amber-500 text-white dark:bg-[#FFE600] dark:text-black border-amber-300 dark:border-[#FFE600] shadow-sm'
+                        : 'bg-[#FF5A00] text-white dark:text-black border-[#FF5A00] shadow-sm'
+                      : 'bg-white dark:bg-[#09090D] text-slate-600 dark:text-[#888] border-slate-200 dark:border-[#222] hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-[#333]'
                   )}
                 >
                   <FolderOpen className="w-3.5 h-3.5" />
                   <span>{f.name}</span>
-                  <span className="text-[9px] px-1 py-0.2 bg-black/40 text-current font-bold">
+                  <span className="text-[9px] px-1 py-0.2 bg-black/10 dark:bg-black/40 text-current font-bold">
                     {folderVideoCount}
                   </span>
                 </button>
@@ -426,9 +426,9 @@ export default function VideosPage() {
 
       {/* ── VIDEOS GRID ────────────────────────────────────────────── */}
       {filteredVideos.length === 0 ? (
-        <div className="p-12 bg-[#09090D] border border-[#222] text-center space-y-4 relative overflow-hidden">
+        <div className="p-12 bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] text-center space-y-4 relative overflow-hidden shadow-sm transition-colors">
           <div
-            className="absolute inset-0 pointer-events-none opacity-10"
+            className="absolute inset-0 pointer-events-none opacity-5 dark:opacity-10"
             style={{
               backgroundImage: 'linear-gradient(#FF5A00 1px, transparent 1px), linear-gradient(90deg, #FF5A00 1px, transparent 1px)',
               backgroundSize: '40px 40px',
@@ -436,15 +436,15 @@ export default function VideosPage() {
           />
 
           <div className="relative z-10 max-w-[460px] mx-auto space-y-3">
-            <div className="w-12 h-12 bg-[#14141E] border border-[#333] flex items-center justify-center mx-auto text-[#FF5A00]">
+            <div className="w-12 h-12 bg-slate-100 dark:bg-[#14141E] border border-slate-300 dark:border-[#333] flex items-center justify-center mx-auto text-[#FF5A00]">
               <Film className="w-6 h-6" />
             </div>
 
-            <h3 className="text-lg font-mono font-bold text-white uppercase">
+            <h3 className="text-lg font-mono font-bold text-slate-900 dark:text-white uppercase">
               {searchQuery ? `Nenhum vídeo com "${searchQuery}"` : 'Sua biblioteca está vazia'}
             </h3>
 
-            <p className="text-[11px] font-mono text-[#888]">
+            <p className="text-[11px] font-mono text-slate-500 dark:text-[#888]">
               {activeFolder
                 ? `Esta pasta "${activeFolderName}" ainda não possui vídeos associados.`
                 : 'Adicione links do YouTube ou faça upload de arquivos de vídeo MP4 para assistir com seus amigos.'}
@@ -453,7 +453,7 @@ export default function VideosPage() {
             <div className="pt-2">
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-6 py-3 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(255,90,0,0.35)] cursor-pointer"
+                className="px-6 py-3 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(255,90,0,0.35)] cursor-pointer"
               >
                 [ + ADICIONAR PRIMEIRO VÍDEO ]
               </button>
@@ -470,10 +470,10 @@ export default function VideosPage() {
             return (
               <div
                 key={video.id}
-                className="group relative bg-[#09090D] border border-[#222] hover:border-[#FF5A00] flex flex-col justify-between overflow-hidden shadow-xl transition-all duration-200"
+                className="group relative bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] hover:border-[#FF5A00] flex flex-col justify-between overflow-hidden shadow-xs dark:shadow-xl transition-all duration-200"
               >
                 {/* Thumbnail Header */}
-                <div className="relative aspect-video w-full bg-[#050508] overflow-hidden border-b border-[#222]">
+                <div className="relative aspect-video w-full bg-slate-950 dark:bg-[#050508] overflow-hidden border-b border-slate-200 dark:border-[#222]">
                   {thumb ? (
                     <img
                       src={thumb}
@@ -481,7 +481,7 @@ export default function VideosPage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[#121218]">
+                    <div className="w-full h-full flex items-center justify-center bg-slate-900 dark:bg-[#121218]">
                       <Film className="w-8 h-8 text-[#FF5A00]/50" />
                     </div>
                   )}
@@ -489,7 +489,7 @@ export default function VideosPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 pointer-events-none" />
 
                   {/* Platform Badge */}
-                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-black/80 border border-[#333] px-2 py-0.5 text-white font-mono text-[9px] font-bold uppercase">
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-black/80 border border-white/20 px-2 py-0.5 text-white font-mono text-[9px] font-bold uppercase">
                     {isYT ? (
                       <>
                         <YoutubeIcon className="w-3 h-3 text-[#EF2020]" />
@@ -505,7 +505,7 @@ export default function VideosPage() {
 
                   {/* Folder Tag */}
                   {currentFolder && (
-                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-[#151520] border border-[#333] px-2 py-0.5 text-[#FFE600] font-mono text-[9px] font-bold">
+                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-black/80 border border-white/20 px-2 py-0.5 text-amber-400 dark:text-[#FFE600] font-mono text-[9px] font-bold">
                       <Folder className="w-2.5 h-2.5" />
                       <span>{currentFolder.name}</span>
                     </div>
@@ -515,19 +515,19 @@ export default function VideosPage() {
                 {/* Info Body */}
                 <div className="p-3.5 space-y-3 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="text-[12px] font-mono font-bold text-white uppercase group-hover:text-[#FF5A00] transition-colors line-clamp-2 leading-snug">
+                    <h3 className="text-[12px] font-mono font-bold text-slate-900 dark:text-white uppercase group-hover:text-[#FF5A00] transition-colors line-clamp-2 leading-snug">
                       {video.title}
                     </h3>
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="pt-2 border-t border-[#1C1C24] space-y-2">
+                  <div className="pt-2 border-t border-slate-200 dark:border-[#1C1C24] space-y-2">
                     {/* Primary Action: Start Room */}
                     <button
                       onClick={() => handleStartRoomWithVideo(video)}
-                      className="w-full py-2 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[10px] uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(255,90,0,0.2)]"
+                      className="w-full py-2 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[10px] uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                     >
-                      <Play className="w-3 h-3 fill-black" />
+                      <Play className="w-3 h-3 fill-current" />
                       <span>CRIAR SALA NESTE VÍDEO</span>
                     </button>
 
@@ -537,7 +537,7 @@ export default function VideosPage() {
                       <select
                         value={video.folderId || ''}
                         onChange={(e) => handleMoveVideo(video.id, e.target.value || null)}
-                        className="bg-[#050508] border border-[#222] text-[#888] hover:text-white px-2 py-1 outline-none text-[9px] font-mono max-w-[140px] cursor-pointer"
+                        className="bg-slate-50 dark:bg-[#050508] border border-slate-200 dark:border-[#222] text-slate-600 dark:text-[#888] hover:text-slate-900 dark:hover:text-white px-2 py-1 outline-none text-[9px] font-mono max-w-[140px] cursor-pointer transition-colors"
                       >
                         <option value="">Sem Pasta</option>
                         {folders.map((f) => (
@@ -549,7 +549,7 @@ export default function VideosPage() {
 
                       <button
                         onClick={() => handleDeleteVideo(video.id)}
-                        className="p-1 text-[#777] hover:text-[#EF2020] transition-colors cursor-pointer"
+                        className="p-1 text-slate-400 dark:text-[#777] hover:text-[#EF2020] transition-colors cursor-pointer"
                         title="Remover vídeo"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -570,26 +570,26 @@ export default function VideosPage() {
           onClick={() => setShowNewFolder(false)}
         >
           <div
-            className="w-full max-w-md bg-[#09090D] border border-[#222] p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-md bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] p-6 space-y-4 shadow-2xl transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-[#222] pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#222] pb-3">
               <div className="flex items-center gap-2">
                 <FolderPlus className="w-4 h-4 text-[#FF5A00]" />
-                <h3 className="font-mono font-bold text-white text-sm uppercase">
+                <h3 className="font-mono font-bold text-slate-900 dark:text-white text-sm uppercase">
                   [ CRIAR NOVA PASTA ]
                 </h3>
               </div>
               <button
                 onClick={() => setShowNewFolder(false)}
-                className="text-[#777] hover:text-white"
+                className="text-slate-400 dark:text-[#777] hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-mono text-[#888] uppercase block">
+              <label className="text-[10px] font-mono text-slate-600 dark:text-[#888] uppercase block">
                 NOME DA PASTA
               </label>
               <input
@@ -597,7 +597,7 @@ export default function VideosPage() {
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 placeholder="Ex: Animes, Músicas, Podcasts..."
-                className="w-full h-11 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00]"
+                className="w-full h-11 bg-slate-50 dark:bg-[#050508] border border-slate-300 dark:border-[#333] text-slate-900 dark:text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00] transition-colors"
                 autoFocus
               />
             </div>
@@ -605,13 +605,13 @@ export default function VideosPage() {
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowNewFolder(false)}
-                className="px-4 py-2 border border-[#333] text-[#888] hover:text-white font-mono text-[10px] uppercase cursor-pointer"
+                className="px-4 py-2 border border-slate-300 dark:border-[#333] text-slate-600 dark:text-[#888] hover:text-slate-900 dark:hover:text-white font-mono text-[10px] uppercase cursor-pointer"
               >
                 CANCELAR
               </button>
               <button
                 onClick={handleCreateFolder}
-                className="px-5 py-2 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[10px] uppercase cursor-pointer"
+                className="px-5 py-2 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[10px] uppercase cursor-pointer"
               >
                 CRIAR PASTA
               </button>
@@ -627,33 +627,33 @@ export default function VideosPage() {
           onClick={() => setShowAddModal(false)}
         >
           <div
-            className="w-full max-w-lg bg-[#09090D] border border-[#222] p-6 space-y-5 shadow-2xl"
+            className="w-full max-w-lg bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] p-6 space-y-5 shadow-2xl transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-[#222] pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#222] pb-3">
               <div className="flex items-center gap-2">
                 <Plus className="w-4 h-4 text-[#FF5A00]" />
-                <h3 className="font-mono font-bold text-white text-sm uppercase">
+                <h3 className="font-mono font-bold text-slate-900 dark:text-white text-sm uppercase">
                   [ ADICIONAR VÍDEO À BIBLIOTECA ]
                 </h3>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-[#777] hover:text-white"
+                className="text-slate-400 dark:text-[#777] hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Add Tabs */}
-            <div className="flex items-center gap-2 border-b border-[#222] pb-3">
+            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-[#222] pb-3">
               <button
                 onClick={() => setAddTab('youtube')}
                 className={cn(
-                  'px-3.5 py-1.5 font-mono text-[10px] uppercase font-bold border transition-all flex items-center gap-1.5',
+                  'px-3.5 py-1.5 font-mono text-[10px] uppercase font-bold border transition-all flex items-center gap-1.5 cursor-pointer',
                   addTab === 'youtube'
                     ? 'bg-[#EF2020] text-white border-[#EF2020]'
-                    : 'bg-[#121218] text-[#777] border-[#333] hover:text-white'
+                    : 'bg-slate-100 dark:bg-[#121218] text-slate-600 dark:text-[#777] border-slate-200 dark:border-[#333] hover:text-slate-900 dark:hover:text-white'
                 )}
               >
                 <YoutubeIcon className="w-3.5 h-3.5" />
@@ -663,10 +663,10 @@ export default function VideosPage() {
               <button
                 onClick={() => setAddTab('upload')}
                 className={cn(
-                  'px-3.5 py-1.5 font-mono text-[10px] uppercase font-bold border transition-all flex items-center gap-1.5',
+                  'px-3.5 py-1.5 font-mono text-[10px] uppercase font-bold border transition-all flex items-center gap-1.5 cursor-pointer',
                   addTab === 'upload'
                     ? 'bg-[#3B82F6] text-white border-[#3B82F6]'
-                    : 'bg-[#121218] text-[#777] border-[#333] hover:text-white'
+                    : 'bg-slate-100 dark:bg-[#121218] text-slate-600 dark:text-[#777] border-slate-200 dark:border-[#333] hover:text-slate-900 dark:hover:text-white'
                 )}
               >
                 <Upload className="w-3.5 h-3.5" />
@@ -678,7 +678,7 @@ export default function VideosPage() {
             {addTab === 'youtube' ? (
               <form onSubmit={handleSaveYoutube} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-mono text-[#888] uppercase block">
+                  <label className="text-[10px] font-mono text-slate-600 dark:text-[#888] uppercase block">
                     URL DO VÍDEO (YOUTUBE)
                   </label>
                   <input
@@ -686,7 +686,7 @@ export default function VideosPage() {
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
                     placeholder="https://www.youtube.com/watch?v=..."
-                    className="w-full h-11 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00]"
+                    className="w-full h-11 bg-slate-50 dark:bg-[#050508] border border-slate-300 dark:border-[#333] text-slate-900 dark:text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00] transition-colors"
                     required
                   />
                   {youtubeError && (
@@ -695,7 +695,7 @@ export default function VideosPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-mono text-[#888] uppercase block">
+                  <label className="text-[10px] font-mono text-slate-600 dark:text-[#888] uppercase block">
                     TÍTULO PERSONALIZADO (OPCIONAL)
                   </label>
                   <input
@@ -703,17 +703,17 @@ export default function VideosPage() {
                     value={youtubeTitle}
                     onChange={(e) => setYoutubeTitle(e.target.value)}
                     placeholder="Nome do vídeo para sua biblioteca..."
-                    className="w-full h-11 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00]"
+                    className="w-full h-11 bg-slate-50 dark:bg-[#050508] border border-slate-300 dark:border-[#333] text-slate-900 dark:text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00] transition-colors"
                   />
                 </div>
 
                 {/* Instant Thumbnail Preview */}
                 {detectedThumb && (
-                  <div className="p-3 bg-[#050508] border border-[#222] space-y-2">
-                    <span className="text-[9px] font-mono text-[#22C55E] uppercase block">
+                  <div className="p-3 bg-slate-50 dark:bg-[#050508] border border-slate-200 dark:border-[#222] space-y-2 transition-colors">
+                    <span className="text-[9px] font-mono text-[#16A34A] dark:text-[#22C55E] uppercase block font-bold">
                       ✓ VÍDEO DETECTADO COM SUCESSO:
                     </span>
-                    <div className="relative aspect-video w-44 bg-black overflow-hidden border border-[#333]">
+                    <div className="relative aspect-video w-44 bg-black overflow-hidden border border-slate-300 dark:border-[#333]">
                       <img src={detectedThumb} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                   </div>
@@ -723,14 +723,14 @@ export default function VideosPage() {
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 border border-[#333] text-[#888] hover:text-white font-mono text-[10px] uppercase cursor-pointer"
+                    className="px-4 py-2 border border-slate-300 dark:border-[#333] text-slate-600 dark:text-[#888] hover:text-slate-900 dark:hover:text-white font-mono text-[10px] uppercase cursor-pointer"
                   >
                     CANCELAR
                   </button>
                   <button
                     type="submit"
                     disabled={isSavingYoutube}
-                    className="px-6 py-2.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[10px] uppercase transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="px-6 py-2.5 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[10px] uppercase transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {isSavingYoutube ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                     <span>SALVAR NA BIBLIOTECA</span>
@@ -754,7 +754,7 @@ export default function VideosPage() {
                   onUploadError={(error: Error) => {
                     toast.error(`Erro no upload: ${error.message}`)
                   }}
-                  className="ut-label:text-[#FF5A00] ut-button:bg-[#FF5A00] border-2 border-dashed border-[#333] bg-[#050508] p-6"
+                  className="ut-label:text-[#FF5A00] ut-button:bg-[#FF5A00] border-2 border-dashed border-slate-300 dark:border-[#333] bg-slate-50 dark:bg-[#050508] p-6 transition-colors"
                 />
               </div>
             )}

@@ -34,10 +34,10 @@ export function LiveRoomCard({ room }: { room: LiveRoomData }) {
       onClick={() => {
         window.location.href = `/room/${room.roomId}`
       }}
-      className="group cursor-pointer relative bg-[#09090D] border border-[#222] hover:border-[#FF5A00] transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xl"
+      className="group cursor-pointer relative bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] hover:border-[#FF5A00] transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xs dark:shadow-xl"
     >
       {/* Video Thumbnail Header */}
-      <div className="relative aspect-video w-full bg-[#050508] overflow-hidden border-b border-[#222]">
+      <div className="relative aspect-video w-full bg-slate-950 dark:bg-[#050508] overflow-hidden border-b border-slate-200 dark:border-[#222]">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
@@ -45,9 +45,9 @@ export function LiveRoomCard({ room }: { room: LiveRoomData }) {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full relative overflow-hidden bg-gradient-to-br from-[#121218] to-[#060608] flex items-center justify-center">
-            <div className="w-10 h-10 bg-[#FF5A00] flex items-center justify-center text-black shadow-[0_0_15px_rgba(255,90,0,0.4)] group-hover:scale-110 transition-transform">
-              <Play className="w-4 h-4 fill-black ml-0.5" />
+          <div className="w-full h-full relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950 dark:from-[#121218] dark:to-[#060608] flex items-center justify-center">
+            <div className="w-10 h-10 bg-[#FF5A00] flex items-center justify-center text-white dark:text-black shadow-[0_0_15px_rgba(255,90,0,0.4)] group-hover:scale-110 transition-transform">
+              <Play className="w-4 h-4 fill-current ml-0.5" />
             </div>
           </div>
         )}
@@ -61,7 +61,7 @@ export function LiveRoomCard({ room }: { room: LiveRoomData }) {
         </div>
 
         {/* Real Viewer Count Badge */}
-        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 bg-black/80 border border-[#333] px-2 py-0.5 text-white font-mono text-[9px] font-bold">
+        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 bg-black/80 border border-white/20 px-2 py-0.5 text-white font-mono text-[9px] font-bold">
           <Users className="w-3 h-3 text-[#FF5A00]" />
           <span>{room.viewerCount} ONLINE</span>
         </div>
@@ -70,31 +70,31 @@ export function LiveRoomCard({ room }: { room: LiveRoomData }) {
       {/* Info Body */}
       <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
         <div>
-          <span className="text-[9px] font-mono text-[#FF5A00] tracking-widest uppercase block mb-1">
+          <span className="text-[9px] font-mono text-orange-600 dark:text-[#FF5A00] tracking-widest uppercase block mb-1">
             [ SALA #{room.roomId} ]
           </span>
-          <h3 className="text-[13px] font-mono font-bold text-white uppercase line-clamp-1 group-hover:text-[#FF5A00] transition-colors">
+          <h3 className="text-[13px] font-mono font-bold text-slate-900 dark:text-white uppercase line-clamp-1 group-hover:text-[#FF5A00] transition-colors">
             {room.videoTitle}
           </h3>
         </div>
 
         {/* Host and Action */}
-        <div className="flex items-center justify-between pt-2 border-t border-[#1C1C24]">
+        <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-[#1C1C24]">
           <div className="flex items-center gap-2 min-w-0">
             {room.hostImage ? (
-              <img src={room.hostImage} alt="Host" className="w-6 h-6 rounded border border-[#333] object-cover" />
+              <img src={room.hostImage} alt="Host" className="w-6 h-6 rounded border border-slate-300 dark:border-[#333] object-cover" />
             ) : (
-              <div className="w-6 h-6 rounded bg-[#222] border border-[#333] flex items-center justify-center font-mono font-bold text-[9px] text-[#FF5A00]">
+              <div className="w-6 h-6 rounded bg-slate-100 dark:bg-[#222] border border-slate-300 dark:border-[#333] flex items-center justify-center font-mono font-bold text-[9px] text-[#FF5A00]">
                 {room.hostName.substring(0, 2).toUpperCase()}
               </div>
             )}
-            <span className="text-[10px] font-mono text-[#888] truncate max-w-[90px]">
+            <span className="text-[10px] font-mono text-slate-600 dark:text-[#888] truncate max-w-[90px]">
               {room.hostName}
             </span>
           </div>
 
-          <div className="px-3 py-1 bg-[#FF5A00] group-hover:bg-white text-black font-mono font-black text-[9px] uppercase tracking-wider transition-colors flex items-center gap-1">
-            <Play className="w-2.5 h-2.5 fill-black" />
+          <div className="px-3 py-1 bg-[#FF5A00] group-hover:bg-slate-900 dark:group-hover:bg-white text-white dark:text-black group-hover:text-white dark:group-hover:text-black font-mono font-black text-[9px] uppercase tracking-wider transition-colors flex items-center gap-1">
+            <Play className="w-2.5 h-2.5 fill-current" />
             <span>CONECTAR</span>
           </div>
         </div>

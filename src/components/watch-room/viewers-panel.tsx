@@ -28,11 +28,11 @@ export function ViewersPanel({
   onKickUser,
 }: ViewersPanelProps) {
   return (
-    <div className="bg-[#08080C] border border-[#1F1F28] p-4 flex-1 space-y-3 shadow-sm h-full font-mono select-none">
-      <div className="flex items-center justify-between border-b border-[#181822] pb-2">
+    <div className="bg-white dark:bg-[#08080C] border border-slate-200 dark:border-[#1F1F28] p-4 flex-1 space-y-3 shadow-xs dark:shadow-sm h-full font-mono select-none transition-colors">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#181822] pb-2">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-ping" />
-          <h4 className="text-[11px] font-black text-white uppercase tracking-wider">
+          <span className="w-2 h-2 rounded-full bg-[#16A34A] dark:bg-[#22C55E] animate-ping" />
+          <h4 className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-wider">
             [ NÓS NA SALA ({viewers.length}) ]
           </h4>
         </div>
@@ -41,7 +41,7 @@ export function ViewersPanel({
           <button
             type="button"
             onClick={onSyncAll}
-            className="px-2.5 py-1 bg-[#22C55E]/15 hover:bg-[#22C55E] text-[#22C55E] hover:text-black border border-[#22C55E]/40 hover:border-[#22C55E] text-[10px] font-black uppercase transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
+            className="px-2.5 py-1 bg-green-50 dark:bg-[#22C55E]/15 hover:bg-[#16A34A] dark:hover:bg-[#22C55E] text-[#16A34A] dark:text-[#22C55E] hover:text-white dark:hover:text-black border border-green-200 dark:border-[#22C55E]/40 hover:border-[#16A34A] dark:hover:border-[#22C55E] text-[10px] font-black uppercase transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
             title="Forçar sincronia do tempo do vídeo de todos com o Host"
           >
             <Radio className="w-3 h-3 animate-pulse" />

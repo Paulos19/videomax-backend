@@ -118,13 +118,12 @@ export default function RoomsPage() {
   return (
     <div className="space-y-6">
       
-      {/* ── CYBERPUNK BRUTALIST COMMAND HEADER ─────────────────────── */}
-      <div className="relative overflow-hidden bg-[#09090D] border border-[#222] p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl">
-        {/* Background ambient lighting */}
+      {/* ── HEADER COMMAND BANNER ─────────────────────────────────── */}
+      <div className="relative overflow-hidden bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm dark:shadow-2xl transition-colors">
         <div
           className={cn(
             'absolute top-0 right-0 w-80 h-full blur-3xl pointer-events-none opacity-20 transition-colors',
-            isPro ? 'bg-[#FFE600]' : 'bg-[#FF5A00]'
+            isPro ? 'bg-amber-400 dark:bg-[#FFE600]' : 'bg-orange-400 dark:bg-[#FF5A00]'
           )}
         />
 
@@ -133,7 +132,7 @@ export default function RoomsPage() {
           <div
             className={cn(
               'w-12 h-12 flex items-center justify-center font-black shrink-0 transition-transform shadow-[0_0_20px_rgba(255,90,0,0.3)]',
-              isPro ? 'bg-[#FFE600] text-black' : 'bg-[#FF5A00] text-black'
+              isPro ? 'bg-amber-500 text-white dark:bg-[#FFE600] dark:text-black' : 'bg-[#FF5A00] text-white dark:text-black'
             )}
           >
             <Tv className="w-6 h-6 stroke-[2.5]" />
@@ -141,7 +140,7 @@ export default function RoomsPage() {
 
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-mono text-[#FF5A00] uppercase font-bold tracking-widest bg-[#14141E] px-2 py-0.5 border border-[#222]">
+              <span className="text-[9px] font-mono text-orange-600 dark:text-[#FF5A00] uppercase font-bold tracking-widest bg-orange-50 dark:bg-[#14141E] px-2 py-0.5 border border-orange-200 dark:border-[#222]">
                 [ PROTOCOLO MESH 0MS ]
               </span>
               <span className="flex items-center gap-1.5 bg-[#EF2020] px-2 py-0.2 text-white font-mono text-[9px] font-bold uppercase tracking-wider shadow-[0_0_8px_rgba(239,32,32,0.5)]">
@@ -150,10 +149,10 @@ export default function RoomsPage() {
               </span>
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-black font-mono text-white uppercase tracking-tight truncate">
+            <h1 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white uppercase tracking-tight truncate">
               SALAS EM TRANSMISSÃO AO VIVO
             </h1>
-            <p className="text-[11px] font-mono text-[#888] truncate">
+            <p className="text-[11px] font-mono text-slate-500 dark:text-[#888] truncate">
               Explore canais públicos e privados ativos no cluster WebRTC em tempo real.
             </p>
           </div>
@@ -162,21 +161,21 @@ export default function RoomsPage() {
         {/* Center/Right Stats & 3D Radar */}
         <div className="flex flex-wrap items-center gap-4 relative z-10 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3.5 py-2 bg-[#060608] border border-[#222] font-mono text-[10px]">
-              <span className="text-[#777] uppercase">SALAS:</span>
-              <strong className="text-white font-bold text-sm">{liveRooms.length}</strong>
+            <div className="flex items-center gap-2 px-3.5 py-2 bg-slate-50 dark:bg-[#060608] border border-slate-200 dark:border-[#222] font-mono text-[10px] transition-colors">
+              <span className="text-slate-500 dark:text-[#777] uppercase">SALAS:</span>
+              <strong className="text-slate-900 dark:text-white font-bold text-sm">{liveRooms.length}</strong>
             </div>
 
-            <div className="flex items-center gap-2 px-3.5 py-2 bg-[#060608] border border-[#222] font-mono text-[10px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-ping" />
-              <span className="text-[#777] uppercase">ONLINE:</span>
-              <strong className="text-[#22C55E] font-bold text-sm">{totalViewers}</strong>
+            <div className="flex items-center gap-2 px-3.5 py-2 bg-slate-50 dark:bg-[#060608] border border-slate-200 dark:border-[#222] font-mono text-[10px] transition-colors">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] dark:bg-[#22C55E] animate-ping" />
+              <span className="text-slate-500 dark:text-[#777] uppercase">ONLINE:</span>
+              <strong className="text-[#16A34A] dark:text-[#22C55E] font-bold text-sm">{totalViewers}</strong>
             </div>
           </div>
 
           <button
             onClick={() => setCreateRoomOpen(true)}
-            className="py-3 px-5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_25px_rgba(255,90,0,0.35)] flex items-center gap-2 cursor-pointer active:scale-[0.98]"
+            className="py-3 px-5 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_25px_rgba(255,90,0,0.35)] flex items-center gap-2 cursor-pointer active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>[ CRIAR NOVA SALA ]</span>
@@ -185,22 +184,22 @@ export default function RoomsPage() {
       </div>
 
       {/* ── CONTROLS BAR: BRUTALIST SEARCH & FILTER TABS ───────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-[#222] pb-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-[#222] pb-4">
         
         {/* Search Input */}
         <div className="relative flex-1 max-w-md">
           <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none text-[#FF5A00] font-mono text-[11px]">
             <span className="animate-pulse">_</span>
-            <Search className="w-3.5 h-3.5 text-[#777]" />
+            <Search className="w-3.5 h-3.5 text-slate-400 dark:text-[#777]" />
           </div>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="BUSCAR SALA POR TÍTULO, HOST OU CÓDIGO..."
-            className="w-full h-10 bg-[#09090D] border border-[#222] text-[#F5F5F5] pl-10 pr-12 text-[11px] font-mono placeholder:text-[#555] outline-none focus:border-[#FF5A00] transition-all"
+            className="w-full h-10 bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] text-slate-900 dark:text-[#F5F5F5] pl-10 pr-12 text-[11px] font-mono placeholder:text-slate-400 dark:placeholder:text-[#555] outline-none focus:border-[#FF5A00] transition-all shadow-xs"
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 border border-[#333] bg-[#050505] text-[9px] font-mono text-[#777] pointer-events-none hidden sm:block">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 border border-slate-200 dark:border-[#333] bg-slate-100 dark:bg-[#050505] text-[9px] font-mono text-slate-500 dark:text-[#777] pointer-events-none hidden sm:block">
             ⌘ K
           </div>
         </div>
@@ -210,15 +209,15 @@ export default function RoomsPage() {
           <button
             onClick={() => setActiveFilter('all')}
             className={cn(
-              'px-3 py-1.5 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-1.5',
+              'px-3.5 py-1.5 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-1.5',
               activeFilter === 'all'
-                ? 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
-                : 'bg-[#09090D] text-[#777] border-[#222] hover:text-white hover:border-[#333]'
+                ? 'bg-[#FF5A00] text-white dark:text-black border-[#FF5A00] shadow-sm'
+                : 'bg-white dark:bg-[#09090D] text-slate-600 dark:text-[#777] border-slate-200 dark:border-[#222] hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-[#333]'
             )}
           >
             <Grid className="w-3 h-3" />
             <span>[ TODAS AS SALAS ]</span>
-            <span className="text-[9px] px-1 py-0.2 bg-black/40 text-current font-bold">
+            <span className="text-[9px] px-1 py-0.2 bg-black/10 dark:bg-black/40 text-current font-bold">
               {liveRooms.length}
             </span>
           </button>
@@ -226,10 +225,10 @@ export default function RoomsPage() {
           <button
             onClick={() => setActiveFilter('popular')}
             className={cn(
-              'px-3 py-1.5 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-1.5',
+              'px-3.5 py-1.5 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-1.5',
               activeFilter === 'popular'
-                ? 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
-                : 'bg-[#09090D] text-[#777] border-[#222] hover:text-white hover:border-[#333]'
+                ? 'bg-[#FF5A00] text-white dark:text-black border-[#FF5A00] shadow-sm'
+                : 'bg-white dark:bg-[#09090D] text-slate-600 dark:text-[#777] border-slate-200 dark:border-[#222] hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-[#333]'
             )}
           >
             <Flame className="w-3 h-3 text-[#EF2020]" />
@@ -240,11 +239,11 @@ export default function RoomsPage() {
 
       {/* ── ROOMS GRID OR EMPTY STATE ──────────────────────────────── */}
       {filteredRooms.length === 0 ? (
-        <div className="p-10 sm:p-14 bg-[#09090D] border border-[#222] text-center space-y-4 relative overflow-hidden">
+        <div className="p-10 sm:p-14 bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] text-center space-y-4 relative overflow-hidden shadow-sm transition-colors">
           
           {/* Cyberpunk Grid Background */}
           <div
-            className="absolute inset-0 pointer-events-none opacity-10"
+            className="absolute inset-0 pointer-events-none opacity-5 dark:opacity-10"
             style={{
               backgroundImage: 'linear-gradient(#FF5A00 1px, transparent 1px), linear-gradient(90deg, #FF5A00 1px, transparent 1px)',
               backgroundSize: '40px 40px',
@@ -253,28 +252,28 @@ export default function RoomsPage() {
 
           <div className="relative z-10 max-w-[520px] mx-auto space-y-4">
             
-            {/* 3D Scanning Radar Core in Empty State (Clean scale without clipping) */}
+            {/* 3D Scanning Radar Core in Empty State */}
             <div className="flex justify-center py-2">
               <RoomsBroadcast3DView isPro={isPro} className="w-32 h-32 relative" />
             </div>
 
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#121218] border border-[#333] text-[9px] font-mono text-[#888] uppercase">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-[#121218] border border-slate-300 dark:border-[#333] text-[9px] font-mono text-slate-600 dark:text-[#888] uppercase">
               <span className="w-2 h-2 rounded-full bg-[#FF5A00] animate-ping" />
               <span>SYS_SCANNER: NENHUMA SALA ATIVA NESTE FILTRO NO MOMENTO</span>
             </div>
 
-            <h3 className="text-xl font-black text-white font-mono uppercase">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white font-mono uppercase">
               {searchQuery ? `Nenhum resultado para "${searchQuery}"` : 'Seja o Primeiro a Transmitir'}
             </h3>
 
-            <p className="text-[11px] font-mono text-[#888] leading-relaxed">
+            <p className="text-[11px] font-mono text-slate-500 dark:text-[#888] leading-relaxed">
               Crie sua sala instantânea sincronizada via WebRTC, compartilhe vídeos do YouTube ou sua tela ao vivo com amigos em tempo real.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={() => setCreateRoomOpen(true)}
-                className="w-full sm:w-auto px-6 py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_25px_rgba(255,90,0,0.35)] cursor-pointer"
+                className="w-full sm:w-auto px-6 py-3.5 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_25px_rgba(255,90,0,0.35)] cursor-pointer"
               >
                 [ + INICIAR PRIMEIRA SALA AGORA ]
               </button>

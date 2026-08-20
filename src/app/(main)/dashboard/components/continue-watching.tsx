@@ -12,9 +12,9 @@ export function ContinueWatching({ items }: ContinueWatchingProps) {
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center gap-2 border-b border-[#222] pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-[#222] pb-2">
         <Film className="w-4 h-4 text-[#FF5A00]" />
-        <span className="text-[10px] font-mono text-[#FF5A00] tracking-widest uppercase bg-[#111] px-2 py-0.5 border border-[#222]">
+        <span className="text-[10px] font-mono text-orange-600 dark:text-[#FF5A00] tracking-widest uppercase bg-orange-50 dark:bg-[#111] px-2 py-0.5 border border-orange-200 dark:border-[#222]">
           [03 — CONTINUE ASSISTINDO]
         </span>
       </div>

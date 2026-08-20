@@ -70,12 +70,12 @@ export function PendingInvites({ initialInvites = [], user }: PendingInvitesProp
   }
 
   return (
-    <div className="bg-[#09090D] border border-[#222] p-4 space-y-3">
+    <div className="bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] p-4 space-y-3 shadow-sm dark:shadow-none transition-colors">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#222] pb-2.5">
         <div className="flex items-center gap-2">
           <Mail className="w-3.5 h-3.5 text-[#FF5A00]" />
-          <span className="text-[10px] font-mono text-[#FF5A00] font-bold uppercase tracking-wider">
+          <span className="text-[10px] font-mono text-orange-600 dark:text-[#FF5A00] font-bold uppercase tracking-wider">
             [ CONVITES PENDENTES ]
           </span>
         </div>
@@ -90,7 +90,7 @@ export function PendingInvites({ initialInvites = [], user }: PendingInvitesProp
       {/* Invites List */}
       <div className="space-y-2">
         {invites.length === 0 ? (
-          <div className="py-6 text-center text-[10px] font-mono text-[#777]">
+          <div className="py-6 text-center text-[10px] font-mono text-slate-500 dark:text-[#777]">
             VOCÊ NÃO POSSUI CONVITES PENDENTES.
           </div>
         ) : (

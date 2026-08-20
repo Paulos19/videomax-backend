@@ -92,7 +92,7 @@ export function ChatPanel({
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#08080C] border border-[#1F1F28] overflow-hidden shrink-0 shadow-2xl">
+    <div className="w-full h-full flex flex-col bg-white dark:bg-[#08080C] border border-slate-200 dark:border-[#1F1F28] overflow-hidden shrink-0 shadow-sm dark:shadow-2xl transition-colors">
       {/* Header */}
       <ChatHeader
         viewerCount={viewerCount}
@@ -103,26 +103,27 @@ export function ChatPanel({
       />
 
       {/* Messages Feed */}
-      <div className="flex-1 min-h-0 relative">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-[#262633] scrollbar-track-transparent select-text"
+      >
         {messages.length === 0 ? (
           <EmptyChat />
         ) : (
-          <div ref={scrollRef} className="h-full overflow-y-auto px-3 py-2 space-y-1 scrollbar-thin">
-            {messages.map((msg) => (
-              <ChatMessage
-                key={msg.id}
-                message={msg}
-                currentUserId={currentUserId}
-                isOwn={msg.userId === currentUserId}
-                onReact={onReact}
-                onReply={handleReplyToMessage}
-              />
-            ))}
-          </div>
+          messages.map((msg) => (
+            <ChatMessage
+              key={msg.id}
+              message={msg}
+              currentUserId={currentUserId}
+              isOwn={msg.userId === currentUserId}
+              onReact={onReact}
+              onReply={handleReplyToMessage}
+            />
+          ))
         )}
       </div>
 
-      {/* Input Dock */}
+      {/* Message Input Footer */}
       <ChatInput
         onSend={handleSendMessage}
         replyingTo={replyingTo}

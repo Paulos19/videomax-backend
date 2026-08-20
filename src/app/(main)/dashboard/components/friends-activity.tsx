@@ -148,31 +148,31 @@ export function FriendsActivity({ initialFriends = [] }: FriendsActivityProps) {
   const onlineCount = friends.filter((f) => f.status === 'online' || f.status === 'watching').length
 
   return (
-    <div className="bg-[#09090D] border border-[#222] p-4 space-y-3">
+    <div className="bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] p-4 space-y-3 shadow-sm dark:shadow-none transition-colors">
       {/* Header with clean layout */}
-      <div className="flex items-center justify-between gap-2 border-b border-[#222] pb-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-[#222] pb-2.5">
         <div className="flex items-center gap-2 min-w-0">
           <Users className="w-3.5 h-3.5 text-[#FF5A00] shrink-0" />
-          <span className="text-[10px] font-mono text-[#FF5A00] font-bold uppercase tracking-wider truncate">
+          <span className="text-[10px] font-mono text-orange-600 dark:text-[#FF5A00] font-bold uppercase tracking-wider truncate">
             [ ATIVIDADE DOS AMIGOS ]
           </span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0 text-[9px] font-mono">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-          <span className="text-[#22C55E] font-bold">{onlineCount}</span>
-          <span className="text-[#555]">/</span>
-          <span className="text-[#888]">{friends.length}</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] dark:bg-[#22C55E] animate-pulse" />
+          <span className="text-[#16A34A] dark:text-[#22C55E] font-bold">{onlineCount}</span>
+          <span className="text-slate-400 dark:text-[#555]">/</span>
+          <span className="text-slate-500 dark:text-[#888]">{friends.length}</span>
         </div>
       </div>
 
       {/* Friends List */}
       <div className="space-y-1.5">
         {sortedFriends.length === 0 ? (
-          <div className="py-6 text-center text-[10px] font-mono text-[#777] space-y-2">
+          <div className="py-6 text-center text-[10px] font-mono text-slate-500 dark:text-[#777] space-y-2">
             <p>NENHUM AMIGO REGISTRADO AINDA.</p>
             <Link
               href="/dashboard/friends"
-              className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#FF5A00] hover:text-white uppercase transition-colors"
+              className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#FF5A00] hover:text-slate-900 dark:hover:text-white uppercase transition-colors"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>[ + ADICIONAR AMIGOS ]</span>
@@ -188,7 +188,7 @@ export function FriendsActivity({ initialFriends = [] }: FriendsActivityProps) {
       {/* Footer Link */}
       <Link
         href="/dashboard/friends"
-        className="block pt-2 text-center text-[10px] font-mono font-bold text-[#888] hover:text-[#FF5A00] uppercase transition-colors border-t border-[#1A1A22]"
+        className="block pt-2 text-center text-[10px] font-mono font-bold text-slate-500 dark:text-[#888] hover:text-[#FF5A00] uppercase transition-colors border-t border-slate-200 dark:border-[#1A1A22]"
       >
         [ VER TODOS OS AMIGOS ({friends.length}) → ]
       </Link>

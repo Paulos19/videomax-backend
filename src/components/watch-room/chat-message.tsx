@@ -285,7 +285,7 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
               )
             })}
 
-            <div className="w-px h-3 bg-[#333] mx-0.5" />
+            <div className="w-px h-3 bg-slate-300 dark:bg-[#333] mx-0.5" />
 
             {/* Reply Button */}
             {onReply && (
@@ -296,7 +296,7 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
                   onReply(message)
                   setShowMobileActions(false)
                 }}
-                className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold text-white bg-[#181824] hover:bg-[#FF5A00] hover:text-black transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold text-slate-800 dark:text-white bg-slate-100 dark:bg-[#181824] hover:bg-[#FF5A00] hover:text-white dark:hover:text-black transition-colors cursor-pointer"
                 title="Responder mensagem"
               >
                 <Reply className="w-3 h-3" />
@@ -313,12 +313,12 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
               isSticker
                 ? 'p-0 bg-transparent border-0 shadow-none'
                 : isMessagePro
-                ? 'overflow-hidden p-3 bg-[#0E0C06] border-2 border-[#FFE600] text-white shadow-[0_0_25px_rgba(255,230,0,0.25)] animate-in fade-in zoom-in-98 duration-200'
+                ? 'overflow-hidden p-3 bg-amber-50/80 dark:bg-[#0E0C06] border-2 border-amber-400 dark:border-[#FFE600] text-slate-900 dark:text-white shadow-sm dark:shadow-[0_0_25px_rgba(255,230,0,0.25)] animate-in fade-in zoom-in-98 duration-200'
                 : isStandaloneEmoji
-                ? 'p-0 bg-transparent border-0 shadow-none text-white'
+                ? 'p-0 bg-transparent border-0 shadow-none text-slate-900 dark:text-white'
                 : isOwn
-                ? 'overflow-hidden p-2.5 bg-[#FF5A00] text-black font-bold shadow-md'
-                : 'overflow-hidden p-2.5 bg-[#121218] border border-[#262633] text-white shadow-md'
+                ? 'overflow-hidden p-2.5 bg-[#FF5A00] text-white dark:text-black font-bold shadow-xs'
+                : 'overflow-hidden p-2.5 bg-slate-100 dark:bg-[#121218] border border-slate-200 dark:border-[#262633] text-slate-900 dark:text-white shadow-xs'
             )}
           >
             {/* Three.js Aura Background for PRO Messages */}
@@ -328,10 +328,10 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
             {effectiveReplyTo && (
               <div
                 className={cn(
-                  'mb-2 p-1.5 border-l-2 bg-black/40 text-[10px] space-y-0.5 relative z-10',
+                  'mb-2 p-1.5 border-l-2 bg-black/10 dark:bg-black/40 text-[10px] space-y-0.5 relative z-10',
                   effectiveReplyTo.isPro
-                    ? 'border-[#FFE600] text-[#FFE600]'
-                    : 'border-[#FF5A00] text-[#FF5A00]'
+                    ? 'border-amber-500 dark:border-[#FFE600] text-amber-700 dark:text-[#FFE600]'
+                    : 'border-[#FF5A00] text-orange-700 dark:text-[#FF5A00]'
                 )}
               >
                 <div className="flex items-center gap-1 font-black uppercase text-[9px]">
@@ -343,7 +343,7 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
                     </span>
                   )}
                 </div>
-                <p className="text-[#AAA] truncate text-[9px] pl-3.5">
+                <p className="text-slate-600 dark:text-[#AAA] truncate text-[9px] pl-3.5">
                   {renderFormattedChatMessage(effectiveReplyTo.text, 18, effectiveReplyTo.isPro)}
                 </p>
               </div>
@@ -360,7 +360,7 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
                   />
                 </div>
               ) : isMessagePro ? (
-                <div className="text-white font-mono font-bold leading-relaxed break-words">
+                <div className="text-slate-900 dark:text-white font-mono font-bold leading-relaxed break-words">
                   {renderFormattedChatMessage(parsedContent.text, 34, true)}
                 </div>
               ) : (
@@ -383,10 +383,10 @@ export function ChatMessage({ message, currentUserId, isOwn, onReact, onReply }:
                   type="button"
                   onClick={() => handleReact(emoji)}
                   className={cn(
-                    'text-[10px] px-1.5 py-0.5 border flex items-center gap-1 font-mono transition-colors cursor-pointer shadow-sm',
+                    'text-[10px] px-1.5 py-0.5 border flex items-center gap-1 font-mono transition-colors cursor-pointer shadow-xs',
                     isMyReaction
-                      ? 'bg-[#FF5A00]/20 border-[#FF5A00] text-[#FF5A00] font-black ring-1 ring-[#FF5A00]'
-                      : 'bg-[#121218] border-[#333] text-[#AAA] hover:border-white hover:text-white'
+                      ? 'bg-orange-50 dark:bg-[#FF5A00]/20 border-[#FF5A00] text-[#FF5A00] font-black ring-1 ring-[#FF5A00]'
+                      : 'bg-white dark:bg-[#121218] border-slate-300 dark:border-[#333] text-slate-700 dark:text-[#AAA] hover:border-slate-400 dark:hover:border-white'
                   )}
                 >
                   <span>{emoji}</span>

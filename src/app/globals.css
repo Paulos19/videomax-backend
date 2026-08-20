@@ -47,23 +47,82 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* VideoMax Redesign Palette */
-  --color-room-bg: #050505;
-  --color-room-surface: #0B0B0B;
-  --color-room-surface-2: #111111;
-  --color-room-surface-3: #151515;
-  --color-room-text: #F5F5F5;
-  --color-room-text-secondary: #8A8A8A;
-  --color-room-accent: #FF5A00;
-  --color-room-accent-secondary: #FFB800;
-  --color-room-red: #EF2020;
-  --color-room-yellow: #FFB800;
-  --color-room-online: #22C55E;
-  --color-room-border: #242424;
-  --color-room-border-light: #2A2A2A;
+  /* VideoMax Palette Variables */
+  --color-room-bg: var(--room-bg);
+  --color-room-surface: var(--room-surface);
+  --color-room-surface-2: var(--room-surface-2);
+  --color-room-surface-3: var(--room-surface-3);
+  --color-room-text: var(--room-text);
+  --color-room-text-secondary: var(--room-text-secondary);
+  --color-room-accent: var(--room-accent);
+  --color-room-accent-secondary: var(--room-accent-secondary);
+  --color-room-red: var(--room-red);
+  --color-room-yellow: var(--room-yellow);
+  --color-room-online: var(--room-online);
+  --color-room-border: var(--room-border);
+  --color-room-border-light: var(--room-border-light);
 }
 
 :root {
+  /* LIGHT THEME (Titanium Pearl / High-Tech Crisp) */
+  --background: #F8F9FB;
+  --surface: #FFFFFF;
+  --surface-hover: #F1F5F9;
+  --surface-elevated: #FFFFFF;
+  --border: #E2E8F0;
+  --foreground: #0F172A;
+  --muted: #475569;
+  --muted-foreground: #64748B;
+  --brand-red: #EF4444;
+  --brand-orange: #FF5A00;
+  --brand-yellow: #F59E0B;
+
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #FF5A00;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --accent: #FF5A00;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --input: #E2E8F0;
+  --ring: #FF5A00;
+  --chart-1: #EF4444;
+  --chart-2: #FF5A00;
+  --chart-3: #F59E0B;
+  --chart-4: #EA580C;
+  --chart-5: #16A34A;
+  --radius: 0.75rem;
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #FF5A00;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F8FAFC;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #FF5A00;
+
+  --room-bg: #F8F9FB;
+  --room-surface: #FFFFFF;
+  --room-surface-2: #F1F5F9;
+  --room-surface-3: #E2E8F0;
+  --room-text: #0F172A;
+  --room-text-secondary: #64748B;
+  --room-accent: #FF5A00;
+  --room-accent-secondary: #F59E0B;
+  --room-red: #EF4444;
+  --room-yellow: #F59E0B;
+  --room-online: #16A34A;
+  --room-border: #E2E8F0;
+  --room-border-light: #CBD5E1;
+}
+
+.dark {
+  /* DARK THEME (Cyberpunk Obsidian / Quantum Darkroom) */
   --background: #050505;
   --surface: #0B0B0B;
   --surface-hover: #111111;
@@ -94,7 +153,7 @@
   --chart-3: #FFB800;
   --chart-4: #EF2020;
   --chart-5: #22C55E;
-  --radius: 0.75rem;
+
   --sidebar: #050505;
   --sidebar-foreground: #F5F5F5;
   --sidebar-primary: #FF5A00;
@@ -103,6 +162,20 @@
   --sidebar-accent-foreground: #F5F5F5;
   --sidebar-border: #242424;
   --sidebar-ring: #FF5A00;
+
+  --room-bg: #050505;
+  --room-surface: #0B0B0B;
+  --room-surface-2: #111111;
+  --room-surface-3: #151515;
+  --room-text: #F5F5F5;
+  --room-text-secondary: #8A8A8A;
+  --room-accent: #FF5A00;
+  --room-accent-secondary: #FFB800;
+  --room-red: #EF2020;
+  --room-yellow: #FFB800;
+  --room-online: #22C55E;
+  --room-border: #242424;
+  --room-border-light: #2A2A2A;
 }
 
 @layer base {
@@ -135,6 +208,10 @@
   background: linear-gradient(135deg, rgba(239,32,32,0.12), rgba(255,90,0,0.08), rgba(255,184,0,0.04));
 }
 
+.dark .brand-gradient-subtle {
+  background: linear-gradient(135deg, rgba(239,32,32,0.12), rgba(255,90,0,0.08), rgba(255,184,0,0.04));
+}
+
 .brand-glow {
   box-shadow: 0 0 30px rgba(255, 90, 0, 0.2), 0 0 60px rgba(239, 32, 32, 0.08);
 }
@@ -143,9 +220,18 @@
   box-shadow: 0 0 25px rgba(255, 90, 0, 0.35), 0 0 50px rgba(239, 32, 32, 0.15);
 }
 
+/* Pro Golden Aura - Light & Dark */
+.pro-glow-gold {
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.25), 0 0 50px rgba(217, 119, 6, 0.1);
+}
+
+.dark .pro-glow-gold {
+  box-shadow: 0 0 30px rgba(255, 230, 0, 0.35), 0 0 60px rgba(255, 184, 0, 0.15);
+}
+
 /* Sidebar gradient background */
 .sidebar-gradient {
-  background: #050505;
+  background: var(--sidebar);
 }
 
 /* Custom scrollbars */
@@ -154,18 +240,18 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #050505;
+  background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
-  background: #242424;
+  background: var(--border);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #FF5A00;
+  background: var(--primary);
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: #242424 #050505;
+  scrollbar-color: var(--border) var(--background);
 }
 
 /* Custom scrollbar for chat */
@@ -173,14 +259,14 @@
   width: 5px;
 }
 .chat-scroll::-webkit-scrollbar-track {
-  background: #090909;
+  background: var(--room-surface);
 }
 .chat-scroll::-webkit-scrollbar-thumb {
-  background: #242424;
+  background: var(--room-border);
   border-radius: 4px;
 }
 .chat-scroll::-webkit-scrollbar-thumb:hover {
-  background: #FF5A00;
+  background: var(--room-accent);
 }
 
 /* Video controls gradient */

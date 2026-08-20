@@ -374,19 +374,19 @@ export function WatchRoom({
   }, [canControl, isPlaying, handlePause, handlePlay])
 
   return (
-    <div className="h-screen flex flex-col bg-[#050505] text-white overflow-y-auto lg:overflow-hidden relative font-sans">
+    <div className="h-screen flex flex-col bg-slate-100 dark:bg-[#050505] text-slate-900 dark:text-white overflow-y-auto lg:overflow-hidden relative font-sans transition-colors">
       
       {/* Action Telemetry Toast (Floating) */}
       {!isStreamingScreen &&
         lastPlayerAction &&
         Date.now() - lastPlayerAction.serverTimestamp < 4000 && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-[#0A0A0F] border-2 border-[#FF5A00] text-white px-4 py-2 font-mono text-xs shadow-2xl flex items-center gap-2.5 animate-bounce">
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-white dark:bg-[#0A0A0F] border-2 border-[#FF5A00] text-slate-900 dark:text-white px-4 py-2 font-mono text-xs shadow-2xl flex items-center gap-2.5 animate-bounce">
             {lastPlayerAction.type === 'play' ? (
-              <Play className="w-4 h-4 text-[#22C55E] fill-[#22C55E]" />
+              <Play className="w-4 h-4 text-[#16A34A] dark:text-[#22C55E] fill-current" />
             ) : lastPlayerAction.type === 'pause' ? (
-              <Pause className="w-4 h-4 text-[#FFE600] fill-[#FFE600]" />
+              <Pause className="w-4 h-4 text-amber-500 dark:text-[#FFE600] fill-current" />
             ) : (
-              <FastForward className="w-4 h-4 text-[#00F0FF]" />
+              <FastForward className="w-4 h-4 text-cyan-600 dark:text-[#00F0FF]" />
             )}
             <span className="uppercase font-bold">
               <strong className="text-[#FF5A00]">{lastPlayerAction.senderName}</strong>{' '}
@@ -466,21 +466,21 @@ export function WatchRoom({
           </div>
 
           {/* Mobile Tab Switcher (< lg breakpoint) */}
-          <div className="flex lg:hidden items-center bg-[#08080C] border border-[#1F1F28] p-1 gap-1 font-mono shrink-0">
+          <div className="flex lg:hidden items-center bg-white dark:bg-[#08080C] border border-slate-200 dark:border-[#1F1F28] p-1 gap-1 font-mono shrink-0">
             <button
               type="button"
               onClick={() => setActiveMobileTab('chat')}
               className={cn(
                 'flex-1 py-2 px-3 text-[11px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer',
                 activeMobileTab === 'chat'
-                  ? 'bg-[#FF5A00] text-black shadow-md'
-                  : 'text-[#888] hover:text-white hover:bg-[#111]'
+                  ? 'bg-[#FF5A00] text-white dark:text-black shadow-md'
+                  : 'text-slate-500 dark:text-[#888] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111]'
               )}
             >
               <MessageSquare className="w-3.5 h-3.5" />
               <span>CHAT</span>
               {messages.length > 0 && (
-                <span className="bg-black/30 text-black px-1.5 py-0.2 text-[9px]">
+                <span className="bg-black/20 dark:bg-black/30 text-white dark:text-black px-1.5 py-0.2 text-[9px]">
                   {messages.length}
                 </span>
               )}
@@ -492,8 +492,8 @@ export function WatchRoom({
               className={cn(
                 'flex-1 py-2 px-3 text-[11px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer',
                 activeMobileTab === 'viewers'
-                  ? 'bg-[#FF5A00] text-black shadow-md'
-                  : 'text-[#888] hover:text-white hover:bg-[#111]'
+                  ? 'bg-[#FF5A00] text-white dark:text-black shadow-md'
+                  : 'text-slate-500 dark:text-[#888] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111]'
               )}
             >
               <Users className="w-3.5 h-3.5" />
@@ -506,8 +506,8 @@ export function WatchRoom({
               className={cn(
                 'flex-1 py-2 px-3 text-[11px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer',
                 activeMobileTab === 'info'
-                  ? 'bg-[#FF5A00] text-black shadow-md'
-                  : 'text-[#888] hover:text-white hover:bg-[#111]'
+                  ? 'bg-[#FF5A00] text-white dark:text-black shadow-md'
+                  : 'text-slate-500 dark:text-[#888] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111]'
               )}
             >
               <Info className="w-3.5 h-3.5" />

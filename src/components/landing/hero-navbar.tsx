@@ -27,6 +27,7 @@ import { useLandingSocket } from '@/lib/useLandingSocket'
 import { useLenis } from 'lenis/react'
 import { useSession, signOut } from 'next-auth/react'
 import { UnverifiedEmailBanner } from '@/components/unverified-email-banner'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const NAV_LINKS = [
   { label: 'SALAS_AO_VIVO', href: '#salas' },
@@ -203,8 +204,10 @@ export function HeroNavbar() {
         }}
         animate={hidden ? 'hidden' : 'visible'}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className={`fixed top-0 left-0 right-0 z-[999] transition-colors duration-300 border-b border-[#222] ${
-          scrolled ? 'bg-[#050505]/95 backdrop-blur-md shadow-2xl' : 'bg-[#050505]'
+        className={`fixed top-0 left-0 right-0 z-[999] transition-colors duration-300 border-b border-slate-200 dark:border-[#222] ${
+          scrolled
+            ? 'bg-white/95 dark:bg-[#050505]/95 backdrop-blur-md shadow-lg dark:shadow-2xl'
+            : 'bg-white/90 dark:bg-[#050505]'
         }`}
       >
         <UnverifiedEmailBanner />
@@ -213,12 +216,12 @@ export function HeroNavbar() {
           {/* Logo - Brutalist Block */}
           <Link
             href="/"
-            className="flex items-center gap-3 group shrink-0 border-r border-[#222] px-6 lg:px-10 py-5 hover:bg-[#111] transition-colors h-full cursor-pointer"
+            className="flex items-center gap-3 group shrink-0 border-r border-slate-200 dark:border-[#222] px-6 lg:px-10 py-5 hover:bg-slate-100 dark:hover:bg-[#111] transition-colors h-full cursor-pointer"
           >
             <div className="w-6 h-6 bg-[#FF5A00] flex items-center justify-center transition-transform group-hover:skew-x-[-10deg]">
-              <Play className="w-3 h-3 text-[#050505] fill-[#050505] ml-0.5" />
+              <Play className="w-3 h-3 text-white dark:text-[#050505] fill-white dark:fill-[#050505] ml-0.5" />
             </div>
-            <span className="font-black text-xl tracking-tighter uppercase text-[#F5F5F5]">
+            <span className="font-black text-xl tracking-tighter uppercase text-slate-900 dark:text-[#F5F5F5]">
               VIDEOMAX
             </span>
           </Link>
@@ -230,20 +233,20 @@ export function HeroNavbar() {
                 key={link.label}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href)}
-                className="text-[10px] font-mono font-bold text-[#A3A3A3] hover:text-white hover:bg-[#111] px-6 py-6 border-r border-[#222] transition-colors tracking-widest cursor-pointer"
+                className="text-[10px] font-mono font-bold text-slate-600 dark:text-[#A3A3A3] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111] px-6 py-6 border-r border-slate-200 dark:border-[#222] transition-colors tracking-widest cursor-pointer"
               >
                 [{link.label}]
               </a>
             ))}
 
             {/* System Status Node */}
-            <div className="flex items-center gap-2 px-6 py-6 border-r border-[#222]">
+            <div className="flex items-center gap-2 px-6 py-6 border-r border-slate-200 dark:border-[#222]">
               <span
                 className={`w-2 h-2 rounded-full ${
                   isConnected ? 'bg-[#22C55E] animate-pulse' : 'bg-[#EF2020]'
                 }`}
               />
-              <span className="text-[10px] font-mono text-[#5F5F5F] tracking-widest">
+              <span className="text-[10px] font-mono text-slate-500 dark:text-[#5F5F5F] tracking-widest">
                 {isConnected ? `SYS_ONLINE: ${viewerCount}` : 'SYS_OFFLINE'}
               </span>
             </div>
@@ -534,26 +537,37 @@ export function HeroNavbar() {
             ) : (
               // ── GUEST VISITORS AUTH BUTTONS ──────────────────────
               <>
+                <div className="hidden md:flex items-center px-4 h-full border-l border-slate-200 dark:border-[#222]">
+                  <ThemeToggle variant="compact" />
+                </div>
+
                 <Link
                   href="/login"
-                  className="hidden md:flex text-[10px] font-mono font-bold text-white hover:text-[#FF5A00] hover:bg-[#111] px-6 lg:px-8 py-6 transition-colors tracking-widest uppercase h-full items-center border-l border-[#222] cursor-pointer"
+                  className="hidden md:flex text-[10px] font-mono font-bold text-slate-800 dark:text-white hover:text-[#FF5A00] hover:bg-slate-100 dark:hover:bg-[#111] px-6 lg:px-8 py-6 transition-colors tracking-widest uppercase h-full items-center border-l border-slate-200 dark:border-[#222] cursor-pointer"
                 >
                   Entrar
                 </Link>
 
                 <Link
                   href="/register"
-                  className="hidden md:flex text-[11px] font-mono font-bold bg-[#F5F5F5] hover:bg-[#FF5A00] text-[#050505] hover:text-[#050505] px-8 lg:px-10 py-6 transition-colors tracking-widest uppercase h-full items-center cursor-pointer shadow-md"
+                  className="hidden md:flex text-[11px] font-mono font-bold bg-slate-900 hover:bg-[#FF5A00] text-white hover:text-black dark:bg-[#F5F5F5] dark:hover:bg-[#FF5A00] dark:text-[#050505] dark:hover:text-[#050505] px-8 lg:px-10 py-6 transition-all tracking-widest uppercase h-full items-center cursor-pointer shadow-md"
                 >
                   CRIAR CONTA
                 </Link>
               </>
             )}
 
+            {/* If logged in on desktop, also show ThemeToggle */}
+            {authStatus === 'authenticated' && user && (
+              <div className="hidden md:flex items-center px-3 h-full border-l border-slate-200 dark:border-[#222]">
+                <ThemeToggle variant="compact" />
+              </div>
+            )}
+
             {/* Mobile Toggle */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="w-16 flex xl:hidden items-center justify-center bg-[#111] hover:bg-[#FF5A00] text-white hover:text-[#050505] transition-colors cursor-pointer border-l border-[#222] h-[68px]"
+              className="w-16 flex xl:hidden items-center justify-center bg-slate-100 dark:bg-[#111] hover:bg-[#FF5A00] text-slate-900 dark:text-white hover:text-black transition-colors cursor-pointer border-l border-slate-200 dark:border-[#222] h-[68px]"
               aria-label="Menu"
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -568,22 +582,26 @@ export function HeroNavbar() {
           className="fixed inset-0 z-[1000] xl:hidden flex flex-col pt-[68px]"
           onClick={() => setMobileOpen(false)}
         >
-          <div className="absolute inset-0 bg-[#050505]/95 backdrop-blur-xl" />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
 
           <div
-            className="relative z-[1001] w-full bg-[#080808] border-b border-[#222] flex flex-col shadow-2xl animate-in slide-in-from-top-2 duration-200"
+            className="relative z-[1001] w-full bg-white dark:bg-[#080808] border-b border-slate-200 dark:border-[#222] flex flex-col shadow-2xl animate-in slide-in-from-top-2 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Mobile Socket Status */}
-            <div className="flex items-center gap-2 px-6 py-4 border-b border-[#222] bg-[#111]">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isConnected ? 'bg-[#22C55E] animate-pulse' : 'bg-[#EF2020]'
-                }`}
-              />
-              <span className="text-[10px] font-mono text-[#A3A3A3] uppercase tracking-widest">
-                STATUS: {isConnected ? 'ONLINE' : 'OFFLINE'} // NÓS: {viewerCount}
-              </span>
+            {/* Mobile Socket Status & Theme Toggle */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-[#222] bg-slate-50 dark:bg-[#111]">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isConnected ? 'bg-[#22C55E] animate-pulse' : 'bg-[#EF2020]'
+                  }`}
+                />
+                <span className="text-[10px] font-mono text-slate-600 dark:text-[#A3A3A3] uppercase tracking-widest">
+                  STATUS: {isConnected ? 'ONLINE' : 'OFFLINE'} // NÓS: {viewerCount}
+                </span>
+              </div>
+
+              <ThemeToggle variant="compact" />
             </div>
 
             {/* Nav links */}
@@ -592,11 +610,11 @@ export function HeroNavbar() {
                 <a
                   key={link.label}
                   href={link.href}
-                  className="text-[12px] font-mono font-bold text-[#A3A3A3] hover:text-white hover:bg-[#111] px-6 py-4 border-b border-[#222] transition-colors uppercase tracking-widest cursor-pointer flex items-center justify-between"
+                  className="text-[12px] font-mono font-bold text-slate-700 dark:text-[#A3A3A3] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111] px-6 py-4 border-b border-slate-200 dark:border-[#222] transition-colors uppercase tracking-widest cursor-pointer flex items-center justify-between"
                   onClick={(e) => handleNavClick(e, link.href)}
                 >
                   <span>&gt; {link.label}</span>
-                  <span className="text-[10px] text-[#555]">GOTO</span>
+                  <span className="text-[10px] text-slate-400 dark:text-[#555]">GOTO</span>
                 </a>
               ))}
             </div>

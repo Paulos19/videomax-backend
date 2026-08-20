@@ -16,50 +16,50 @@ export function FriendStats({
   roomsTogetherCount = 18,
 }: FriendStatsProps) {
   return (
-    <div className="bg-[#09090D] border border-[#222] p-4 space-y-3.5 shadow-xl">
+    <div className="bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] p-4 space-y-3.5 shadow-sm dark:shadow-xl transition-colors">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#222] pb-2.5">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#222] pb-2.5">
         <div className="flex items-center gap-2">
           <Activity className="w-3.5 h-3.5 text-[#FF5A00]" />
-          <h3 className="text-white font-mono font-bold text-[10px] uppercase tracking-wider">
+          <h3 className="text-slate-900 dark:text-white font-mono font-bold text-[10px] uppercase tracking-wider">
             [ TELEMETRIA DA REDE ]
           </h3>
         </div>
-        <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-ping" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] dark:bg-[#22C55E] animate-ping" />
       </div>
 
       {/* Telemetry rows */}
       <div className="space-y-2 font-mono text-[10px]">
-        <div className="flex items-center justify-between p-2 bg-[#050508] border border-[#1C1C24]">
-          <div className="flex items-center gap-2 text-[#AAA]">
+        <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-[#050508] border border-slate-200 dark:border-[#1C1C24] transition-colors">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-[#AAA]">
             <Users className="w-3.5 h-3.5 text-[#FF5A00]" />
             <span className="uppercase">AMIGOS NA REDE</span>
           </div>
-          <span className="font-bold text-white text-xs">{friendsCount}</span>
+          <span className="font-bold text-slate-900 dark:text-white text-xs">{friendsCount}</span>
         </div>
 
-        <div className="flex items-center justify-between p-2 bg-[#050508] border border-[#1C1C24]">
-          <div className="flex items-center gap-2 text-[#AAA]">
-            <Clock className="w-3.5 h-3.5 text-[#FFE600]" />
+        <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-[#050508] border border-slate-200 dark:border-[#1C1C24] transition-colors">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-[#AAA]">
+            <Clock className="w-3.5 h-3.5 text-amber-500 dark:text-[#FFE600]" />
             <span className="uppercase">SOLICITAÇÕES PENDENTES</span>
           </div>
-          <span className="font-bold text-[#FFE600] text-xs">{pendingCount}</span>
+          <span className="font-bold text-amber-600 dark:text-[#FFE600] text-xs">{pendingCount}</span>
         </div>
 
-        <div className="flex items-center justify-between p-2 bg-[#050508] border border-[#1C1C24]">
-          <div className="flex items-center gap-2 text-[#AAA]">
+        <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-[#050508] border border-slate-200 dark:border-[#1C1C24] transition-colors">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-[#AAA]">
             <Mail className="w-3.5 h-3.5 text-[#EF2020]" />
             <span className="uppercase">PEDIDOS RECEBIDOS</span>
           </div>
           <span className="font-bold text-[#EF2020] text-xs">{requestsCount}</span>
         </div>
 
-        <div className="flex items-center justify-between p-2 bg-[#050508] border border-[#1C1C24]">
-          <div className="flex items-center gap-2 text-[#AAA]">
+        <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-[#050508] border border-slate-200 dark:border-[#1C1C24] transition-colors">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-[#AAA]">
             <Film className="w-3.5 h-3.5 text-[#3B82F6]" />
             <span className="uppercase">SESSÕES COMPARTILHADAS</span>
           </div>
-          <span className="font-bold text-white text-xs">{roomsTogetherCount}</span>
+          <span className="font-bold text-slate-900 dark:text-white text-xs">{roomsTogetherCount}</span>
         </div>
       </div>
     </div>

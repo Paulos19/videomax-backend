@@ -159,33 +159,33 @@ export default function LojaPage() {
     <div className="space-y-8">
       
       {/* ── HEADER COMMAND BANNER ─────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-[#09090D] border border-[#222] p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl">
+      <div className="relative overflow-hidden bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] p-5 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm dark:shadow-2xl transition-colors">
         <div
           className={cn(
             'absolute top-0 right-0 w-80 h-full blur-3xl pointer-events-none opacity-20 transition-colors',
-            isPro ? 'bg-[#FFE600]' : 'bg-[#FF5A00]'
+            isPro ? 'bg-amber-400 dark:bg-[#FFE600]' : 'bg-orange-400 dark:bg-[#FF5A00]'
           )}
         />
 
         <div className="flex items-center gap-4 relative z-10">
-          <div className="w-12 h-12 bg-[#FF5A00] flex items-center justify-center font-black shrink-0 text-black shadow-[0_0_20px_rgba(255,90,0,0.3)]">
+          <div className="w-12 h-12 bg-[#FF5A00] flex items-center justify-center font-black shrink-0 text-white dark:text-black shadow-[0_0_20px_rgba(255,90,0,0.3)]">
             <ShoppingBag className="w-6 h-6 stroke-[2.5]" />
           </div>
 
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-mono text-[#FF5A00] uppercase font-bold tracking-widest bg-[#14141E] px-2 py-0.5 border border-[#222]">
+              <span className="text-[9px] font-mono text-orange-600 dark:text-[#FF5A00] uppercase font-bold tracking-widest bg-orange-50 dark:bg-[#14141E] px-2 py-0.5 border border-orange-200 dark:border-[#222]">
                 [ LOJA OFICIAL // UPGRADES ]
               </span>
-              <span className="text-[9px] font-mono text-[#22C55E] uppercase font-bold bg-[#061508] border border-[#16381C] px-2 py-0.5">
+              <span className="text-[9px] font-mono text-[#16A34A] dark:text-[#22C55E] uppercase font-bold bg-emerald-50 dark:bg-[#061508] border border-emerald-200 dark:border-[#16381C] px-2 py-0.5">
                 ● STRIPE SECURE
               </span>
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-black font-mono text-white uppercase tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white uppercase tracking-tight">
               LOJA VIDEOMAX & PLANOS VIP
             </h1>
-            <p className="text-[11px] font-mono text-[#888]">
+            <p className="text-[11px] font-mono text-slate-500 dark:text-[#888]">
               Personalize seu perfil com molduras holográficas, cores exclusivas e assine o Plano MAXPRO.
             </p>
           </div>
@@ -200,100 +200,100 @@ export default function LojaPage() {
       {/* ── HERO VIP PLAN BLOCK (HIGH VOLTAGE) ────────────────────── */}
       <div
         className={cn(
-          'relative overflow-hidden p-6 sm:p-8 border transition-all duration-300 shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-8',
+          'relative overflow-hidden p-6 sm:p-8 border transition-all duration-300 shadow-md dark:shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-8',
           isPro
-            ? 'bg-gradient-to-r from-[#1A1308] via-[#0E0C0A] to-[#070605] border-[#FFE600]/60 shadow-[0_0_35px_rgba(255,230,0,0.15)]'
-            : 'bg-gradient-to-r from-[#160E08] via-[#0E0C0A] to-[#070605] border-[#FF5A00]/50 shadow-[0_0_35px_rgba(255,90,0,0.15)]'
+            ? 'bg-gradient-to-r from-amber-50 via-white to-orange-50/50 dark:from-[#1A1308] dark:via-[#0E0C0A] dark:to-[#070605] border-amber-300 dark:border-[#FFE600]/60 shadow-[0_0_35px_rgba(245,158,11,0.15)] dark:shadow-[0_0_35px_rgba(255,230,0,0.15)]'
+            : 'bg-gradient-to-r from-orange-50 via-white to-amber-50/50 dark:from-[#160E08] dark:via-[#0E0C0A] dark:to-[#070605] border-orange-300 dark:border-[#FF5A00]/50 shadow-[0_0_35px_rgba(255,90,0,0.1)] dark:shadow-[0_0_35px_rgba(255,90,0,0.15)]'
         )}
       >
         <div className="space-y-4 flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1 font-mono font-black text-[10px] uppercase tracking-widest shadow-md',
+                'inline-flex items-center gap-1.5 px-3 py-1 font-mono font-black text-[10px] uppercase tracking-widest shadow-sm',
                 isPro
-                  ? 'bg-[#FFE600] text-black shadow-[0_0_12px_rgba(255,230,0,0.4)]'
-                  : 'bg-[#FF5A00] text-black shadow-[0_0_12px_rgba(255,90,0,0.4)]'
+                  ? 'bg-amber-500 text-white dark:bg-[#FFE600] dark:text-black shadow-[0_0_12px_rgba(255,230,0,0.4)]'
+                  : 'bg-[#FF5A00] text-white dark:text-black shadow-[0_0_12px_rgba(255,90,0,0.4)]'
               )}
             >
-              <Crown className="w-3.5 h-3.5 fill-black" />
+              <Crown className="w-3.5 h-3.5 fill-current" />
               <span>{isPro ? '👑 SEU PLANO VIP ATIVO ATUALMENTE' : '★ PLANO RECOMENDADO'}</span>
             </span>
           </div>
 
           <div>
-            <h2 className="text-2xl sm:text-3xl font-black font-mono text-white uppercase tracking-tight flex items-center gap-2">
-              ASSINATURA PLANO MAXPRO <span className="text-[#FFE600]">⭐</span>
+            <h2 className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+              ASSINATURA PLANO MAXPRO <span className="text-amber-500 dark:text-[#FFE600]">⭐</span>
             </h2>
-            <p className="text-[11px] font-mono text-[#AAA] max-w-xl mt-1 leading-relaxed">
+            <p className="text-[11px] font-mono text-slate-600 dark:text-[#AAA] max-w-xl mt-1 leading-relaxed">
               Suba de nível e ofereça a melhor experiência para seus amigos com infraestrutura Mesh 6X em alta resolução e baixa latência.
             </p>
           </div>
 
           {/* Telemetry Bullets Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
-            <div className="flex items-center gap-2 text-[#E5E5E5]">
-              <span className="text-[#FFE600] font-bold">✓</span>
+            <div className="flex items-center gap-2 text-slate-700 dark:text-[#E5E5E5]">
+              <span className="text-amber-500 dark:text-[#FFE600] font-bold">✓</span>
               <span>Salas para até 6 participantes simultâneos</span>
             </div>
-            <div className="flex items-center gap-2 text-[#E5E5E5]">
-              <span className="text-[#FFE600] font-bold">✓</span>
+            <div className="flex items-center gap-2 text-slate-700 dark:text-[#E5E5E5]">
+              <span className="text-amber-500 dark:text-[#FFE600] font-bold">✓</span>
               <span>Transmissão HD 1080p sem travamentos</span>
             </div>
-            <div className="flex items-center gap-2 text-[#E5E5E5]">
-              <span className="text-[#FFE600] font-bold">✓</span>
+            <div className="flex items-center gap-2 text-slate-700 dark:text-[#E5E5E5]">
+              <span className="text-amber-500 dark:text-[#FFE600] font-bold">✓</span>
               <span>Selo exclusivo de Host VIP nas salas</span>
             </div>
-            <div className="flex items-center gap-2 text-[#E5E5E5]">
-              <span className="text-[#FFE600] font-bold">✓</span>
+            <div className="flex items-center gap-2 text-slate-700 dark:text-[#E5E5E5]">
+              <span className="text-amber-500 dark:text-[#FFE600] font-bold">✓</span>
               <span>Salas privadas ilimitadas e suporte prioritário</span>
             </div>
           </div>
         </div>
 
         {/* Pricing Box & Checkout Action */}
-        <div className="w-full lg:w-72 bg-[#050507] border border-[#2A2A35] p-6 flex flex-col items-center text-center space-y-4 shrink-0 shadow-xl">
-          <span className="text-[10px] font-mono text-[#888] uppercase tracking-widest">
+        <div className="w-full lg:w-72 bg-slate-50 dark:bg-[#050507] border border-slate-200 dark:border-[#2A2A35] p-6 flex flex-col items-center text-center space-y-4 shrink-0 shadow-sm dark:shadow-xl transition-colors">
+          <span className="text-[10px] font-mono text-slate-500 dark:text-[#888] uppercase tracking-widest">
             {isPro ? 'VALOR DA ASSINATURA' : 'POR APENAS'}
           </span>
 
           <div className="flex items-baseline gap-1 font-mono">
             <span className="text-sm font-bold text-[#FF5A00]">R$</span>
-            <span className="text-3xl font-black text-white">19,90</span>
-            <span className="text-[11px] text-[#777]">/mês</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white">19,90</span>
+            <span className="text-[11px] text-slate-500 dark:text-[#777]">/mês</span>
           </div>
 
           {isPro ? (
             <button
               onClick={() => router.push('/profile')}
-              className="w-full py-3.5 bg-[#FFE600] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,230,0,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+              className="w-full py-3.5 bg-amber-500 hover:bg-slate-900 dark:bg-[#FFE600] dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-md dark:shadow-[0_0_20px_rgba(255,230,0,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
             >
-              <Crown className="w-4 h-4 fill-black" />
+              <Crown className="w-4 h-4 fill-current" />
               <span>[ GERENCIAR PLANO VIP ]</span>
             </button>
           ) : (
             <button
               onClick={handleCheckoutPro}
               disabled={loadingCheckout}
-              className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_25px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+              className="w-full py-3.5 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_25px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
             >
               {loadingCheckout ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Crown className="w-4 h-4 fill-black" />
+                <Crown className="w-4 h-4 fill-current" />
               )}
               <span>[ ASSINAR PLANO PRO ]</span>
             </button>
           )}
 
-          <span className="text-[9px] font-mono text-[#666]">
+          <span className="text-[9px] font-mono text-slate-500 dark:text-[#666]">
             Pagamento 100% seguro via Stripe. Cancele a qualquer momento.
           </span>
         </div>
       </div>
 
       {/* ── CATEGORY FILTER TABS ───────────────────────────────────── */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none border-b border-[#222]">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200 dark:border-[#222]">
         {categories.map((cat) => {
           const active = activeCategory === cat.id
           const count =
@@ -308,15 +308,17 @@ export default function LojaPage() {
               className={cn(
                 'px-3.5 py-2 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap',
                 active
-                  ? 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
-                  : 'bg-[#09090D] text-[#777] border-[#222] hover:text-white hover:border-[#333]'
+                  ? 'bg-[#FF5A00] text-white dark:text-black border-[#FF5A00] shadow-sm'
+                  : 'bg-white dark:bg-[#09090D] text-slate-600 dark:text-[#777] border-slate-200 dark:border-[#222] hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-[#333]'
               )}
             >
               <span>[ {cat.label} ]</span>
               <span
                 className={cn(
                   'text-[9px] px-1 py-0.2 rounded-xs font-mono font-bold',
-                  active ? 'bg-black text-[#FF5A00]' : 'bg-[#151520] text-[#888]'
+                  active
+                    ? 'bg-slate-900 text-white dark:bg-black dark:text-[#FF5A00]'
+                    : 'bg-slate-100 dark:bg-[#151520] text-slate-600 dark:text-[#888]'
                 )}
               >
                 {count}
@@ -336,41 +338,41 @@ export default function LojaPage() {
             <div
               key={item.id}
               className={cn(
-                'group relative bg-[#09090D] border p-5 flex flex-col justify-between space-y-4 transition-all duration-200 hover:scale-[1.01]',
+                'group relative bg-white dark:bg-[#09090D] border p-5 flex flex-col justify-between space-y-4 transition-all duration-200 hover:scale-[1.01]',
                 item.borderColor,
-                'hover:border-white/60 shadow-xl'
+                'hover:border-slate-400 dark:hover:border-white/60 shadow-sm dark:shadow-xl'
               )}
             >
               <div className="space-y-3">
                 
                 {/* Header: Icon & Badge */}
                 <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 bg-[#121218] border border-[#222] flex items-center justify-center text-[#FFE600] group-hover:text-white transition-colors">
+                  <div className="w-10 h-10 bg-slate-100 dark:bg-[#121218] border border-slate-200 dark:border-[#222] flex items-center justify-center text-amber-500 dark:text-[#FFE600] group-hover:text-[#FF5A00] transition-colors">
                     <IconComp className="w-5 h-5" />
                   </div>
 
                   {item.badge && (
-                    <span className="text-[8px] font-mono font-bold bg-[#FF5A00] text-black px-2 py-0.5 uppercase tracking-wider">
+                    <span className="text-[8px] font-mono font-bold bg-[#FF5A00] text-white dark:text-black px-2 py-0.5 uppercase tracking-wider">
                       {item.badge}
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <h3 className="text-[13px] font-mono font-bold text-white uppercase group-hover:text-[#FF5A00] transition-colors">
+                  <h3 className="text-[13px] font-mono font-bold text-slate-900 dark:text-white uppercase group-hover:text-[#FF5A00] transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-[10px] font-mono text-[#888] mt-1.5 leading-relaxed">
+                  <p className="text-[10px] font-mono text-slate-500 dark:text-[#888] mt-1.5 leading-relaxed">
                     {item.description}
                   </p>
                 </div>
               </div>
 
               {/* Footer: Price & Buy Action */}
-              <div className="pt-3 border-t border-[#1C1C24] flex items-center justify-between gap-3">
+              <div className="pt-3 border-t border-slate-200 dark:border-[#1C1C24] flex items-center justify-between gap-3">
                 <div>
-                  <span className="text-[9px] font-mono text-[#666] block">PREÇO</span>
-                  <span className="text-sm font-mono font-black text-white">
+                  <span className="text-[9px] font-mono text-slate-500 dark:text-[#666] block">PREÇO</span>
+                  <span className="text-sm font-mono font-black text-slate-900 dark:text-white">
                     {item.price}
                   </span>
                 </div>
@@ -381,9 +383,9 @@ export default function LojaPage() {
                     'px-4 py-2 text-[10px] font-mono font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer',
                     isItemProPlan
                       ? isPro
-                        ? 'bg-[#222] text-[#FFE600] border border-[#FFE600]/40'
-                        : 'bg-[#FFE600] hover:bg-white text-black font-black shadow-[0_0_12px_rgba(255,230,0,0.3)]'
-                      : 'bg-[#151520] hover:bg-[#FF5A00] text-white hover:text-black border border-[#333] hover:border-[#FF5A00]'
+                        ? 'bg-slate-100 dark:bg-[#222] text-amber-700 dark:text-[#FFE600] border border-amber-300 dark:border-[#FFE600]/40'
+                        : 'bg-amber-500 hover:bg-slate-900 dark:bg-[#FFE600] dark:hover:bg-white text-white dark:text-black font-black shadow-sm'
+                      : 'bg-slate-100 hover:bg-[#FF5A00] dark:bg-[#151520] dark:hover:bg-[#FF5A00] text-slate-800 hover:text-white dark:text-white dark:hover:text-black border border-slate-300 dark:border-[#333] hover:border-[#FF5A00]'
                   )}
                 >
                   {isItemProPlan && isPro ? (

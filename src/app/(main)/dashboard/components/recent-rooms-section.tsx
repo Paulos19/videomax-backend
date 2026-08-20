@@ -40,10 +40,10 @@ export function RecentRoomsSection({ rooms }: RecentRoomsSectionProps) {
   return (
     <section className="space-y-4">
       {/* Header & Brutalist Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222] pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-[#222] pb-3">
         <div className="flex items-center gap-2">
           <History className="w-4 h-4 text-[#FF5A00]" />
-          <span className="text-[10px] font-mono text-[#FF5A00] tracking-widest uppercase bg-[#111] px-2 py-0.5 border border-[#222]">
+          <span className="text-[10px] font-mono text-orange-600 dark:text-[#FF5A00] tracking-widest uppercase bg-orange-50 dark:bg-[#111] px-2 py-0.5 border border-orange-200 dark:border-[#222]">
             [02 — HISTÓRICO RECENTE // NÓS DE TRANSMISSÃO]
           </span>
         </div>
@@ -61,15 +61,17 @@ export function RecentRoomsSection({ rooms }: RecentRoomsSectionProps) {
                 className={cn(
                   'px-3 py-1.5 text-[10px] font-mono uppercase font-bold border transition-all cursor-pointer flex items-center gap-1.5',
                   active
-                    ? 'bg-[#FF5A00] text-black border-[#FF5A00] shadow-[0_0_12px_rgba(255,90,0,0.3)]'
-                    : 'bg-[#09090D] text-[#777] border-[#222] hover:text-white hover:border-[#333]'
+                    ? 'bg-[#FF5A00] text-white dark:text-black border-[#FF5A00] shadow-sm'
+                    : 'bg-white dark:bg-[#09090D] text-slate-600 dark:text-[#777] border-slate-200 dark:border-[#222] hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-[#333]'
                 )}
               >
                 <span>[ {t.label} ]</span>
                 <span
                   className={cn(
                     'text-[9px] px-1 py-0.2 rounded-xs font-mono font-bold',
-                    active ? 'bg-black text-[#FF5A00]' : 'bg-[#151520] text-[#888]'
+                    active
+                      ? 'bg-black/20 dark:bg-black text-white dark:text-[#FF5A00]'
+                      : 'bg-slate-100 dark:bg-[#151520] text-slate-600 dark:text-[#888]'
                   )}
                 >
                   {count}
@@ -82,9 +84,9 @@ export function RecentRoomsSection({ rooms }: RecentRoomsSectionProps) {
 
       {/* Filtered List */}
       {filteredRooms.length === 0 ? (
-        <div className="p-8 bg-[#09090D] border border-[#222] text-center font-mono text-[11px] text-[#777] space-y-1">
+        <div className="p-8 bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] text-center font-mono text-[11px] text-slate-500 dark:text-[#777] space-y-1 shadow-sm dark:shadow-none transition-colors">
           <p>NENHUMA SALA ENCONTRADA NESTE FILTRO ({tabs.find((t) => t.id === activeTab)?.label}).</p>
-          <p className="text-[9px] text-[#555]">
+          <p className="text-[9px] text-slate-400 dark:text-[#555]">
             {activeTab === 'friends'
               ? 'Conecte-se com mais amigos para ver transmissões compartilhadas.'
               : 'Inicie uma nova sala de vídeo para registrar seu histórico.'}

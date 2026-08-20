@@ -182,19 +182,19 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="bg-[#09090D] border border-[#222] rounded-none w-full max-w-lg mx-4 animate-scale-in relative overflow-hidden shadow-2xl">
+      <div className="bg-white dark:bg-[#09090D] border border-slate-200 dark:border-[#222] rounded-none w-full max-w-lg mx-4 animate-scale-in relative overflow-hidden shadow-2xl transition-colors">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#222]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-[#222]">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#FF5A00]" />
-            <h2 className="text-white font-mono font-bold text-base uppercase">
+            <h2 className="text-slate-900 dark:text-white font-mono font-bold text-base uppercase">
               [ CRIAR NOVA SALA ]
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 bg-[#121218] border border-[#333] hover:border-[#FF5A00] flex items-center justify-center text-[#888] hover:text-white transition-colors cursor-pointer"
+            className="w-8 h-8 bg-slate-100 dark:bg-[#121218] border border-slate-300 dark:border-[#333] hover:border-[#FF5A00] flex items-center justify-center text-slate-500 dark:text-[#888] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -202,28 +202,28 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
 
         {/* Invited Friends Badge Banner */}
         {invitedFriends.length > 0 && (
-          <div className="px-6 py-2.5 bg-[#1A1208] border-b border-[#FF5A00]/40 flex items-center justify-between text-[11px] font-mono">
+          <div className="px-6 py-2.5 bg-orange-50 dark:bg-[#1A1208] border-b border-orange-200 dark:border-[#FF5A00]/40 flex items-center justify-between text-[11px] font-mono transition-colors">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-[#FF5A00]" />
-              <span className="text-white font-bold">
+              <span className="text-slate-800 dark:text-white font-bold">
                 {invitedFriends.length} amigo(s) selecionado(s) para convite automático.
               </span>
             </div>
-            <span className="text-[9px] text-[#FFE600] font-bold uppercase">
+            <span className="text-[9px] text-amber-600 dark:text-[#FFE600] font-bold uppercase">
               WEBRTC MESH
             </span>
           </div>
         )}
 
         {/* Tabs Selection */}
-        <div className="flex border-b border-[#222]">
+        <div className="flex border-b border-slate-200 dark:border-[#222]">
           <button
             onClick={() => setActiveTab('youtube')}
             className={cn(
-              'flex-1 py-3 text-[11px] font-mono uppercase font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2',
+              'flex-1 py-3 text-[11px] font-mono uppercase font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2 cursor-pointer',
               activeTab === 'youtube'
                 ? 'border-[#FF5A00] text-[#FF5A00] bg-[#FF5A00]/5'
-                : 'border-transparent text-[#777] hover:text-white'
+                : 'border-transparent text-slate-500 dark:text-[#777] hover:text-slate-900 dark:hover:text-white'
             )}
           >
             <Youtube className="w-4 h-4 text-[#EF2020]" />
@@ -233,10 +233,10 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
           <button
             onClick={() => setActiveTab('upload')}
             className={cn(
-              'flex-1 py-3 text-[11px] font-mono uppercase font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2',
+              'flex-1 py-3 text-[11px] font-mono uppercase font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2 cursor-pointer',
               activeTab === 'upload'
                 ? 'border-[#FF5A00] text-[#FF5A00] bg-[#FF5A00]/5'
-                : 'border-transparent text-[#777] hover:text-white'
+                : 'border-transparent text-slate-500 dark:text-[#777] hover:text-slate-900 dark:hover:text-white'
             )}
           >
             <Upload className="w-4 h-4 text-[#3B82F6]" />
@@ -246,13 +246,13 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
           <button
             onClick={() => setActiveTab('empty')}
             className={cn(
-              'flex-1 py-3 text-[11px] font-mono uppercase font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2',
+              'flex-1 py-3 text-[11px] font-mono uppercase font-bold text-center border-b-2 transition-all flex items-center justify-center gap-2 cursor-pointer',
               activeTab === 'empty'
                 ? 'border-[#FF5A00] text-[#FF5A00] bg-[#FF5A00]/5'
-                : 'border-transparent text-[#777] hover:text-white'
+                : 'border-transparent text-slate-500 dark:text-[#777] hover:text-slate-900 dark:hover:text-white'
             )}
           >
-            <Play className="w-4 h-4 text-[#22C55E]" />
+            <Play className="w-4 h-4 text-[#16A34A] dark:text-[#22C55E]" />
             <span>SALA VAZIA</span>
           </button>
         </div>
@@ -260,22 +260,22 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
         {/* Modal Body */}
         <div className="p-6 space-y-4">
           {!emailVerified && (
-            <div className="p-4 bg-[#140C06] border border-[#FF5A00] text-white font-mono space-y-2.5 shadow-[0_0_20px_rgba(255,90,0,0.15)]">
+            <div className="p-4 bg-orange-50 dark:bg-[#140C06] border border-orange-300 dark:border-[#FF5A00] text-slate-900 dark:text-white font-mono space-y-2.5 shadow-sm dark:shadow-[0_0_20px_rgba(255,90,0,0.15)] transition-colors">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[#FF5A00] font-bold text-xs">
+                <div className="flex items-center gap-2 text-orange-600 dark:text-[#FF5A00] font-bold text-xs">
                   <span className="w-2 h-2 rounded-full bg-[#FF5A00] animate-ping" />
                   <span>[ E-MAIL NÃO VERIFICADO ]</span>
                 </div>
-                <span className="text-[9px] text-[#888] uppercase">BLOQUEIO ATIVO</span>
+                <span className="text-[9px] text-slate-500 dark:text-[#888] uppercase">BLOQUEIO ATIVO</span>
               </div>
-              <p className="text-[11px] text-[#CCCCCC] font-sans leading-relaxed">
+              <p className="text-[11px] text-slate-700 dark:text-[#CCCCCC] font-sans leading-relaxed">
                 Para criar salas de transmissão e convidar amigos, você precisa verificar seu endereço de e-mail <strong>({session?.user?.email})</strong>.
               </p>
               <button
                 type="button"
                 onClick={handleResendVerification}
                 disabled={resendingVerification}
-                className="px-3 py-1.5 bg-[#FF5A00] hover:bg-white text-black font-black text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                className="px-3 py-1.5 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-black text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
               >
                 {resendingVerification ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                 <span>{resendingVerification ? 'ENVIANDO...' : 'REENVIAR LINK DE ATIVAÇÃO ✉️'}</span>
@@ -284,7 +284,7 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
           )}
 
           {errorMsg && (
-            <div className="p-3 bg-[#1A0A0A] border border-[#EF2020]/40 text-[#EF2020] text-[11px] font-mono">
+            <div className="p-3 bg-red-50 dark:bg-[#1A0A0A] border border-red-300 dark:border-[#EF2020]/40 text-red-600 dark:text-[#EF2020] text-[11px] font-mono transition-colors">
               {errorMsg}
             </div>
           )}
@@ -292,7 +292,7 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
           {activeTab === 'youtube' && (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-mono text-[#888] uppercase block">
+                <label className="text-[10px] font-mono text-slate-600 dark:text-[#888] uppercase block">
                   LINK DO VÍDEO DO YOUTUBE
                 </label>
                 <input
@@ -300,12 +300,12 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
                   value={youtubeUrl}
                   onChange={(e) => handleUrlChange(e.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full h-11 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00]"
+                  className="w-full h-11 bg-slate-50 dark:bg-[#050508] border border-slate-300 dark:border-[#333] text-slate-900 dark:text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00] transition-colors"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-mono text-[#888] uppercase block">
+                <label className="text-[10px] font-mono text-slate-600 dark:text-[#888] uppercase block">
                   TÍTULO DA SALA
                 </label>
                 <input
@@ -313,12 +313,12 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
                   value={youtubeTitle}
                   onChange={(e) => setYoutubeTitle(e.target.value)}
                   placeholder="Ex: Sessão de Cinema com a Galera"
-                  className="w-full h-11 bg-[#050508] border border-[#333] text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00]"
+                  className="w-full h-11 bg-slate-50 dark:bg-[#050508] border border-slate-300 dark:border-[#333] text-slate-900 dark:text-white px-3 text-[11px] font-mono outline-none focus:border-[#FF5A00] transition-colors"
                 />
               </div>
 
               {coverPreview && (
-                <div className="relative aspect-video w-full bg-black overflow-hidden border border-[#333]">
+                <div className="relative aspect-video w-full bg-black overflow-hidden border border-slate-300 dark:border-[#333]">
                   <img src={coverPreview} alt="Preview" className="w-full h-full object-cover" />
                 </div>
               )}
@@ -326,12 +326,12 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
               <button
                 onClick={handleCreateYoutubeRoom}
                 disabled={isSaving || !emailVerified}
-                className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3.5 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Play className="w-4 h-4 fill-black" />
+                  <Play className="w-4 h-4 fill-current" />
                 )}
                 <span>
                   {!emailVerified
@@ -367,22 +367,22 @@ export function CreateRoomDialog({ onClose, initialVideoUrl, invitedFriends = []
                 onUploadError={(error: Error) => {
                   toast.error(`Erro no upload: ${error.message}`)
                 }}
-                className="ut-label:text-[#FF5A00] ut-button:bg-[#FF5A00] border-2 border-dashed border-[#333] bg-[#050508] p-6"
+                className="ut-label:text-[#FF5A00] ut-button:bg-[#FF5A00] border-2 border-dashed border-slate-300 dark:border-[#333] bg-slate-50 dark:bg-[#050508] p-6 transition-colors"
               />
             </div>
           )}
 
           {activeTab === 'empty' && (
             <div className="space-y-4 text-center py-4">
-              <p className="text-[11px] font-mono text-[#888] leading-relaxed max-w-sm mx-auto">
+              <p className="text-[11px] font-mono text-slate-500 dark:text-[#888] leading-relaxed max-w-sm mx-auto">
                 Crie uma sala vazia pronta para compartilhar sua tela ou adicionar vídeos depois pelo chat.
               </p>
               <button
                 onClick={handleCreateEmptyRoom}
                 disabled={!emailVerified}
-                className="w-full py-3.5 bg-[#FF5A00] hover:bg-white text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3.5 bg-[#FF5A00] hover:bg-slate-900 dark:hover:bg-white text-white dark:text-black font-mono font-black text-[11px] uppercase tracking-widest transition-all duration-150 shadow-[0_0_20px_rgba(255,90,0,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Play className="w-4 h-4 fill-black" />
+                <Play className="w-4 h-4 fill-current" />
                 <span>
                   {!emailVerified ? '[ E-MAIL NÃO CONFIRMADO ]' : '[ INICIAR SALA LIVRE AGORA ]'}
                 </span>

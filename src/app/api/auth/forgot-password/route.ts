@@ -40,6 +40,15 @@ export async function POST(req: Request) {
     const { email } = result.data
     const cleanEmail = email.trim().toLowerCase()
 
+    // Dual rate limit: by IP and by target email to prevent email flooding
+    const emailRateResult = checkRateLimit(`forgot-password:email:${cleanEmail}`, 3, 300_000)
+    if (!emailRateResult.allowed) {
+      return NextResponse.json(
+        { error: "Muitas solicitações para este e-mail. Aguarde 5 minutos antes de tentar novamente." },
+        { status: 429, headers: rateLimitHeaders(emailRateResult) }
+      )
+    }
+
     // Always return success to prevent email enumeration
     const user = await prisma.user.findFirst({
       where: { email: { equals: cleanEmail, mode: "insensitive" } },

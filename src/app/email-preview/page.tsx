@@ -18,7 +18,7 @@ import {
   Radio,
   Crown,
 } from 'lucide-react'
-import { renderEmailTemplatePreview } from '@/lib/email'
+import { renderEmailTemplatePreview } from '@/lib/email-templates'
 import { toast } from 'sonner'
 
 type TemplateKey = 'verification' | 'welcome' | 'reset' | 'invite' | 'pro' | 'password_changed'

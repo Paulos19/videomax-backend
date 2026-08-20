@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import { checkRateLimit, rateLimitHeaders } from '@/lib/rate-limit'
 import {
   sendWelcomeEmail,
   sendPasswordResetCode,
@@ -9,7 +11,33 @@ import {
 } from '@/lib/email'
 
 export async function POST(req: Request) {
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown'
+
+  const rateResult = checkRateLimit(`send-test-email:${ip}`, 5, 60_000)
+  if (!rateResult.allowed) {
+    return NextResponse.json(
+      { error: 'Muitas solicitações de teste. Aguarde um minuto.' },
+      { status: 429, headers: rateLimitHeaders(rateResult) }
+    )
+  }
+
   try {
+    const session = await auth()
+    const isAdmin =
+      session?.user?.email &&
+      (session.user.email === process.env.EMAIL_ADMIN_USER ||
+        session.user.email === process.env.EMAIL_SERVER_USER)
+
+    if (process.env.NODE_ENV === 'production' && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Acesso não autorizado a rotas de desenvolvimento em produção.' },
+        { status: 403 }
+      )
+    }
+
     const { email, type } = await req.json()
 
     if (!email || !type) {

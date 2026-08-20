@@ -7,8 +7,11 @@ import { writeFile, readFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
+import { checkRateLimit, rateLimitHeaders } from '@/lib/rate-limit'
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path)
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB max
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,11 +20,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const userId = (session.user as any).id || session.user.email || 'unknown'
+    const rateResult = checkRateLimit(`process-sticker:${userId}`, 5, 60_000)
+    if (!rateResult.allowed) {
+      return NextResponse.json(
+        { error: 'Muitas solicitações de processamento. Aguarde um momento.' },
+        { status: 429, headers: rateLimitHeaders(rateResult) }
+      )
+    }
+
     const formData = await req.formData()
     const file = formData.get('file') as File | null
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+      return NextResponse.json({ error: 'Nenhum arquivo enviado.' }, { status: 400 })
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: 'O arquivo excede o limite máximo permitido de 10MB.' },
+        { status: 400 }
+      )
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
@@ -44,7 +63,7 @@ export async function POST(req: NextRequest) {
     } else if (mimeType === 'image/gif' || mimeType.startsWith('video/')) {
       // Processamento de GIFs e Vídeos via FFmpeg
       const inputId = randomUUID()
-      const ext = mimeType === 'image/gif' ? '.gif' : '.mp4' // simplificado
+      const ext = mimeType === 'image/gif' ? '.gif' : '.mp4'
       const inputPath = join(tmpdir(), `${inputId}${ext}`)
       const outputPath = join(tmpdir(), `${inputId}.webp`)
 
@@ -52,12 +71,16 @@ export async function POST(req: NextRequest) {
 
       try {
         await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Tempo limite excedido ao converter figurinha.'))
+          }, 15_000)
+
           ffmpeg(inputPath)
             .setStartTime(0)
             .setDuration(5) // limite de 5 segundos
             .outputOptions([
               '-vcodec libwebp',
-              '-vf scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0', // resize and pad with transparent background
+              '-vf scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0',
               '-lossless 0',
               '-qscale 75',
               '-loop 0',
@@ -67,8 +90,14 @@ export async function POST(req: NextRequest) {
               '-r 15', // max 15 fps
             ])
             .toFormat('webp')
-            .on('end', () => resolve())
-            .on('error', (err) => reject(err))
+            .on('end', () => {
+              clearTimeout(timeout)
+              resolve()
+            })
+            .on('error', (err) => {
+              clearTimeout(timeout)
+              reject(err)
+            })
             .save(outputPath)
         })
 
@@ -79,7 +108,7 @@ export async function POST(req: NextRequest) {
         await unlink(outputPath).catch(() => {})
       }
     } else {
-      return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 })
+      return NextResponse.json({ error: 'Tipo de arquivo não suportado.' }, { status: 400 })
     }
 
     // Retornamos o buffer WebP diretamente

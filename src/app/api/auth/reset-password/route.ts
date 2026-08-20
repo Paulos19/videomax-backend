@@ -45,6 +45,15 @@ export async function POST(req: Request) {
     const { email, code, newPassword } = result.data
     const cleanEmail = email.trim().toLowerCase()
 
+    // Dual rate limit: by IP and by target email to prevent distributed brute-force
+    const emailRateResult = checkRateLimit(`reset-password:email:${cleanEmail}`, 5, 900_000)
+    if (!emailRateResult.allowed) {
+      return NextResponse.json(
+        { error: "Limite de tentativas excedido para este e-mail. Solicite um novo código de recuperação." },
+        { status: 429, headers: rateLimitHeaders(emailRateResult) }
+      )
+    }
+
     // Find valid reset code
     const resetRecord = await prisma.passwordReset.findFirst({
       where: {

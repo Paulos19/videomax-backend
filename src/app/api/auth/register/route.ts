@@ -47,6 +47,15 @@ export async function POST(req: Request) {
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
 
+    // Rate limit per email to prevent automated registration spamming
+    const emailRateResult = checkRateLimit(`register:email:${cleanEmail}`, 3, 300_000);
+    if (!emailRateResult.allowed) {
+      return NextResponse.json(
+        { error: "Muitas tentativas com este e-mail. Aguarde alguns minutos." },
+        { status: 429, headers: rateLimitHeaders(emailRateResult) }
+      );
+    }
+
     // 1. Check if nickname is already in use (case-insensitive)
     const existingName = await prisma.user.findFirst({
       where: {

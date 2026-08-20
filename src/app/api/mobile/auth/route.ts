@@ -39,9 +39,19 @@ export async function POST(req: Request) {
     }
 
     const { email, password } = result.data
+    const cleanEmail = email.trim().toLowerCase()
 
-    const user = await prisma.user.findUnique({
-      where: { email }
+    // Dual rate limit: by IP and by account email to prevent distributed credential stuffing
+    const emailRateResult = checkRateLimit(`login:email:${cleanEmail}`, 5, 300_000)
+    if (!emailRateResult.allowed) {
+      return NextResponse.json(
+        { error: "Muitas tentativas para esta conta. Aguarde 5 minutos antes de tentar novamente." },
+        { status: 429, headers: rateLimitHeaders(emailRateResult) }
+      )
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: cleanEmail, mode: "insensitive" } }
     })
 
     if (!user || !user.password) {

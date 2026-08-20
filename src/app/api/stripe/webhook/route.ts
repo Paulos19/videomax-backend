@@ -7,19 +7,24 @@ import { prisma } from '@/lib/prisma'
 export async function POST(req: Request) {
   const body = await req.text()
   const headerObj = await headers()
-  const signature = headerObj.get('Stripe-Signature') || ''
+  const signature = headerObj.get('Stripe-Signature') || headerObj.get('stripe-signature') || ''
+
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  if (!webhookSecret) {
+    console.error('[STRIPE WEBHOOK ERROR] STRIPE_WEBHOOK_SECRET não configurada no servidor.')
+    return NextResponse.json({ error: 'Configuração de webhook incompleta no servidor.' }, { status: 500 })
+  }
+
+  if (!signature) {
+    return NextResponse.json({ error: 'Assinatura Stripe ausente.' }, { status: 400 })
+  }
 
   let event: Stripe.Event
 
   try {
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    } else {
-      event = JSON.parse(body) as Stripe.Event
-    }
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
   } catch (err: any) {
-    console.error(`[STRIPE WEBHOOK ERROR] ${err.message}`)
+    console.error(`[STRIPE WEBHOOK ERROR] Assinatura inválida: ${err.message}`)
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
   }
 

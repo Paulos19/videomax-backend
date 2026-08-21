@@ -16,11 +16,26 @@ import {
   Monitor,
   Zap,
   Film,
+  Headphones,
+  Check,
+  ChevronDown,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { isYouTubeUrl, getYouTubeVideoId } from '@/lib/youtube'
+import { isGoogleDriveUrl, getGoogleDriveStreamUrl, getGoogleDriveEmbedUrl, getGoogleDriveFileId } from '@/lib/google-drive'
 import YouTube from 'react-youtube'
 import { RoomStandby3DView } from './room-standby-3d'
+
+export interface AudioTrackInfo {
+  index: number
+  streamIndex?: number
+  codec: string
+  language?: string
+  title?: string
+  label: string
+}
+
 
 export interface VideoPlayerHandle {
   play: () => Promise<void>
@@ -35,6 +50,7 @@ interface VideoPlayerProps {
   poster?: string
   canControl?: boolean
   isHostPro?: boolean
+  duckingVolumeFactor?: number
   onPlay?: () => void
   onPause?: () => void
   onSeek?: (time: number) => void
@@ -52,6 +68,7 @@ interface VideoPlayerProps {
   onOpenLibrary?: () => void
 }
 
+
 function formatTime(seconds: number): string {
   if (isNaN(seconds) || seconds <= 0) return '00:00'
   const mins = Math.floor(seconds / 60)
@@ -66,6 +83,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       poster,
       canControl = true,
       isHostPro = false,
+      duckingVolumeFactor = 1,
       onPlay,
       onPause,
       onSeek,
@@ -111,6 +129,121 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const cleanSrc = (src || '').trim()
     const hasMedia = cleanSrc !== '' && cleanSrc !== 'EMPTY'
     const isYouTube = hasMedia && isYouTubeUrl(cleanSrc)
+    const isGoogleDrive = hasMedia && isGoogleDriveUrl(cleanSrc)
+    const [useDriveIframe, setUseDriveIframe] = useState(false)
+    const [audioTracks, setAudioTracks] = useState<AudioTrackInfo[]>([])
+    const [selectedAudioTrack, setSelectedAudioTrack] = useState<number>(0)
+    const [activeAudioTrack, setActiveAudioTrack] = useState<number | null>(null)
+    const [showAudioMenu, setShowAudioMenu] = useState(false)
+    const [loadingAudioTracks, setLoadingAudioTracks] = useState(false)
+
+    const effectiveVideoSrc = isGoogleDrive
+      ? (getGoogleDriveStreamUrl(cleanSrc, activeAudioTrack) || cleanSrc)
+      : cleanSrc
+
+    // Reset iframe mode and audio tracks when video source changes
+    useEffect(() => {
+      setUseDriveIframe(false)
+      setSelectedAudioTrack(0)
+      setActiveAudioTrack(null)
+      setShowAudioMenu(false)
+    }, [cleanSrc])
+
+    // Discover multi-audio tracks for Google Drive / MKV / MP4 streams via ffprobe
+    useEffect(() => {
+      let cancelled = false
+      if (!isGoogleDrive) {
+        setAudioTracks([])
+        return
+      }
+
+      // Default Dual-Audio options (Faixa 1: Original / Faixa 2: Português)
+      setAudioTracks([
+        { index: 0, codec: 'AAC', label: '🇯🇵 / 🌐 Áudio 1 (Original)' },
+        { index: 1, codec: 'AAC', label: '🇧🇷 Áudio 2 (Português / Dublado)' },
+      ])
+
+      setLoadingAudioTracks(true)
+      const fileId = getGoogleDriveFileId(cleanSrc)
+      if (!fileId) return
+
+      fetch(`/api/drive-stream/tracks?fileId=${fileId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!cancelled && data?.tracks && Array.isArray(data.tracks) && data.tracks.length > 0) {
+            setAudioTracks(data.tracks)
+            // Auto-detect Portuguese track if present
+            const ptIndex = data.tracks.findIndex((t: any) =>
+              /portugu[eê]s|dublado|brazil|brasil|pt[-_]?br|por|pob/i.test(t.label || t.language || '')
+            )
+            if (ptIndex > 0) {
+              setSelectedAudioTrack(ptIndex)
+              setActiveAudioTrack(ptIndex)
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setLoadingAudioTracks(false)
+        })
+
+      return () => {
+        cancelled = true
+      }
+    }, [cleanSrc, isGoogleDrive])
+
+    // Select Audio Track Handler (preserves playback position & switches from iframe to our player)
+    const handleSelectAudioTrack = useCallback((trackIndex: number) => {
+      setSelectedAudioTrack(trackIndex)
+      setActiveAudioTrack(trackIndex)
+      setShowAudioMenu(false)
+      setUseDriveIframe(false)
+
+      const chosenTrack = audioTracks[trackIndex]
+
+      // 1. Try native browser audioTracks API if supported
+      const nativeTracks = (videoRef.current as any)?.audioTracks
+      if (nativeTracks && nativeTracks.length > trackIndex) {
+        for (let i = 0; i < nativeTracks.length; i++) {
+          nativeTracks[i].enabled = i === trackIndex
+        }
+        toast.success(`Faixa de áudio: ${chosenTrack?.label || `Faixa ${trackIndex + 1}`}`)
+        return
+      }
+
+      // 2. Switch stream source with audioTrack mapping & exact timestamp
+      if (isGoogleDrive && videoRef.current) {
+        const currentPos = videoRef.current.currentTime || 0
+        const newSrc = getGoogleDriveStreamUrl(cleanSrc, trackIndex, currentPos)
+        if (newSrc) {
+          setIsLoading(true)
+          videoRef.current.src = newSrc
+          videoRef.current.currentTime = currentPos
+          if (isPlaying) {
+            videoRef.current.play().catch(() => {})
+          }
+          toast.success(`Áudio alterado para: ${chosenTrack?.label || `Faixa ${trackIndex + 1}`}`)
+        }
+      }
+    }, [audioTracks, cleanSrc, isGoogleDrive, isPlaying])
+
+
+
+
+    // Audio Ducking & Volume Controller
+    useEffect(() => {
+      const targetFactor = Math.max(0.1, Math.min(1, duckingVolumeFactor ?? 1))
+      const targetVol = isMuted ? 0 : volume * targetFactor
+
+      if (isYouTube && reactPlayerRef.current) {
+        try {
+          reactPlayerRef.current.setVolume?.(Math.round(targetVol * 100))
+        } catch {}
+      } else if (videoRef.current) {
+        videoRef.current.volume = Math.max(0, Math.min(1, targetVol))
+      }
+    }, [volume, isMuted, duckingVolumeFactor, isYouTube])
+
 
     // Handle mobile backgrounding / notification shade pull-down without killing room sync
     useEffect(() => {
@@ -165,9 +298,11 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     // Expose imperative methods for remote socket control (Play, Pause, Seek, Time)
     useImperativeHandle(ref, () => ({
       play: async () => {
+        setIsPlaying(true)
         if (isYouTube) {
-          setIsPlaying(true)
-          reactPlayerRef.current?.playVideo?.()
+          try {
+            reactPlayerRef.current?.playVideo?.()
+          } catch {}
           return Promise.resolve()
         }
         if (videoRef.current) {
@@ -182,9 +317,11 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         }
       },
       pause: () => {
+        setIsPlaying(false)
         if (isYouTube) {
-          setIsPlaying(false)
-          reactPlayerRef.current?.pauseVideo?.()
+          try {
+            reactPlayerRef.current?.pauseVideo?.()
+          } catch {}
         } else if (videoRef.current) {
           if (playPromiseRef.current) {
             playPromiseRef.current
@@ -199,13 +336,16 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       },
       seek: (time: number) => {
         if (isYouTube) {
-          reactPlayerRef.current?.seekTo?.(time, true)
+          try {
+            reactPlayerRef.current?.seekTo?.(time, true)
+          } catch {}
           setCurrentTime(time)
         } else if (videoRef.current) {
           videoRef.current.currentTime = time
           setCurrentTime(time)
         }
       },
+
       getCurrentTime: () => {
         if (isYouTube) {
           return reactPlayerRef.current?.getCurrentTime?.() || currentTime
@@ -615,12 +755,28 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               }}
             />
           </div>
+        ) : isGoogleDrive && useDriveIframe ? (
+          /* Google Drive Native Embedded Player Iframe */
+          <div className="w-full h-full relative pointer-events-auto overflow-hidden bg-black flex items-center justify-center">
+            <iframe
+              key={cleanSrc}
+              src={getGoogleDriveEmbedUrl(cleanSrc) || ''}
+              className="w-full h-full border-0"
+              allow="autoplay; encrypted-media; fullscreen"
+              allowFullScreen
+              onLoad={() => {
+                setIsLoading(false)
+                onCanPlay?.()
+              }}
+            />
+          </div>
         ) : (
-          /* HTML5 Video Player */
+          /* HTML5 Video Player (Direct Stream Proxy for Google Drive / Direct MP4) */
           <video
             ref={videoRef}
-            src={cleanSrc}
+            src={effectiveVideoSrc}
             poster={poster}
+            playsInline
             className="w-full h-full object-contain"
             onTimeUpdate={() => {
               if (videoRef.current) {
@@ -649,11 +805,132 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               setIsLoading(false)
               onCanPlay?.()
             }}
+            onError={(e) => {
+              setIsLoading(false)
+              console.warn('[VideoPlayer] Erro na reprodução de mídia:', e)
+              if (isGoogleDrive && !useDriveIframe) {
+                toast.error('Cota de download do Drive excedida para este link. Reproduzindo no modo Iframe...')
+                setUseDriveIframe(true)
+              }
+            }}
           />
         )}
 
-        {/* ── Overlay Controls for Video Playback ───────────────────── */}
+
+
+
+        {/* ── Top Telemetry Overlay (Sempre visível sobre o vídeo/iframe) ── */}
         {!isStreamingScreen && hasMedia && (
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-30 font-mono pointer-events-auto">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#EF2020] text-white text-[9px] font-black uppercase shadow-lg">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                <span>TRANSMISSÃO AO VIVO</span>
+              </div>
+
+              {/* Multi-Audio Selector in Top HUD */}
+              {isGoogleDrive && audioTracks.length > 0 && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowAudioMenu(!showAudioMenu)
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-[#0A0A0F]/95 hover:bg-[#FF5A00] text-[#FFE600] hover:text-black border border-[#FFE600]/60 text-[9px] font-black uppercase transition-colors cursor-pointer shadow-lg"
+                    title="Alternar faixa de áudio / dublagem"
+                  >
+                    <Headphones className="w-3 h-3 text-[#FFE600] group-hover:text-black" />
+                    <span>ÁUDIO: {audioTracks[selectedAudioTrack]?.label?.split('[')[0]?.trim() || `FAIXA ${selectedAudioTrack + 1}`}</span>
+                    <ChevronDown className="w-3 h-3 ml-0.5" />
+                  </button>
+
+                  {showAudioMenu && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-full left-0 mt-1.5 w-64 bg-[#0A0A0F]/95 backdrop-blur-md border-2 border-[#FFE600] shadow-[0_0_30px_rgba(255,230,0,0.3)] p-2 z-50 animate-in fade-in zoom-in-95 duration-150 font-mono"
+                    >
+                      <div className="text-[9px] font-black text-[#FFE600] uppercase tracking-wider px-2 py-1 border-b border-[#222] mb-1.5 flex items-center justify-between">
+                        <span>FAIXAS DE ÁUDIO DISPONÍVEIS</span>
+                        <Headphones className="w-3 h-3 text-[#FFE600]" />
+                      </div>
+                      <div className="space-y-1">
+                        {audioTracks.map((track) => (
+                          <button
+                            key={track.index}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSelectAudioTrack(track.index)
+                            }}
+                            className={cn(
+                              'w-full text-left px-2.5 py-1.5 text-[10px] font-bold uppercase flex items-center justify-between transition-colors border cursor-pointer',
+                              selectedAudioTrack === track.index
+                                ? 'bg-[#FFE600]/20 border-[#FFE600] text-[#FFE600]'
+                                : 'border-transparent text-slate-300 hover:bg-[#1A1A24] hover:text-white'
+                            )}
+                          >
+                            <span className="truncate">{track.label}</span>
+                            {selectedAudioTrack === track.index && (
+                              <Check className="w-3 h-3 shrink-0 ml-1.5 text-[#FFE600]" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mode switch button */}
+              {isGoogleDrive && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setUseDriveIframe(!useDriveIframe)
+                  }}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-black uppercase transition-colors cursor-pointer shadow-lg border',
+                    useDriveIframe
+                      ? 'bg-[#1A180E] hover:bg-[#FFE600] text-[#FFE600] hover:text-black border-[#FFE600]/60'
+                      : 'bg-[#0E0E14] hover:bg-[#FF5A00] text-white hover:text-black border-[#FF5A00]/60'
+                  )}
+                  title="Alternar entre modo Iframe do Drive e Nosso Player com Troca de Áudio"
+                >
+                  <span>{useDriveIframe ? 'MODO: DRIVE IFRAME' : 'MODO: NOSSO PLAYER'}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {canControl && onSelectVideo && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectVideo()
+                  }}
+                  className="px-2.5 py-1 bg-[#121218] hover:bg-[#FF5A00] hover:text-black text-white border border-[#333] hover:border-[#FF5A00] text-[9px] font-black uppercase transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
+                >
+                  <Film className="w-3 h-3" />
+                  <span>MUDAR VÍDEO</span>
+                </button>
+              )}
+
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#0E0E14] border border-[#222] text-[#888] text-[9px] uppercase">
+                {canControl ? (
+                  <span className="text-[#FFE600] font-bold">CONTROLE LIBERADO</span>
+                ) : (
+                  <span>MODO ESPECTADOR</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Overlay Controls for Video Playback ───────────────────── */}
+        {!isStreamingScreen && hasMedia && !(isGoogleDrive && useDriveIframe) && (
           <>
             {/* Click / Double-click surface */}
             <div
@@ -694,133 +971,154 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               </div>
             )}
 
-            {/* Top Telemetry Overlay */}
-            <div
-              className={cn(
-                'absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-20 transition-opacity duration-300 font-mono pointer-events-auto',
-                showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#EF2020] text-white text-[9px] font-black uppercase shadow-lg">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                  <span>TRANSMISSÃO SINCRONIZADA</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {canControl && onSelectVideo && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSelectVideo()
-                    }}
-                    className="px-2.5 py-1 bg-[#121218] hover:bg-[#FF5A00] hover:text-black text-white border border-[#333] hover:border-[#FF5A00] text-[9px] font-black uppercase transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
-                  >
-                    <Film className="w-3 h-3" />
-                    <span>MUDAR VÍDEO</span>
-                  </button>
-                )}
-
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#0E0E14] border border-[#222] text-[#888] text-[9px] uppercase">
-                  {canControl ? (
-                    <span className="text-[#FFE600] font-bold">CONTROLE LIBERADO</span>
-                  ) : (
-                    <span>MODO ESPECTADOR</span>
-                  )}
-                </div>
-              </div>
-            </div>
 
             {/* Bottom Cyberpunk Control Bar */}
-            <div
-              className={cn(
-                'absolute bottom-0 left-0 right-0 z-30 p-3 bg-gradient-to-t from-black/95 via-black/80 to-transparent border-t border-[#1F1F28] transition-opacity duration-300 pointer-events-auto font-mono',
-                showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              )}
-            >
-              {/* Progress Timeline Hit Area */}
+            {!(isGoogleDrive && useDriveIframe) && (
               <div
-                onClick={handleSeek}
-                onMouseEnter={() => setIsHoveringProgress(true)}
-                onMouseLeave={() => setIsHoveringProgress(false)}
-                onMouseMove={handleProgressMouseMove}
                 className={cn(
-                  'w-full py-2 -my-2 relative flex items-center group/progress transition-all',
-                  canControl ? 'cursor-pointer' : 'cursor-default'
+                  'absolute bottom-0 left-0 right-0 z-30 p-3 bg-gradient-to-t from-black/95 via-black/80 to-transparent border-t border-[#1F1F28] transition-opacity duration-300 pointer-events-auto font-mono',
+                  showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 )}
               >
-                {/* Visual Progress Track */}
-                <div className="w-full h-2 bg-[#1C1C24] relative overflow-hidden transition-all group-hover/progress:h-3">
-                  <div
-                    className="h-full bg-[#FF5A00] transition-all relative"
-                    style={{
-                      width: `${progressPercent}%`,
-                    }}
-                  >
-                    <span className="absolute right-0 top-0 bottom-0 w-1.5 bg-white shadow-[0_0_10px_#FFF]" />
+                {/* Progress Timeline Hit Area */}
+                <div
+                  onClick={handleSeek}
+                  onMouseEnter={() => setIsHoveringProgress(true)}
+                  onMouseLeave={() => setIsHoveringProgress(false)}
+                  onMouseMove={handleProgressMouseMove}
+                  className={cn(
+                    'w-full py-2 -my-2 relative flex items-center group/progress transition-all',
+                    canControl ? 'cursor-pointer' : 'cursor-default'
+                  )}
+                >
+                  {/* Visual Progress Track */}
+                  <div className="w-full h-2 bg-[#1C1C24] relative overflow-hidden transition-all group-hover/progress:h-3">
+                    <div
+                      className="h-full bg-[#FF5A00] transition-all relative"
+                      style={{
+                        width: `${progressPercent}%`,
+                      }}
+                    >
+                      <span className="absolute right-0 top-0 bottom-0 w-1.5 bg-white shadow-[0_0_10px_#FFF]" />
+                    </div>
                   </div>
+
+                  {/* Hover Time Tooltip */}
+                  {isHoveringProgress && canControl && duration > 0 && (
+                    <div
+                      className="absolute -top-7 -translate-x-1/2 bg-[#0A0A0F] border border-[#FF5A00] px-2 py-0.5 text-[9px] font-mono font-bold text-white shadow-lg pointer-events-none z-40"
+                      style={{
+                        left: `${(hoverTime / duration) * 100}%`,
+                      }}
+                    >
+                      {formatTime(hoverTime)}
+                    </div>
+                  )}
                 </div>
 
-                {/* Hover Time Tooltip */}
-                {isHoveringProgress && canControl && duration > 0 && (
-                  <div
-                    className="absolute -top-7 -translate-x-1/2 bg-[#0A0A0F] border border-[#FF5A00] px-2 py-0.5 text-[9px] font-mono font-bold text-white shadow-lg pointer-events-none z-40"
-                    style={{
-                      left: `${(hoverTime / duration) * 100}%`,
-                    }}
-                  >
-                    {formatTime(hoverTime)}
-                  </div>
-                )}
-              </div>
+                {/* Bottom Buttons Row */}
+                <div className="flex items-center justify-between pt-3">
+                  <div className="flex items-center gap-3">
+                    {canControl && (
+                      <button
+                        onClick={togglePlay}
+                        className="p-2 bg-[#FF5A00] hover:bg-white text-black transition-colors cursor-pointer"
+                        title={isPlaying ? 'Pausar' : 'Reproduzir'}
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-4 h-4 fill-black" />
+                        ) : (
+                          <Play className="w-4 h-4 fill-black ml-0.5" />
+                        )}
+                      </button>
+                    )}
 
-              {/* Bottom Buttons Row */}
-              <div className="flex items-center justify-between pt-3">
-                <div className="flex items-center gap-3">
-                  {canControl && (
                     <button
-                      onClick={togglePlay}
-                      className="p-2 bg-[#FF5A00] hover:bg-white text-black transition-colors cursor-pointer"
-                      title={isPlaying ? 'Pausar' : 'Reproduzir'}
+                      onClick={toggleMute}
+                      className="p-2 border border-[#333] hover:border-white text-[#AAA] hover:text-white transition-colors cursor-pointer"
+                      title={isMuted ? 'Ativar som' : 'Desativar som'}
                     >
-                      {isPlaying ? (
-                        <Pause className="w-4 h-4 fill-black" />
+                      {isMuted ? (
+                        <VolumeX className="w-4 h-4 text-[#EF2020]" />
                       ) : (
-                        <Play className="w-4 h-4 fill-black ml-0.5" />
+                        <Volume2 className="w-4 h-4" />
                       )}
                     </button>
-                  )}
 
-                  <button
-                    onClick={toggleMute}
-                    className="p-2 border border-[#333] hover:border-white text-[#AAA] hover:text-white transition-colors cursor-pointer"
-                    title={isMuted ? 'Ativar som' : 'Desativar som'}
-                  >
-                    {isMuted ? (
-                      <VolumeX className="w-4 h-4 text-[#EF2020]" />
-                    ) : (
-                      <Volume2 className="w-4 h-4" />
+                    <span className="text-xs text-[#AAA] font-mono tracking-wider">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Audio Track Selector Button if multiple tracks detected */}
+                    {audioTracks.length > 1 && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowAudioMenu(!showAudioMenu)
+                          }}
+                          className="px-2.5 py-1.5 border border-[#333] hover:border-[#FF5A00] text-[#CCC] hover:text-white bg-[#0E0E14] flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer"
+                          title="Trocar idioma / faixa de áudio"
+                        >
+                          <Headphones className="w-3.5 h-3.5 text-[#FFE600]" />
+                          <span>ÁUDIO: {audioTracks[selectedAudioTrack]?.label?.split('[')[0]?.trim() || `FAIXA ${selectedAudioTrack + 1}`}</span>
+                          <ChevronDown className="w-3 h-3 text-[#888]" />
+                        </button>
+
+                        {/* Dropdown Menu for Audio Tracks */}
+                        {showAudioMenu && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute bottom-full right-0 mb-2 w-64 bg-[#0A0A0F]/95 backdrop-blur-md border border-[#FF5A00] shadow-[0_0_30px_rgba(255,90,0,0.35)] p-2 z-50 animate-in fade-in zoom-in-95 duration-150 font-mono"
+                          >
+                            <div className="text-[9px] font-black text-[#FF5A00] uppercase tracking-wider px-2 py-1 border-b border-[#222] mb-1.5 flex items-center justify-between">
+                              <span>FAIXAS DE ÁUDIO DISPONÍVEIS</span>
+                              <Headphones className="w-3 h-3" />
+                            </div>
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                              {audioTracks.map((track) => (
+                                <button
+                                  key={track.index}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleSelectAudioTrack(track.index)
+                                  }}
+                                  className={cn(
+                                    'w-full text-left px-2.5 py-1.5 text-[10px] font-bold uppercase flex items-center justify-between transition-colors border cursor-pointer',
+                                    selectedAudioTrack === track.index
+                                      ? 'bg-[#FF5A00]/20 border-[#FF5A00] text-[#FF5A00]'
+                                      : 'border-transparent text-slate-300 hover:bg-[#1A1A24] hover:text-white'
+                                  )}
+                                >
+                                  <span className="truncate">{track.label}</span>
+                                  {selectedAudioTrack === track.index && (
+                                    <Check className="w-3 h-3 shrink-0 ml-1.5 text-[#FF5A00]" />
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
-                  </button>
 
-                  <span className="text-xs text-[#AAA] font-mono tracking-wider">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleFullscreen}
-                    className="p-2 border border-[#333] hover:border-white text-[#AAA] hover:text-white transition-colors cursor-pointer"
-                    title="Tela cheia"
-                  >
-                    {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-                  </button>
+                    <button
+                      onClick={toggleFullscreen}
+                      className="p-2 border border-[#333] hover:border-white text-[#AAA] hover:text-white transition-colors cursor-pointer"
+                      title="Tela cheia"
+                    >
+                      {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+
           </>
         )}
       </div>

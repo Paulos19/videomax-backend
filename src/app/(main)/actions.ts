@@ -36,6 +36,7 @@ const IdSchema = z.string().min(1, "ID é obrigatório").max(128, "ID inválido"
 const IdOrNullSchema = z.string().min(1, "ID inválido").max(128, "ID inválido").nullable()
 
 import { fetchYouTubeMetadata, isYouTubeUrl } from "@/lib/youtube"
+import { isGoogleDriveUrl, fetchGoogleDriveMetadata } from "@/lib/google-drive"
 
 export async function saveVideo(title: string, url: string, folderId?: string | null) {
   const result = SaveVideoSchema.safeParse({ title, url, folderId })
@@ -64,6 +65,11 @@ export async function saveVideo(title: string, url: string, folderId?: string | 
     if (meta?.title && (!finalTitle || finalTitle === result.data.url || finalTitle === 'Sem título')) {
       finalTitle = meta.title
     }
+  } else if (isGoogleDriveUrl(result.data.url)) {
+    const meta = await fetchGoogleDriveMetadata(result.data.url, finalTitle)
+    if (meta?.title && (!finalTitle || finalTitle === result.data.url || finalTitle === 'Sem título')) {
+      finalTitle = meta.title
+    }
   }
 
   await prisma.video.create({
@@ -74,6 +80,7 @@ export async function saveVideo(title: string, url: string, folderId?: string | 
       folderId: result.data.folderId || null,
     }
   })
+
 
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/videos")

@@ -79,4 +79,42 @@ export interface RoomInfo {
   isStreamingScreen?: boolean
   streamerId?: string | null
   streamerName?: string | null
+  activePoll?: Poll | null
 }
+
+export interface PollOption {
+  id: string
+  text: string
+  votes: string[] // User IDs who voted for this option
+  voteCount: number
+}
+
+export interface Poll {
+  id: string
+  roomId: string
+  question: string
+  options: PollOption[]
+  createdBy: {
+    id: string
+    name: string
+  }
+  totalVotes: number
+  createdAt: number
+  expiresAt?: number | null
+  isClosed?: boolean
+  userVotedOptionId?: string | null
+}
+
+export interface CreatePollPayload {
+  question: string
+  options: string[]
+  durationSeconds?: number | null
+}
+
+export interface VoiceUserState {
+  userId: string
+  userName: string
+  isMuted: boolean
+  isSpeaking: boolean
+}
+

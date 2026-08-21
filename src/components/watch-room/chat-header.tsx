@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageSquare, X, Settings, Users, Radio, Palette } from 'lucide-react'
+import { MessageSquare, X, Settings, Users, Radio, Palette, BarChart2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChatHeaderProps {
   viewerCount: number
   viewers?: Array<{ name: string; image?: string }>
   selectedColor?: string
+  canCreatePoll?: boolean
+  onOpenCreatePoll?: () => void
   onSelectColor?: (color: string) => void
   onClose?: () => void
 }
@@ -26,9 +28,12 @@ export function ChatHeader({
   viewerCount,
   viewers = [],
   selectedColor = '#FF5A00',
+  canCreatePoll = false,
+  onOpenCreatePoll,
   onSelectColor,
   onClose,
 }: ChatHeaderProps) {
+
   const [showSettings, setShowSettings] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
 
@@ -83,42 +88,58 @@ export function ChatHeader({
           />
         </div>
 
-        {/* Color Switcher Dropdown */}
-        <div className="relative" ref={settingsRef}>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-1 border border-slate-300 dark:border-[#222] hover:border-[#FF5A00] text-slate-600 dark:text-[#888] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1 text-[9px]"
-            title="Mudar cor do nome"
-          >
-            <Palette className="w-3 h-3 text-[#FF5A00]" />
-            <span>COR</span>
-          </button>
-
-          {showSettings && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#0C0C12] border-2 border-[#FF5A00] p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95">
-              <span className="text-[9px] font-bold text-slate-600 dark:text-[#888] uppercase block mb-2">
-                [ ESCOLHA SUA COR ]
-              </span>
-              <div className="grid grid-cols-4 gap-2">
-                {CHAT_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      onSelectColor?.(c)
-                      setShowSettings(false)
-                    }}
-                    className={cn(
-                      'w-7 h-7 border transition-transform hover:scale-110 cursor-pointer relative',
-                      selectedColor === c ? 'border-slate-900 dark:border-white scale-110 shadow-md' : 'border-slate-300 dark:border-white/10'
-                    )}
-                    style={{ backgroundColor: c }}
-                  />
-                ))}
-              </div>
-            </div>
+        {/* Action buttons (Enquete & Color) */}
+        <div className="flex items-center gap-1.5">
+          {canCreatePoll && onOpenCreatePoll && (
+            <button
+              onClick={onOpenCreatePoll}
+              className="p-1 border border-slate-300 dark:border-[#222] hover:border-[#FFE600] text-[#FFE600] transition-colors cursor-pointer flex items-center gap-1 text-[9px] font-bold"
+              title="Iniciar nova enquete"
+            >
+              <BarChart2 className="w-3 h-3" />
+              <span>+ ENQUETE</span>
+            </button>
           )}
+
+          {/* Color Switcher Dropdown */}
+          <div className="relative" ref={settingsRef}>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-1 border border-slate-300 dark:border-[#222] hover:border-[#FF5A00] text-slate-600 dark:text-[#888] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1 text-[9px]"
+              title="Mudar cor do nome"
+            >
+              <Palette className="w-3 h-3 text-[#FF5A00]" />
+              <span>COR</span>
+            </button>
+
+
+            {showSettings && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#0C0C12] border-2 border-[#FF5A00] p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95">
+                <span className="text-[9px] font-bold text-slate-600 dark:text-[#888] uppercase block mb-2">
+                  [ ESCOLHA SUA COR ]
+                </span>
+                <div className="grid grid-cols-4 gap-2">
+                  {CHAT_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => {
+                        onSelectColor?.(c)
+                        setShowSettings(false)
+                      }}
+                      className={cn(
+                        'w-7 h-7 border transition-transform hover:scale-110 cursor-pointer relative',
+                        selectedColor === c ? 'border-slate-900 dark:border-white scale-110 shadow-md' : 'border-slate-300 dark:border-white/10'
+                      )}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   )
 }
+

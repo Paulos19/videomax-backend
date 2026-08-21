@@ -1,6 +1,4 @@
-'use client'
-
-import { Crown, Shield, UserPlus, Radio, UserMinus, Sparkles } from 'lucide-react'
+import { Crown, Shield, UserPlus, Radio, UserMinus, Sparkles, Mic } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Viewer } from '@/lib/useSocket'
@@ -11,6 +9,7 @@ interface ViewersPanelProps {
   currentUserRole?: 'host' | 'cohost' | 'viewer'
   isHostPro?: boolean
   hostPlan?: string
+  activeSpeakers?: Set<string>
   onInvite?: () => void
   onSyncAll?: () => void
   onChangeUserRole?: (targetUserId: string, newRole: 'host' | 'cohost' | 'viewer') => void
@@ -22,11 +21,13 @@ export function ViewersPanel({
   currentUserRole,
   isHostPro = true,
   hostPlan = 'MAXPRO',
+  activeSpeakers = new Set(),
   onInvite,
   onSyncAll,
   onChangeUserRole,
   onKickUser,
 }: ViewersPanelProps) {
+
   return (
     <div className="bg-white dark:bg-[#08080C] border border-slate-200 dark:border-[#1F1F28] p-4 flex-1 space-y-3 shadow-xs dark:shadow-sm h-full font-mono select-none transition-colors">
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#181822] pb-2">
@@ -55,6 +56,7 @@ export function ViewersPanel({
         {viewers.map((viewer, idx) => {
           const isHost = viewer.role === 'host'
           const isCoHost = viewer.role === 'cohost'
+          const isSpeaking = activeSpeakers.has(viewer.id)
 
           return (
             <Popover key={`${viewer.id}-${idx}`}>
@@ -65,6 +67,7 @@ export function ViewersPanel({
                   <div
                     className={cn(
                       'w-13 h-13 transition-all duration-300 relative group-hover:scale-105',
+                      isSpeaking && 'ring-2 ring-[#22C55E] shadow-[0_0_25px_rgba(34,197,94,0.8)] animate-pulse',
                       isHost
                         ? isHostPro
                           ? 'p-[2px] bg-gradient-to-tr from-[#FF9900] via-[#FFE600] to-[#FFF5A0] shadow-[0_0_20px_rgba(255,230,0,0.5),0_0_35px_rgba(255,153,0,0.25)]'
@@ -92,8 +95,14 @@ export function ViewersPanel({
                     </div>
                   </div>
 
-                  {/* Online Status LED */}
-                  <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#22C55E] ring-2 ring-[#08080C] shadow-[0_0_8px_#22C55E] z-20" />
+                  {/* Online Status LED & Speaking indicator */}
+                  {isSpeaking ? (
+                    <span className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-[#22C55E] ring-2 ring-[#08080C] shadow-[0_0_10px_#22C55E] z-20 flex items-center justify-center text-black">
+                      <Mic className="w-2.5 h-2.5 fill-black animate-bounce" />
+                    </span>
+                  ) : (
+                    <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#22C55E] ring-2 ring-[#08080C] shadow-[0_0_8px_#22C55E] z-20" />
+                  )}
 
                   {/* MAXPRO VIP Crown Badge */}
                   {isHost && (

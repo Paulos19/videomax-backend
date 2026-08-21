@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import io, { Socket } from 'socket.io-client'
-import { ChatMessage, PlayerStateData, RoomInfo, ChatReplyInfo, ChatPayload } from '@/types'
+import { ChatMessage, PlayerStateData, RoomInfo, ChatReplyInfo, ChatPayload, Poll, CreatePollPayload } from '@/types'
 import { toast } from 'sonner'
 
 const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'https://services-videomax-websocket.khdya3.easypanel.host/'
@@ -58,6 +58,7 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
   const [isBlocked, setIsBlocked] = useState(false)
   const [blockedReason, setBlockedReason] = useState<string | null>(null)
   const [blockedHostUserId, setBlockedHostUserId] = useState<string | null>(null)
+  const [activePoll, setActivePoll] = useState<Poll | null>(null)
   const userProfileRef = useRef<SocketUserProfile>({ chatColor: '#4f46e5', image: '' })
   const seenMessageIds = useRef(new Set<string>())
   const viewersRef = useRef<Viewer[]>([])
@@ -191,6 +192,9 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
         if (cancelled) return
         roomInfoRef.current = info
         setRoomInfo(info)
+        if (info.activePoll !== undefined) {
+          setActivePoll(info.activePoll)
+        }
         if (info.videoUrl) {
           setCurrentVideoUrl(info.videoUrl)
         }
@@ -357,6 +361,16 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
         toast.error(data.message || 'Você foi removido da sala pelo Host.')
       })
 
+      newSocket.on('poll-updated', (poll: Poll) => {
+        if (cancelled) return
+        setActivePoll(poll)
+      })
+
+      newSocket.on('poll-closed', ({ pollId }: { pollId: string }) => {
+        if (cancelled) return
+        setActivePoll((prev) => (prev && prev.id === pollId ? { ...prev, isClosed: true } : prev))
+      })
+
       newSocket.on('room-access-blocked', (data: { roomId: string; hostUserId?: string; message: string }) => {
         if (cancelled) return
         setIsBlocked(true)
@@ -482,6 +496,26 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     }
   }, [socket, roomId])
 
+  const createPoll = useCallback((payload: CreatePollPayload) => {
+    if (socket) {
+      socket.emit('poll-create', payload)
+      toast.success('Enquete iniciada!')
+    }
+  }, [socket])
+
+  const votePoll = useCallback((pollId: string, optionId: string) => {
+    if (socket) {
+      socket.emit('poll-vote', { pollId, optionId })
+    }
+  }, [socket])
+
+  const closePoll = useCallback((pollId: string) => {
+    if (socket) {
+      socket.emit('poll-close', { pollId })
+      toast.info('Enquete encerrada.')
+    }
+  }, [socket])
+
   return {
     socket,
     isConnected,
@@ -499,6 +533,7 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     isBlocked,
     blockedReason,
     blockedHostUserId,
+    activePoll,
     changeChatColor,
     sendMessage,
     syncPlayerState,
@@ -508,6 +543,10 @@ export function useSocket(roomId: string, initialHostUserId?: string) {
     rejectAccessRequest,
     reactToMessage,
     kickUser,
+    createPoll,
+    votePoll,
+    closePoll,
     currentUserId
   }
 }
+

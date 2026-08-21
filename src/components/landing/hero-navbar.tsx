@@ -211,62 +211,69 @@ export function HeroNavbar() {
         }`}
       >
         <UnverifiedEmailBanner />
-        <div className="w-full flex items-center justify-between">
+        <div className="w-full h-16 lg:h-[68px] flex items-center justify-between">
           
           {/* Logo - Brutalist Block */}
           <Link
             href="/"
-            className="flex items-center gap-3 group shrink-0 border-r border-slate-200 dark:border-[#222] px-6 lg:px-10 py-5 hover:bg-slate-100 dark:hover:bg-[#111] transition-colors h-full cursor-pointer"
+            className="flex items-center gap-2.5 sm:gap-3 group shrink-0 border-r border-slate-200 dark:border-[#222] px-4 lg:px-6 2xl:px-8 hover:bg-slate-100 dark:hover:bg-[#111] transition-colors h-full cursor-pointer"
           >
             <div className="w-6 h-6 bg-[#FF5A00] flex items-center justify-center transition-transform group-hover:skew-x-[-10deg]">
               <Play className="w-3 h-3 text-white dark:text-[#050505] fill-white dark:fill-[#050505] ml-0.5" />
             </div>
-            <span className="font-black text-xl tracking-tighter uppercase text-slate-900 dark:text-[#F5F5F5]">
+            <span className="font-black text-lg 2xl:text-xl tracking-tighter uppercase text-slate-900 dark:text-[#F5F5F5]">
               VIDEOMAX
             </span>
           </Link>
 
           {/* Center Links - Terminal Style */}
-          <nav className="hidden xl:flex items-center h-full">
+          <nav className="hidden xl:flex items-center h-full border-r border-slate-200 dark:border-[#222]">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href)}
-                className="text-[10px] font-mono font-bold text-slate-600 dark:text-[#A3A3A3] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111] px-6 py-6 border-r border-slate-200 dark:border-[#222] transition-colors tracking-widest cursor-pointer"
+                className="text-[10px] 2xl:text-[11px] font-mono font-bold text-slate-600 dark:text-[#A3A3A3] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111] px-4 2xl:px-6 h-full flex items-center border-r border-slate-200 dark:border-[#222] transition-colors tracking-widest cursor-pointer shrink-0"
               >
                 [{link.label}]
               </a>
             ))}
 
             {/* System Status Node */}
-            <div className="flex items-center gap-2 px-6 py-6 border-r border-slate-200 dark:border-[#222]">
+            <div className="flex items-center gap-2 px-4 2xl:px-6 h-full shrink-0">
               <span
                 className={`w-2 h-2 rounded-full ${
                   isConnected ? 'bg-[#22C55E] animate-pulse' : 'bg-[#EF2020]'
                 }`}
               />
-              <span className="text-[10px] font-mono text-slate-500 dark:text-[#5F5F5F] tracking-widest">
+              <span className="text-[10px] font-mono text-slate-500 dark:text-[#5F5F5F] tracking-widest whitespace-nowrap">
                 {isConnected ? `SYS_ONLINE: ${viewerCount}` : 'SYS_OFFLINE'}
               </span>
             </div>
           </nav>
 
+          {/* Decorative Middle Accent (Fills the space gracefully between nav and user section) */}
+          <div className="flex-1 hidden 2xl:flex items-center justify-center px-4 h-full pointer-events-none opacity-30 font-mono text-[9px] text-slate-400 dark:text-[#555] tracking-[0.25em] select-none">
+            <span>// P2P_WEBRTC_MESH_ENGINE //</span>
+          </div>
+
           {/* Right Section: Auth vs Special User Dropdown */}
-          <div className="flex items-center h-full ml-auto">
+          <div className="flex items-center h-full ml-auto shrink-0">
             {authStatus === 'authenticated' && user ? (
               // ── AUTHENTICATED USER DROPDOWN (MAXPRO SPECIAL) ────────
-              <div className="relative h-full" ref={dropdownRef}>
+              <div className="relative h-full flex items-center" ref={dropdownRef}>
                 <button
+                  type="button"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className={`flex items-center gap-3 px-5 lg:px-7 py-4.5 h-full border-l transition-all cursor-pointer group select-none ${
+                  className={`flex items-center gap-2.5 px-3.5 sm:px-5 2xl:px-7 h-full border-l border-r transition-all cursor-pointer group select-none ${
                     isPro
-                      ? 'border-[#FF5A00]/40 bg-gradient-to-r from-[#FF5A00]/5 to-[#1A1208] hover:from-[#FF5A00]/10 hover:to-[#22160A]'
-                      : 'border-[#222] hover:bg-[#111]'
+                      ? 'border-amber-300 dark:border-[#FF5A00]/40 bg-amber-500/5 dark:bg-gradient-to-r dark:from-[#FF5A00]/10 dark:to-[#1A1208] hover:bg-amber-500/10 dark:hover:from-[#FF5A00]/20 dark:hover:to-[#22160A]'
+                      : 'border-slate-200 dark:border-[#222] hover:bg-slate-100 dark:hover:bg-[#111]'
                   }`}
                 >
+
                   {/* Avatar Frame with special halo for MAXPRO */}
-                  <div className="relative">
+                  <div className="relative shrink-0">
                     {isPro && (
                       <div className="absolute -inset-1 rounded-sm bg-gradient-to-r from-[#FF5A00] via-[#FFE600] to-[#FF0055] opacity-75 blur-[3px] animate-pulse" />
                     )}
@@ -275,13 +282,13 @@ export function HeroNavbar() {
                       <img
                         src={user.image}
                         alt={user.name || 'User'}
-                        className={`relative w-8 h-8 rounded border object-cover ${
-                          isPro ? 'border-[#FFE600]' : 'border-[#333]'
+                        className={`relative w-7.5 h-7.5 rounded border object-cover ${
+                          isPro ? 'border-[#FFE600]' : 'border-slate-300 dark:border-[#333]'
                         }`}
                       />
                     ) : (
                       <div
-                        className={`relative w-8 h-8 rounded flex items-center justify-center font-mono font-black text-[11px] ${
+                        className={`relative w-7.5 h-7.5 rounded flex items-center justify-center font-mono font-black text-[10.5px] ${
                           isPro
                             ? 'bg-gradient-to-br from-[#FFE600] to-[#FF5A00] text-black shadow-[0_0_15px_rgba(255,90,0,0.5)]'
                             : 'bg-[#FF5A00] text-black'
@@ -290,36 +297,36 @@ export function HeroNavbar() {
                         {userInitials}
                       </div>
                     )}
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#22C55E] rounded-full border-2 border-[#050505] z-10" />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#22C55E] rounded-full border-2 border-white dark:border-[#050505] z-10" />
                   </div>
 
                   {/* Name & Plan Badge */}
-                  <div className="hidden sm:flex flex-col text-left">
-                    <div className="flex items-center gap-1.5">
+                  <div className="hidden sm:flex flex-col text-left min-w-0 max-w-[170px] lg:max-w-[210px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <span
-                        className={`text-[12px] font-mono font-bold uppercase truncate max-w-[130px] transition-colors ${
+                        className={`text-[11px] 2xl:text-[12px] font-mono font-bold uppercase truncate max-w-[90px] lg:max-w-[120px] 2xl:max-w-[140px] transition-colors ${
                           isPro
-                            ? 'text-[#FFF] group-hover:text-[#FFE600]'
-                            : 'text-white group-hover:text-[#FF5A00]'
+                            ? 'text-slate-900 dark:text-[#FFF] group-hover:text-amber-600 dark:group-hover:text-[#FFE600]'
+                            : 'text-slate-900 dark:text-white group-hover:text-[#FF5A00]'
                         }`}
                       >
                         {user.name || user.email?.split('@')[0]}
                       </span>
 
                       {isPro ? (
-                        <span className="text-[9px] font-mono font-black bg-gradient-to-r from-[#FFE600] to-[#FF5A00] text-black px-1.5 py-0.2 rounded-xs shadow-[0_0_10px_rgba(255,90,0,0.4)] flex items-center gap-0.5">
+                        <span className="text-[8.5px] 2xl:text-[9px] font-mono font-black bg-gradient-to-r from-[#FFE600] to-[#FF5A00] text-black px-1.5 py-0.5 rounded-xs shadow-[0_0_10px_rgba(255,90,0,0.4)] flex items-center gap-0.5 shrink-0">
                           <Crown className="w-2.5 h-2.5 fill-black" />
                           <span>MAXPRO</span>
                         </span>
                       ) : (
-                        <span className="text-[8px] font-mono font-bold bg-[#222] text-[#A3A3A3] px-1 rounded-xs">
+                        <span className="text-[8px] font-mono font-bold bg-slate-200 dark:bg-[#222] text-slate-700 dark:text-[#A3A3A3] px-1 rounded-xs shrink-0">
                           FREE
                         </span>
                       )}
                     </div>
-                    <span className="text-[9px] font-mono text-[#777] tracking-wider flex items-center gap-1">
+                    <span className="text-[8.5px] font-mono text-slate-500 dark:text-[#777] tracking-wider flex items-center gap-1">
                       {isPro ? (
-                        <span className="text-[#FFB800] font-bold">● MESH 6X ATIVO</span>
+                        <span className="text-amber-600 dark:text-[#FFB800] font-bold">● MESH 6X ATIVO</span>
                       ) : (
                         'CONECTADO'
                       )}
@@ -327,13 +334,14 @@ export function HeroNavbar() {
                   </div>
 
                   <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-200 ${
+                    className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
                       dropdownOpen
-                        ? `rotate-180 ${isPro ? 'text-[#FFE600]' : 'text-[#FF5A00]'}`
-                        : 'text-[#A3A3A3] group-hover:text-white'
+                        ? `rotate-180 ${isPro ? 'text-amber-500 dark:text-[#FFE600]' : 'text-[#FF5A00]'}`
+                        : 'text-slate-400 dark:text-[#A3A3A3] group-hover:text-slate-900 dark:group-hover:text-white'
                     }`}
                   />
                 </button>
+
 
                 {/* ── DROPDOWN MENU POPUP (SPECIAL 3D FOR MAXPRO) ── */}
                 <AnimatePresence>
@@ -537,20 +545,20 @@ export function HeroNavbar() {
             ) : (
               // ── GUEST VISITORS AUTH BUTTONS ──────────────────────
               <>
-                <div className="hidden md:flex items-center px-4 h-full border-l border-slate-200 dark:border-[#222]">
+                <div className="hidden md:flex items-center px-3 h-full border-l border-slate-200 dark:border-[#222]">
                   <ThemeToggle variant="compact" />
                 </div>
 
                 <Link
                   href="/login"
-                  className="hidden md:flex text-[10px] font-mono font-bold text-slate-800 dark:text-white hover:text-[#FF5A00] hover:bg-slate-100 dark:hover:bg-[#111] px-6 lg:px-8 py-6 transition-colors tracking-widest uppercase h-full items-center border-l border-slate-200 dark:border-[#222] cursor-pointer"
+                  className="hidden md:flex text-[10px] font-mono font-bold text-slate-800 dark:text-white hover:text-[#FF5A00] hover:bg-slate-100 dark:hover:bg-[#111] px-4 lg:px-6 transition-colors tracking-widest uppercase h-full items-center border-l border-slate-200 dark:border-[#222] cursor-pointer"
                 >
                   Entrar
                 </Link>
 
                 <Link
                   href="/register"
-                  className="hidden md:flex text-[11px] font-mono font-bold bg-slate-900 hover:bg-[#FF5A00] text-white hover:text-black dark:bg-[#F5F5F5] dark:hover:bg-[#FF5A00] dark:text-[#050505] dark:hover:text-[#050505] px-8 lg:px-10 py-6 transition-all tracking-widest uppercase h-full items-center cursor-pointer shadow-md"
+                  className="hidden md:flex text-[11px] font-mono font-bold bg-slate-900 hover:bg-[#FF5A00] text-white hover:text-black dark:bg-[#F5F5F5] dark:hover:bg-[#FF5A00] dark:text-[#050505] dark:hover:text-[#050505] px-5 lg:px-8 transition-all tracking-widest uppercase h-full items-center cursor-pointer shadow-md"
                 >
                   CRIAR CONTA
                 </Link>
@@ -559,7 +567,7 @@ export function HeroNavbar() {
 
             {/* If logged in on desktop, also show ThemeToggle */}
             {authStatus === 'authenticated' && user && (
-              <div className="hidden md:flex items-center px-3 h-full border-l border-slate-200 dark:border-[#222]">
+              <div className="hidden md:flex items-center px-3 h-full border-r border-slate-200 dark:border-[#222]">
                 <ThemeToggle variant="compact" />
               </div>
             )}
@@ -567,7 +575,7 @@ export function HeroNavbar() {
             {/* Mobile Toggle */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="w-16 flex xl:hidden items-center justify-center bg-slate-100 dark:bg-[#111] hover:bg-[#FF5A00] text-slate-900 dark:text-white hover:text-black transition-colors cursor-pointer border-l border-slate-200 dark:border-[#222] h-[68px]"
+              className="w-14 lg:w-16 flex xl:hidden items-center justify-center bg-slate-100 dark:bg-[#111] hover:bg-[#FF5A00] text-slate-900 dark:text-white hover:text-black transition-colors cursor-pointer border-l border-slate-200 dark:border-[#222] h-full"
               aria-label="Menu"
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -575,6 +583,7 @@ export function HeroNavbar() {
           </div>
         </div>
       </motion.header>
+
 
       {/* Mobile Drawer - Terminal Style */}
       {mobileOpen && (

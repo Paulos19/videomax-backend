@@ -31,6 +31,7 @@ interface RoomHeaderProps {
   maxViewers?: number
   isStreamingScreen?: boolean
   isLocalStreamer?: boolean
+  children?: React.ReactNode
   onBack?: () => void
   onChangeVideo?: () => void
   onToggleScreenShare?: () => void
@@ -38,6 +39,7 @@ interface RoomHeaderProps {
   onMore?: () => void
   onToggleChat?: () => void
 }
+
 
 export function RoomHeader({
   roomName,
@@ -50,6 +52,7 @@ export function RoomHeader({
   maxViewers = 2,
   isStreamingScreen = false,
   isLocalStreamer = false,
+  children,
   onBack,
   onChangeVideo,
   onToggleScreenShare,
@@ -98,53 +101,35 @@ export function RoomHeader({
             </div>
           )}
 
-          <span
-            className={cn(
-              'font-mono font-black text-base tracking-tighter uppercase hidden md:inline',
-              isHostPro
-                ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 dark:from-[#FFE600] dark:to-[#FF8A00]'
-                : 'text-slate-900 dark:text-white'
-            )}
-          >
-            VIDEOMAX
-          </span>
+          <div className="hidden sm:flex flex-col">
+            <span className="text-xs font-black text-slate-900 dark:text-white tracking-widest leading-none">
+              VIDEOMAX
+            </span>
+            <span className="text-[8px] font-bold text-[#FF5A00] tracking-tighter">
+              {isHostPro ? 'MAXPRO VIP' : 'STUDIO'}
+            </span>
+          </div>
         </div>
 
-        {/* Room Code Badge with Click-to-Copy */}
-        <button
+        {/* Room Code Pill */}
+        <div
           onClick={handleCopyCode}
-          className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-[#0E0E14] border border-slate-300 dark:border-[#222] hover:border-[#FF5A00] text-slate-900 dark:text-white font-mono text-xs font-black tracking-wider uppercase transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-[#0E0E14] border border-slate-200 dark:border-[#222] hover:border-[#FF5A00] cursor-pointer group transition-colors"
           title="Clique para copiar código da sala"
         >
-          <span>#{roomName}</span>
+          <span className="text-[10px] font-bold text-slate-500 dark:text-[#888] font-mono">SALA:</span>
+          <span className="text-xs font-black text-slate-900 dark:text-white font-mono tracking-wider group-hover:text-[#FF5A00] transition-colors">
+            #{roomName}
+          </span>
           {copied ? (
             <Check className="w-3 h-3 text-[#16A34A] dark:text-[#22C55E]" />
           ) : (
-            <Copy className="w-3 h-3 text-slate-400 dark:text-[#777] group-hover:text-slate-900 dark:group-hover:text-white" />
-          )}
-        </button>
-
-        {/* Host Plan Status Badge */}
-        <div
-          className={cn(
-            'hidden sm:flex items-center gap-1.5 px-2.5 py-1 border font-mono text-[10px] font-black uppercase tracking-wider transition-colors',
-            isHostPro
-              ? 'bg-amber-50 dark:bg-[#1E1408] border-amber-300 dark:border-[#FFE600]/60 text-amber-800 dark:text-[#FFE600] shadow-sm'
-              : 'bg-orange-50 dark:bg-[#150F08] border-orange-200 dark:border-[#FF5A00]/50 text-orange-600 dark:text-[#FF5A00]'
-          )}
-        >
-          {isHostPro ? (
-            <>
-              <Crown className="w-3 h-3 fill-current" />
-              <span>HOST MAXPRO VIP</span>
-            </>
-          ) : (
-            <span>HOST FREE</span>
+            <Copy className="w-3 h-3 text-slate-400 dark:text-[#666] group-hover:text-slate-700 dark:group-hover:text-[#AAA]" />
           )}
         </div>
 
-        {/* Capacity telemetry */}
-        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-[#0E0E14] border border-slate-200 dark:border-[#1F1F28] font-mono text-[10px] text-slate-600 dark:text-[#888] transition-colors">
+        {/* Live Viewers count pill */}
+        <div className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-slate-50 dark:bg-[#0E0E14] border border-slate-200 dark:border-[#222] text-[10px] font-mono text-slate-700 dark:text-[#AAA]">
           <Users className="w-3 h-3 text-[#FF5A00]" />
           <span>
             {viewerCount}/{maxViewers} NOS {isHostPro ? '(VIP)' : '(FREE)'}
@@ -155,6 +140,9 @@ export function RoomHeader({
       {/* ── Right section: Actions & Live State ─────────────────────── */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         
+        {/* Voice Chat Controls / Extra slots */}
+        {children}
+
         {/* Node Active indicator */}
         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-[#09090D] border border-slate-200 dark:border-[#1F1F28] font-mono text-[9px] text-slate-800 dark:text-white transition-colors">
           <span

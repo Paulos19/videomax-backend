@@ -104,6 +104,7 @@ function RoomPageContent() {
     isBlocked,
     blockedReason,
     blockedHostUserId,
+    activePoll,
     kickUser,
     sendMessage,
     syncPlayerState,
@@ -115,7 +116,11 @@ function RoomPageContent() {
     selectedColor,
     changeChatColor,
     reactToMessage,
+    createPoll,
+    votePoll,
+    closePoll,
   } = useSocket(roomId, hostUser?.id)
+
 
   // 0. Auto-sync initial video when entering newly created room with YouTube / upload link
   useEffect(() => {
@@ -603,10 +608,15 @@ function RoomPageContent() {
         onBack={() => router.push('/dashboard')}
         socket={socket}
         senderName={session?.user?.name || session?.user?.email || 'Um amigo'}
+        activePoll={activePoll}
+        onCreatePoll={createPoll}
+        onVotePoll={votePoll}
+        onClosePoll={closePoll}
       />
     </div>
   )
 }
+
 
 export default function RoomPage() {
   return (

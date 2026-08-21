@@ -1,11 +1,10 @@
-'use client'
-
 import { useRef, useEffect, useState } from 'react'
 import { ChatHeader } from './chat-header'
 import { ChatMessage } from './chat-message'
 import { ChatInput } from './chat-input'
 import { EmptyChat } from './empty-chat'
-import { ChatMessage as ChatMessageType, ChatReplyInfo } from '@/types'
+import { PollOverlay } from './poll-overlay'
+import { ChatMessage as ChatMessageType, ChatReplyInfo, Poll } from '@/types'
 import { Viewer } from '@/lib/useSocket'
 import { useSession } from 'next-auth/react'
 
@@ -16,6 +15,11 @@ interface ChatPanelProps {
   viewers: Viewer[]
   selectedColor?: string
   isPro?: boolean
+  activePoll?: Poll | null
+  canCreatePoll?: boolean
+  onOpenCreatePoll?: () => void
+  onVotePoll?: (pollId: string, optionId: string) => void
+  onClosePoll?: (pollId: string) => void
   onSelectColor?: (color: string) => void
   onSend: (
     message: string,
@@ -49,6 +53,11 @@ export function ChatPanel({
   viewers,
   selectedColor,
   isPro = false,
+  activePoll,
+  canCreatePoll = false,
+  onOpenCreatePoll,
+  onVotePoll,
+  onClosePoll,
   onSelectColor,
   onSend,
   onReact,
@@ -98,6 +107,8 @@ export function ChatPanel({
         viewerCount={viewerCount}
         viewers={headerViewers}
         selectedColor={selectedColor}
+        canCreatePoll={canCreatePoll}
+        onOpenCreatePoll={onOpenCreatePoll}
         onSelectColor={onSelectColor}
         onClose={onClose}
       />
@@ -107,7 +118,19 @@ export function ChatPanel({
         ref={scrollRef}
         className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-[#262633] scrollbar-track-transparent select-text"
       >
-        {messages.length === 0 ? (
+        {/* Active Poll Embedded at the Top of Chat */}
+        {activePoll && onVotePoll && onClosePoll && (
+          <PollOverlay
+            poll={activePoll}
+            currentUserId={currentUserId}
+            canManage={canCreatePoll}
+            onVote={onVotePoll}
+            onClosePoll={onClosePoll}
+            isInline
+          />
+        )}
+
+        {messages.length === 0 && !activePoll ? (
           <EmptyChat />
         ) : (
           messages.map((msg) => (
@@ -122,6 +145,7 @@ export function ChatPanel({
           ))
         )}
       </div>
+
 
       {/* Message Input Footer */}
       <ChatInput

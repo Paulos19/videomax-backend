@@ -1,6 +1,4 @@
-'use client'
-
-import { Activity, Play, Pause, FastForward, Rewind, Crown, Lock } from 'lucide-react'
+import { Activity, Play, Pause, FastForward, Rewind, Crown, Lock, Scissors } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface PlayerControlBarProps {
@@ -13,6 +11,7 @@ interface PlayerControlBarProps {
   onSeekForward?: () => void
   onNextVideo?: () => void
   onSyncAll?: () => void
+  onOpenClipMaker?: () => void
 }
 
 export function PlayerControlBar({
@@ -25,7 +24,9 @@ export function PlayerControlBar({
   onSeekForward,
   onNextVideo,
   onSyncAll,
+  onOpenClipMaker,
 }: PlayerControlBarProps) {
+
   const canControl = userRole === 'host' || userRole === 'cohost'
 
   return (
@@ -143,7 +144,26 @@ export function PlayerControlBar({
           </div>
         </button>
 
-        {/* 6. Modo de Controle Indicator */}
+        {/* 6. Criar Clipe */}
+        <button
+          onClick={onOpenClipMaker}
+          className="p-2.5 bg-slate-50 dark:bg-[#0E0E14] border border-slate-200 dark:border-[#262633] hover:border-[#FF5A00] hover:bg-slate-100 dark:hover:bg-[#151520] flex items-center gap-2.5 transition-all text-left cursor-pointer"
+          title="Criar e compartilhar clipe do momento com carimbo de tempo"
+        >
+          <div className="w-7 h-7 bg-orange-50 dark:bg-[#FF5A00]/20 border border-orange-200 dark:border-[#FF5A00]/40 flex items-center justify-center text-[#FF5A00] shrink-0">
+            <Scissors className="w-3.5 h-3.5" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase block truncate">
+              CRIAR CLIPE
+            </span>
+            <span className="text-[8px] text-[#FF5A00] font-bold uppercase block truncate">
+              MOMENTO
+            </span>
+          </div>
+        </button>
+
+        {/* 7. Modo de Controle Indicator */}
         <div className="p-2.5 bg-slate-50 dark:bg-[#09090D] border border-slate-200 dark:border-[#1F1F28] flex items-center gap-2.5">
           <div
             className={cn(
@@ -172,3 +192,4 @@ export function PlayerControlBar({
     </div>
   )
 }
+

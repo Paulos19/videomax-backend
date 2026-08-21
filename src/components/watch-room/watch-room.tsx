@@ -23,8 +23,13 @@ import { VideoInfo } from './video-info'
 import { ChatPanel } from './chat-panel'
 import { VideoSelectorModal } from './video-selector-modal'
 import { InviteFriendsModal } from './invite-friends-modal'
+import { PollCreatorModal } from './poll-creator-modal'
+import { PollOverlay } from './poll-overlay'
+import { ClipMakerModal } from './clip-maker-modal'
+import { VoiceChatControls } from './voice-chat-controls'
 import { useWebRTC } from '@/lib/useWebRTC'
-import { Video, ChatMessage, PlayerStateData, ChatReplyInfo } from '@/types'
+import { useVoiceChat } from '@/lib/useVoiceChat'
+import { Video, ChatMessage, PlayerStateData, ChatReplyInfo, Poll, CreatePollPayload } from '@/types'
 import { Viewer, PlayerActionNotice } from '@/lib/useSocket'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -70,6 +75,10 @@ interface WatchRoomProps {
   onCanPlay?: () => void
   socket?: Socket | null
   senderName?: string
+  activePoll?: Poll | null
+  onCreatePoll?: (payload: CreatePollPayload) => void
+  onVotePoll?: (pollId: string, optionId: string) => void
+  onClosePoll?: (pollId: string) => void
 }
 
 export function WatchRoom({
@@ -100,6 +109,10 @@ export function WatchRoom({
   onCanPlay,
   socket = null,
   senderName,
+  activePoll,
+  onCreatePoll,
+  onVotePoll,
+  onClosePoll,
 }: WatchRoomProps) {
   const [localVideoUrl, setLocalVideoUrl] = useState(socketVideoUrl || '')
   const [currentTitle, setCurrentTitle] = useState(propVideoTitle || 'Sessão de Vídeo')
@@ -109,6 +122,8 @@ export function WatchRoom({
   const [showChat, setShowChat] = useState(true)
   const [showVideoSelector, setShowVideoSelector] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [isPollCreatorOpen, setIsPollCreatorOpen] = useState(false)
+  const [isClipMakerOpen, setIsClipMakerOpen] = useState(false)
 
   const [activeMobileTab, setActiveMobileTab] = useState<'chat' | 'viewers' | 'info'>('chat')
 
@@ -138,6 +153,14 @@ export function WatchRoom({
     socket: socket ?? null,
     roomId,
     currentUserId,
+    viewers: viewers.map((v) => ({ id: v.id, name: v.name })),
+  })
+
+  const voiceChat = useVoiceChat({
+    socket: socket ?? null,
+    roomId,
+    currentUserId,
+    currentUserName: senderName || session?.user?.name || 'Usuário',
     viewers: viewers.map((v) => ({ id: v.id, name: v.name })),
   })
 
@@ -241,10 +264,11 @@ export function WatchRoom({
     const timeout = setTimeout(() => {
       isRemoteUpdateRef.current = false
       onRemotePlayerStateConsumed?.()
-    }, 100)
+    }, 350)
 
     return () => clearTimeout(timeout)
   }, [onRemotePlayerState, onRemotePlayerStateVersion, onRemotePlayerStateConsumed, localVideoUrl])
+
 
   // When video is ready to play, execute any pending remote play/pause/seek
   const handleVideoReady = useCallback(() => {
@@ -417,7 +441,26 @@ export function WatchRoom({
         onShare={() => setShowShareModal(true)}
         onToggleChat={() => setShowChat(!showChat)}
         onMore={() => setShowShareModal(true)}
-      />
+      >
+        {/* WebRTC Voice Chat Controls */}
+        <VoiceChatControls
+          isVoiceConnected={voiceChat.isVoiceConnected}
+          isMuted={voiceChat.isMuted}
+          isPushToTalk={voiceChat.isPushToTalk}
+          isPttActive={voiceChat.isPttActive}
+          isLocalSpeaking={voiceChat.isLocalSpeaking}
+          isAudioDuckingEnabled={voiceChat.isAudioDuckingEnabled}
+          duckingVolumeFactor={voiceChat.duckingVolumeFactor}
+          activeSpeakersCount={voiceChat.activeSpeakers.size}
+          remoteAudioStreams={voiceChat.remoteAudioStreams}
+          onJoinVoice={voiceChat.joinVoice}
+          onLeaveVoice={voiceChat.leaveVoice}
+          onToggleMute={voiceChat.toggleMute}
+          onTogglePushToTalk={voiceChat.togglePushToTalk}
+          onSetPttActive={voiceChat.setIsPttActive}
+          onToggleAudioDucking={voiceChat.toggleAudioDucking}
+        />
+      </RoomHeader>
 
       {/* Main Grid: Player Stage & Sidebar Chat */}
       <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-2 sm:p-3 lg:p-4 gap-2 sm:gap-3 lg:gap-4 overflow-hidden">
@@ -425,13 +468,14 @@ export function WatchRoom({
         {/* Left Column: Video Viewport, Control Bar, Viewers & VideoInfo */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden lg:overflow-y-auto pr-0 lg:pr-1 space-y-2 lg:space-y-3">
           
-          {/* 1. Video Player with 3D Standby Mode (Fixed aspect-ratio on mobile, full stage on desktop) */}
-          <div className="w-full shrink-0 aspect-video max-h-[220px] xs:max-h-[240px] sm:max-h-[280px] lg:max-h-none lg:h-[480px] xl:h-[540px]">
+          {/* 1. Video Player with 3D Standby Mode & Floating Poll */}
+          <div className="w-full shrink-0 aspect-video max-h-[220px] xs:max-h-[240px] sm:max-h-[280px] lg:max-h-none lg:h-[480px] xl:h-[540px] relative">
             <VideoPlayer
               ref={videoPlayerRef}
               src={localVideoUrl}
               canControl={canControl}
               isHostPro={isHostPro}
+              duckingVolumeFactor={voiceChat.duckingVolumeFactor}
               onPlay={handlePlay}
               onPause={handlePause}
               onSeek={handleSeek}
@@ -445,6 +489,17 @@ export function WatchRoom({
               onShareScreen={handleToggleScreenShare}
               onOpenLibrary={() => setShowVideoSelector(true)}
             />
+
+            {/* Floating Live Poll overlay over video */}
+            {activePoll && onVotePoll && onClosePoll && (
+              <PollOverlay
+                poll={activePoll}
+                currentUserId={currentUserId}
+                canManage={canControl}
+                onVote={onVotePoll}
+                onClosePoll={onClosePoll}
+              />
+            )}
           </div>
 
           {/* 2. Player Controls Bar (Desktop only - Mobile uses native player gestures) */}
@@ -462,6 +517,7 @@ export function WatchRoom({
               }
               onNextVideo={() => setShowVideoSelector(true)}
               onSyncAll={handleSyncAll}
+              onOpenClipMaker={() => setIsClipMakerOpen(true)}
             />
           </div>
 
@@ -526,6 +582,11 @@ export function WatchRoom({
                   viewers={viewers}
                   selectedColor={selectedColor}
                   isPro={isCurrentUserPro}
+                  activePoll={activePoll}
+                  canCreatePoll={canControl}
+                  onOpenCreatePoll={() => setIsPollCreatorOpen(true)}
+                  onVotePoll={onVotePoll}
+                  onClosePoll={onClosePoll}
                   onSelectColor={onSelectColor}
                   onSend={onSendMessage}
                   onReact={onReactMessage}
@@ -540,6 +601,7 @@ export function WatchRoom({
                   currentUserRole={userRole}
                   isHostPro={isHostPro}
                   hostPlan={hostPlan}
+                  activeSpeakers={voiceChat.activeSpeakers}
                   onSyncAll={handleSyncAll}
                   onChangeUserRole={onChangeUserRole}
                   onKickUser={onKickUser}
@@ -576,6 +638,7 @@ export function WatchRoom({
                   currentUserRole={userRole}
                   isHostPro={isHostPro}
                   hostPlan={hostPlan}
+                  activeSpeakers={voiceChat.activeSpeakers}
                   onSyncAll={handleSyncAll}
                   onChangeUserRole={onChangeUserRole}
                   onKickUser={onKickUser}
@@ -610,6 +673,11 @@ export function WatchRoom({
               viewers={viewers}
               selectedColor={selectedColor}
               isPro={isCurrentUserPro}
+              activePoll={activePoll}
+              canCreatePoll={canControl}
+              onOpenCreatePoll={() => setIsPollCreatorOpen(true)}
+              onVotePoll={onVotePoll}
+              onClosePoll={onClosePoll}
               onSelectColor={onSelectColor}
               onSend={onSendMessage}
               onReact={onReactMessage}
@@ -643,6 +711,25 @@ export function WatchRoom({
           onClose={() => setShowShareModal(false)}
         />
       )}
+
+      {/* Poll Creator Modal */}
+      <PollCreatorModal
+        isOpen={isPollCreatorOpen}
+        onClose={() => setIsPollCreatorOpen(false)}
+        onCreatePoll={onCreatePoll || (() => {})}
+      />
+
+      {/* Moment & Clip Maker Modal */}
+      <ClipMakerModal
+        isOpen={isClipMakerOpen}
+        onClose={() => setIsClipMakerOpen(false)}
+        roomId={roomId}
+        videoTitle={currentTitle}
+        currentTime={currentTime}
+        recentMessages={messages}
+        videoCoverUrl={localVideoUrl}
+      />
     </div>
   )
 }
+

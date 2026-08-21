@@ -30,6 +30,8 @@ export function getYouTubeThumbnail(url: string): string | null {
   return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
 }
 
+import { isGoogleDriveUrl, getGoogleDriveThumbnail } from './google-drive'
+
 /**
  * Get video cover image with fallbacks
  */
@@ -38,9 +40,14 @@ export function getVideoCover(url: string, fallbackPoster?: string): string {
     const thumb = getYouTubeThumbnail(url)
     if (thumb) return thumb
   }
+  if (isGoogleDriveUrl(url)) {
+    const driveThumb = getGoogleDriveThumbnail(url)
+    if (driveThumb) return driveThumb
+  }
   if (fallbackPoster) return fallbackPoster
   return 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?q=80&w=600&auto=format&fit=crop'
 }
+
 
 /**
  * Fetch YouTube video title & thumbnail via oEmbed
